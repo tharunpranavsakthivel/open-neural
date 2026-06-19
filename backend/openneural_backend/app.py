@@ -13,6 +13,7 @@ from openneural_backend import __version__
 from openneural_backend.db.init import initialize_database
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 from openneural_backend.routers import (
+    dashboard_router,
     evaluation_router,
     experiments_router,
     exports_router,
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(leaderboard_router, prefix=API_V1_PREFIX)
     app.include_router(exports_router, prefix=API_V1_PREFIX)
     app.include_router(stream_router, prefix=API_V1_PREFIX)
+    app.include_router(dashboard_router, prefix=API_V1_PREFIX)
 
     @app.get(f"{API_V1_PREFIX}/health", tags=["system"])
     def health_check() -> dict[str, str]:

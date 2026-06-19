@@ -3,6 +3,7 @@
 Contains FastAPI routers for all API endpoints organized by domain.
 """
 
+from openneural_backend.routers.dashboard import router as dashboard_router
 from openneural_backend.routers.evaluation import router as evaluation_router
 from openneural_backend.routers.experiments import router as experiments_router
 from openneural_backend.routers.exports import router as exports_router
@@ -21,4 +22,5 @@ __all__ = [
     "leaderboard_router",
     "exports_router",
     "stream_router",
+    "dashboard_router",
 ]
