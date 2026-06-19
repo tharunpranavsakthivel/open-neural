@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    // Target Node.js 20 with ES2022 support
+    "target": "ES2022",
+    // CommonJS output for Node.js/Electron compatibility
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    // Output configuration
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    // Strict type checking
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    // Module interoperability
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    // File handling
+    "skipLibCheck": true,
+    // Node.js-specific libraries
+    "lib": [
+      "ES2022"
+    ],
+    "types": [
+      "node",
+      "electron"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

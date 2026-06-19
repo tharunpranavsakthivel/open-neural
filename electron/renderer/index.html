@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  Static Electron renderer fallback for the OpenNeural shell.
+
+  The production renderer is provided by the frontend workspace. This file lets
+  the Electron workspace open a safe local page before bundling integration is
+  wired in later tasks.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenNeural</title>
+  </head>
+  <body>
+    <main>
+      <h1>OpenNeural</h1>
+      <p>Electron shell initialized.</p>
+    </main>
+  </body>
+</html>

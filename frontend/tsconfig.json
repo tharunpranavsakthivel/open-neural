@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    // TypeScript 5 + React 18 Configuration
+    // Target modern ES2022 for better performance and features
+    "target": "ES2022",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    // Module configuration for modern bundlers
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    // Enable allowJs for Vite config file
+    "allowJs": true,
+    // Strict mode enabled for type safety
+    "strict": true,
+    // Additional strictness flags for comprehensive type checking
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    // React JSX transform for React 18
+    "jsx": "react-jsx",
+    // Build and development settings
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    // Decorator support for potential future use
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    // Path mapping for clean imports
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@utils/*": ["src/utils/*"],
+      "@types/*": ["src/types/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": []
+}

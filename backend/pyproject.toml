@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openneural-backend"
+version = "0.1.0"
+description = "FastAPI ML service for the OpenNeural desktop application."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "OpenNeural Team"}
+]
+keywords = ["ml", "machine-learning", "fastapi", "local"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# All runtime dependencies are pinned in requirements.txt
+# These are the minimum versions for compatibility
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "numpy>=2.0.0",
+    "scikit-learn>=1.4.0",
+    "xgboost>=2.0.0",
+    "optuna>=4.1.0",
+    "joblib>=1.3.0",
+    "skl2onnx>=1.16.0",
+    "onnx>=1.17.0",
+    "onnxconverter-common>=1.14.0",
+    "reportlab>=4.0.0",
+    "bcrypt>=4.0.0",
+    "httpx>=0.27.0",
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+# CLI entry point for the backend service
+openneural-backend = "openneural_backend.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/openneural/openneural"
+Repository = "https://github.com/openneural/openneural"
+Documentation = "https://github.com/openneural/openneural#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["openneural_backend*"]
+exclude = ["test*"]
+
+[tool.setuptools.package-data]
+openneural_backend = ["py.typed"]
+
+# Tool configurations
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

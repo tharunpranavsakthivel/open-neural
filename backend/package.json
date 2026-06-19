@@ -1,0 +1,11 @@
+{
+  "name": "@openneural/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FastAPI ML service workspace for OpenNeural.",
+  "scripts": {
+    "dev": "python -m openneural_backend --host 127.0.0.1 --port 8000",
+    "build": "python -m compileall openneural_backend",
+    "test": "python -m unittest discover -s test"
+  }
+}

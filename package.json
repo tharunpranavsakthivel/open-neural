@@ -1,0 +1,38 @@
+{
+  "name": "open-neural",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first desktop ML experimentation application.",
+  "workspaces": [
+    "electron",
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install:python",
+    "install:python": "python3.11 -m venv .venv && . .venv/bin/activate && pip install -e backend",
+    "dev": "npm-run-all --parallel dev:*",
+    "dev:frontend": "npm run dev -w frontend",
+    "dev:electron": "npm run dev -w electron",
+    "dev:backend": "npm run dev -w backend",
+    "build": "npm-run-all build:frontend build:electron build:backend",
+    "build:frontend": "npm run build -w frontend",
+    "build:electron": "npm run build -w electron",
+    "build:backend": "npm run build -w backend",
+    "test": "npm run test --workspaces --if-present",
+    "test:frontend": "npm run test -w frontend",
+    "test:electron": "npm run test -w electron",
+    "test:backend": "npm run test -w backend",
+    "package": "npm run package -w electron",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "rm -rf node_modules .venv electron/node_modules frontend/node_modules backend/dist electron/dist frontend/dist",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
