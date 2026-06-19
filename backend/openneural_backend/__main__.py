@@ -14,6 +14,8 @@ import sys
 
 import uvicorn
 
+from openneural_backend.shutdown import register_shutdown_handlers
+
 
 def generate_secret() -> str:
     """Generate a cryptographically secure ephemeral secret.
@@ -116,6 +118,10 @@ def main() -> None:
     # This must happen before Uvicorn starts, as it blocks
     print(f"OPENNEURAL_PORT={port}", flush=True)
     print(f"OPENNEURAL_SECRET={ephemeral_secret}", flush=True)
+
+    # Register shutdown handlers for graceful termination
+    # This ensures running experiments are marked as interrupted on SIGTERM/SIGINT
+    register_shutdown_handlers(data_dir)
 
     # Run Uvicorn with the resolved port
     uvicorn.run(
