@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
-from openneural_backend.middleware import SecretAuthMiddleware
+from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 
 # API version prefix for all routes
 API_V1_PREFIX = "/api/v1"
@@ -44,6 +44,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add request logging middleware
+    # This logs every request to {data_dir}/logs/openneural_{date}.log
+    app.add_middleware(RequestLoggingMiddleware)
 
     # Add secret-based authentication middleware
     # This validates the X-OpenNeural-Secret header matches the ephemeral secret
