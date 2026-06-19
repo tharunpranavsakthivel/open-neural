@@ -30,6 +30,11 @@ import {
   isBackendRunning,
   isBackendStarting
 } from "./process-manager";
+import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
+import {
+  checkInterruptedExperiments,
+  type CrashCheckResult
+} from "./crash-recovery";
 
 /**
  * Ephemeral secret generated on each app start for backend authentication.
@@ -126,14 +131,21 @@ function configureSecurityHeaders(): void {
  * - allowRunningInsecureContent: false (blocks insecure mixed content)
  * - webSecurity: true (enforces same-origin policy)
  *
+ * Loads saved window state (size/position) from previous session if available.
+ *
  * @returns BrowserWindow instance used as the primary OpenNeural window.
  * @throws Electron may throw if the preload path cannot be resolved or a window
  * cannot be created by the host OS.
  */
 function createMainWindow(): BrowserWindow {
+  // Load saved window state or use defaults (Task 25)
+  const windowState = loadWindowState();
+
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
     minWidth: 960,
     minHeight: 640,
     webPreferences: {
@@ -144,6 +156,28 @@ function createMainWindow(): BrowserWindow {
       allowRunningInsecureContent: false,
       webSecurity: true
     }
+  });
+
+  // Restore maximized/fullscreen state if applicable (Task 25)
+  if (windowState.isMaximized) {
+    mainWindow.maximize();
+  }
+  if (windowState.isFullScreen) {
+    mainWindow.setFullScreen(true);
+  }
+
+  // Save window state on close (Task 25)
+  mainWindow.on("close", () => {
+    const bounds = mainWindow.getBounds();
+    const newState: WindowState = {
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      isMaximized: mainWindow.isMaximized(),
+      isFullScreen: mainWindow.isFullScreen()
+    };
+    saveWindowState(newState);
   });
 
   // Inject CSP meta tag into the loaded page
@@ -234,6 +268,21 @@ function registerIpcHandlers(): void {
    */
   ipcMain.handle("backend:get-port", () => {
     return getBackendPort();
+  });
+
+  // Crash Recovery handlers (Task 26)
+
+  /**
+   * Handler: crash-recovery:check-interrupted
+   * Checks for interrupted experiments that need recovery action.
+   *
+   * Called by the renderer after successful authentication to detect
+   * experiments that were interrupted by a crash or unexpected shutdown.
+   *
+   * @returns CrashCheckResult with list of interrupted experiments
+   */
+  ipcMain.handle("crash-recovery:check-interrupted", async (): Promise<CrashCheckResult> => {
+    return checkInterruptedExperiments();
   });
 
   // File dialog handlers (Task 20-21)

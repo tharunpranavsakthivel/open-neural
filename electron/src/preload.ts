@@ -116,6 +116,37 @@ export interface OpenNeuralElectronApi {
    * @returns Selected directory path, or null if cancelled
    */
   openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
+
+  // Crash Recovery APIs (Task 26)
+
+  /**
+   * Check for interrupted experiments that need recovery action.
+   *
+   * Called after successful authentication to detect experiments
+   * that were interrupted by a crash or unexpected shutdown.
+   *
+   * @returns CrashCheckResult with list of interrupted experiments
+   */
+  checkInterruptedExperiments(): Promise<{
+    success: boolean;
+    error?: string;
+    interruptedExperiments: Array<{
+      id: string;
+      experiment_id_human: string;
+      project_id: string;
+      project_name?: string;
+      status: "interrupted";
+      created_at: string;
+      started_at?: string;
+      best_model_type?: string;
+      metrics?: {
+        f1?: number;
+        auc_roc?: number;
+        precision?: number;
+        recall?: number;
+      };
+    }>;
+  }>;
 }
 
 /**
@@ -143,7 +174,11 @@ const electronApi: OpenNeuralElectronApi = {
   openFileDialog: (options?: { multiSelections?: boolean; title?: string }) =>
     ipcRenderer.invoke("dialog:open-file", options),
   openDirectoryDialog: (options?: { title?: string }) =>
-    ipcRenderer.invoke("dialog:open-directory", options)
+    ipcRenderer.invoke("dialog:open-directory", options),
+
+  // Crash Recovery APIs (Task 26)
+  checkInterruptedExperiments: () =>
+    ipcRenderer.invoke("crash-recovery:check-interrupted")
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronApi);
