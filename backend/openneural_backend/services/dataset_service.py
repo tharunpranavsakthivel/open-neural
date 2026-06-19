@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import psutil
 import pyarrow.parquet as pq
 from fastapi import UploadFile
 from sqlalchemy import func, select
@@ -498,6 +499,14 @@ async def import_file(
             project.updated_at = datetime.utcnow()
             await session.commit()
 
+            # Memory usage projection per SRS NFR-PERF-06
+            # Estimate peak training RAM as file_size * 8 (heuristic for pandas + sklearn overhead)
+            projected_ram_bytes = file_size * 8
+            available_ram_bytes = psutil.virtual_memory().available
+            ram_threshold = available_ram_bytes * 0.75
+
+            memory_warning = projected_ram_bytes > ram_threshold
+
             return {
                 "id": snapshot.id,
                 "version_label": snapshot.version_label,
@@ -511,6 +520,15 @@ async def import_file(
                 "warning": (
                     "File size exceeds 500 MB. Training may take longer and use significant memory."
                     if file_size > WARNING_FILE_SIZE_BYTES
+                    else None
+                ),
+                "memory_warning": memory_warning,
+                "memory_warning_message": (
+                    "Dataset is projected to consume more than 75% of available system RAM during training. "
+                    f"Consider using a smaller dataset or sampling. "
+                    f"(Projected: {projected_ram_bytes / (1024**3):.1f} GB, "
+                    f"Available: {available_ram_bytes / (1024**3):.1f} GB)"
+                    if memory_warning
                     else None
                 ),
             }
