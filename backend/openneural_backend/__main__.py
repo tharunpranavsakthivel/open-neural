@@ -9,6 +9,7 @@ Importing this module has no side effects until main() is called.
 import argparse
 import os
 import socket
+import sys
 
 import uvicorn
 
@@ -69,10 +70,20 @@ def main() -> None:
         None: The function blocks until Uvicorn exits.
 
     Raises:
-        SystemExit: Raised by argparse for invalid CLI arguments.
+        SystemExit: Raised by argparse for invalid CLI arguments or invalid host.
         RuntimeError: Propagated by Uvicorn startup failures or port binding issues.
     """
     args = build_parser().parse_args()
+
+    # Validate that the app binds exclusively to localhost (refuse 0.0.0.0)
+    # This is a security requirement to prevent external network access
+    if args.host in ("0.0.0.0", "::", "::0"):
+        print(
+            f"Error: Binding to '{args.host}' is not allowed. "
+            "OpenNeural must bind to 127.0.0.1 (localhost) only.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Resolve and set the data directory environment variable
     data_dir = os.path.expanduser(args.data_dir)
