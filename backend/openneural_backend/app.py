@@ -4,10 +4,13 @@ Exports create_app(), which builds the ASGI application used by Uvicorn. The
 module depends on FastAPI and performs no network binding by itself.
 """
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
+from openneural_backend.db.migrations import ensure_database_schema
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 from openneural_backend.routers import (
     evaluation_router,
@@ -22,6 +25,9 @@ from openneural_backend.routers import (
 
 # API version prefix for all routes
 API_V1_PREFIX = "/api/v1"
+
+# Logger for startup events
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -84,6 +90,21 @@ def create_app() -> FastAPI:
             No application-level exceptions are expected.
         """
         return {"status": "ok", "version": __version__}
+
+    # Register startup event handler for database migrations
+    @app.on_event("startup")
+    async def on_startup() -> None:
+        """Run database migrations on application startup.
+
+        Ensures the database schema is up-to-date before serving requests.
+        This runs automatically when the application starts.
+
+        Raises:
+            RuntimeError: If migrations fail to run.
+        """
+        logger.info("Running startup tasks...")
+        ensure_database_schema()
+        logger.info("Startup tasks completed.")
 
     return app
 

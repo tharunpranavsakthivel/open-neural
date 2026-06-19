@@ -1,7 +1,7 @@
 """Database module for OpenNeural backend.
 
-Provides database engine, session management, ORM models, and connection handling
-for the SQLite backend.
+Provides database engine, session management, ORM models, migrations, and
+connection handling for the SQLite backend.
 
 Exports:
     engine: The async SQLAlchemy engine instance.
@@ -19,6 +19,8 @@ Exports:
     Evaluation: Evaluation results model.
     SubgroupAnalysis: Subgroup analysis model.
     Export: Export artifact model.
+    ensure_database_schema: Run database migrations on startup.
+    run_migrations: Low-level migration execution function.
 """
 
 from openneural_backend.db.engine import (
@@ -26,6 +28,10 @@ from openneural_backend.db.engine import (
     async_session,
     engine,
     init_connection,
+)
+from openneural_backend.db.migrations import (
+    ensure_database_schema,
+    run_migrations,
 )
 from openneural_backend.db.models import (
     Auth,
@@ -57,4 +63,6 @@ __all__ = [
     "Evaluation",
     "SubgroupAnalysis",
     "Export",
+    "ensure_database_schema",
+    "run_migrations",
 ]
