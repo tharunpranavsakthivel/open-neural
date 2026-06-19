@@ -20,8 +20,16 @@ import {
   validatePassword,
   validateSetupPassword,
   storePassword,
-  changePassword
+  changePassword,
+  getDataDir
 } from "./auth";
+import {
+  startBackend,
+  stopBackend,
+  getBackendPort,
+  isBackendRunning,
+  isBackendStarting
+} from "./process-manager";
 
 /**
  * Ephemeral secret generated on each app start for backend authentication.
@@ -217,9 +225,19 @@ function registerIpcHandlers(): void {
       return changePassword(currentPassword, newPassword);
     }
   );
+
+  // Backend Process handlers (Task 18-19)
+
+  /**
+   * Handler: backend:get-port
+   * Returns the current backend port, or null if not yet available.
+   */
+  ipcMain.handle("backend:get-port", () => {
+    return getBackendPort();
+  });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Generate ephemeral secret on every app start (Task 17)
   // This 256-bit random value is injected into the Python backend
   // via the OPENNEURAL_SECRET environment variable
@@ -232,6 +250,20 @@ app.whenReady().then(() => {
   // Register IPC handlers before creating windows
   registerIpcHandlers();
 
+  // Start Python backend subprocess (Task 18)
+  // Spawned with ephemeral secret and data directory
+  const dataDir = getDataDir();
+  console.log("Starting Python backend...");
+  console.log(`Data directory: ${dataDir}`);
+
+  const backendResult = await startBackend(dataDir, ephemeralSecret);
+  if (backendResult.success) {
+    console.log(`Python backend started on port ${backendResult.port}`);
+  } else {
+    console.error("Failed to start Python backend:", backendResult.error);
+    // Continue anyway - the app can show an error state in the UI
+  }
+
   createMainWindow();
 
   app.on("activate", () => {
@@ -243,6 +275,26 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
+
+// Graceful shutdown: stop Python backend before quitting (Task 22)
+app.on("before-quit", async (event) => {
+  if (isBackendRunning() || isBackendStarting()) {
+    console.log("Stopping Python backend...");
+    // Prevent immediate quit
+    event.preventDefault();
+
+    // Stop the backend with 5 second timeout
+    const stopped = await stopBackend(5000);
+    if (stopped) {
+      console.log("Python backend stopped gracefully");
+    } else {
+      console.warn("Python backend required SIGKILL");
+    }
+
+    // Now quit
     app.quit();
   }
 });

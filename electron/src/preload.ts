@@ -83,6 +83,15 @@ export interface OpenNeuralElectronApi {
    * @returns AuthResult indicating success or failure
    */
   changePassword(currentPassword: string, newPassword: string): Promise<AuthResult>;
+
+  // Backend Process APIs (Task 18-19)
+
+  /**
+   * Get the backend port for API communication.
+   * Returns null if the backend hasn't started yet.
+   * @returns The backend port number, or null if not available
+   */
+  getBackendPort(): Promise<number | null>;
 }
 
 /**
@@ -101,7 +110,10 @@ const electronApi: OpenNeuralElectronApi = {
     ipcRenderer.invoke("auth:validate-setup-password", password, confirmPassword),
   storePassword: (password: string) => ipcRenderer.invoke("auth:store-password", password),
   changePassword: (currentPassword: string, newPassword: string) =>
-    ipcRenderer.invoke("auth:change-password", currentPassword, newPassword)
+    ipcRenderer.invoke("auth:change-password", currentPassword, newPassword),
+
+  // Backend Process APIs
+  getBackendPort: () => ipcRenderer.invoke("backend:get-port")
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronApi);
