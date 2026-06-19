@@ -8,10 +8,23 @@ Importing this module has no side effects until main() is called.
 
 import argparse
 import os
+import secrets
 import socket
 import sys
 
 import uvicorn
+
+
+def generate_secret() -> str:
+    """Generate a cryptographically secure ephemeral secret.
+
+    Returns:
+        str: A URL-safe random secret string suitable for authentication.
+
+    Raises:
+        No exceptions are expected.
+    """
+    return secrets.token_urlsafe(32)
 
 
 def find_free_port() -> int:
@@ -94,9 +107,15 @@ def main() -> None:
     if port == 0:
         port = find_free_port()
 
-    # Print the port for the parent process to parse
+    # Generate and set the ephemeral secret for authentication
+    # This is passed via environment variable so the middleware can validate requests
+    ephemeral_secret = generate_secret()
+    os.environ["OPENNEURAL_SECRET"] = ephemeral_secret
+
+    # Print the port and secret for the parent process to parse
     # This must happen before Uvicorn starts, as it blocks
     print(f"OPENNEURAL_PORT={port}", flush=True)
+    print(f"OPENNEURAL_SECRET={ephemeral_secret}", flush=True)
 
     # Run Uvicorn with the resolved port
     uvicorn.run(
