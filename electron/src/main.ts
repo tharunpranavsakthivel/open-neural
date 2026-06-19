@@ -13,6 +13,7 @@
  * - CSP via headers: Prevents inline scripts and external resource loading
  */
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { app, BrowserWindow, session, ipcMain } from "electron";
 import {
   checkAuthState,
@@ -21,6 +22,48 @@ import {
   storePassword,
   changePassword
 } from "./auth";
+
+/**
+ * Ephemeral secret generated on each app start for backend authentication.
+ *
+ * This cryptographically random 32-byte hex string is injected into the
+ * Python backend subprocess as the OPENNEURAL_SECRET environment variable.
+ * The backend uses this to validate all incoming HTTP requests via the
+ * X-OpenNeural-Secret header (Task 29, TDD §5.1).
+ *
+ * Security properties:
+ * - 256 bits of entropy (32 bytes hex = 256 bits)
+ * - Generated fresh on every app start
+ * - Never persisted to disk
+ * - Only shared with the backend via environment variable
+ * - Main process can expose this to renderer via IPC for API calls
+ */
+let EPHEMERAL_SECRET: string | null = null;
+
+/**
+ * Generates a cryptographically secure random hex string.
+ *
+ * @param byteLength - Number of random bytes to generate (default: 32)
+ * @returns Hex-encoded string (2 hex chars per byte)
+ */
+function generateEphemeralSecret(byteLength: number = 32): string {
+  return randomBytes(byteLength).toString("hex");
+}
+
+/**
+ * Returns the ephemeral secret, generating it if needed.
+ *
+ * This is called by the Python process manager when spawning the backend
+ * and by IPC handlers that need to provide it to the renderer.
+ *
+ * @returns The 64-character hex ephemeral secret
+ */
+export function getEphemeralSecret(): string {
+  if (EPHEMERAL_SECRET === null) {
+    EPHEMERAL_SECRET = generateEphemeralSecret(32);
+  }
+  return EPHEMERAL_SECRET;
+}
 
 /**
  * Content Security Policy string preventing inline scripts and external
@@ -177,6 +220,12 @@ function registerIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  // Generate ephemeral secret on every app start (Task 17)
+  // This 256-bit random value is injected into the Python backend
+  // via the OPENNEURAL_SECRET environment variable
+  const ephemeralSecret = getEphemeralSecret();
+  process.env.OPENNEURAL_SECRET = ephemeralSecret;
+
   // Configure security headers before creating windows
   configureSecurityHeaders();
 
