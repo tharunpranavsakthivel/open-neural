@@ -9,6 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
+from openneural_backend.routers import (
+    evaluation_router,
+    experiments_router,
+    exports_router,
+    leaderboard_router,
+    pipelines_router,
+    projects_router,
+    snapshots_router,
+    stream_router,
+)
 
 # API version prefix for all routes
 API_V1_PREFIX = "/api/v1"
@@ -52,6 +62,16 @@ def create_app() -> FastAPI:
     # Add secret-based authentication middleware
     # This validates the X-OpenNeural-Secret header matches the ephemeral secret
     app.add_middleware(SecretAuthMiddleware)
+
+    # Register all API routers
+    app.include_router(projects_router, prefix=API_V1_PREFIX)
+    app.include_router(snapshots_router, prefix=API_V1_PREFIX)
+    app.include_router(pipelines_router, prefix=API_V1_PREFIX)
+    app.include_router(experiments_router, prefix=API_V1_PREFIX)
+    app.include_router(evaluation_router, prefix=API_V1_PREFIX)
+    app.include_router(leaderboard_router, prefix=API_V1_PREFIX)
+    app.include_router(exports_router, prefix=API_V1_PREFIX)
+    app.include_router(stream_router, prefix=API_V1_PREFIX)
 
     @app.get(f"{API_V1_PREFIX}/health", tags=["system"])
     def health_check() -> dict[str, str]:
