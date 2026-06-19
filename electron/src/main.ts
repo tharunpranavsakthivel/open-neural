@@ -14,7 +14,7 @@
  */
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { app, BrowserWindow, session, ipcMain } from "electron";
+import { app, BrowserWindow, session, ipcMain, dialog } from "electron";
 import {
   checkAuthState,
   validatePassword,
@@ -234,6 +234,72 @@ function registerIpcHandlers(): void {
    */
   ipcMain.handle("backend:get-port", () => {
     return getBackendPort();
+  });
+
+  // File dialog handlers (Task 20-21)
+
+  /**
+   * Handler: dialog:open-file
+   * Opens a file dialog for CSV/Parquet file selection.
+   *
+   * Returns the selected file path(s) or null if cancelled.
+   * Supports both single and multi-selection via options.
+   */
+  ipcMain.handle(
+    "dialog:open-file",
+    async (_event, options: { multiSelections?: boolean; title?: string } = {}) => {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: options.title ?? "Select Dataset File",
+        properties: [
+          "openFile",
+          ...(options.multiSelections ? ["multiSelections" as const] : [])
+        ],
+        filters: [
+          {
+            name: "Dataset Files",
+            extensions: ["csv", "parquet"]
+          },
+          {
+            name: "CSV Files",
+            extensions: ["csv"]
+          },
+          {
+            name: "Parquet Files",
+            extensions: ["parquet"]
+          },
+          {
+            name: "All Files",
+            extensions: ["*"]
+          }
+        ]
+      });
+
+      if (canceled || filePaths.length === 0) {
+        return null;
+      }
+
+      // Return single path or array based on multiSelections option
+      return options.multiSelections ? filePaths : filePaths[0];
+    }
+  );
+
+  /**
+   * Handler: dialog:open-directory
+   * Opens a directory dialog for selecting export destination.
+   *
+   * Returns the selected directory path or null if cancelled.
+   */
+  ipcMain.handle("dialog:open-directory", async (_event, options: { title?: string } = {}) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: options.title ?? "Select Export Directory",
+      properties: ["openDirectory", "createDirectory"]
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+
+    return filePaths[0];
   });
 }
 

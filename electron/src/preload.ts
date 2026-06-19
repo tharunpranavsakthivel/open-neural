@@ -92,6 +92,30 @@ export interface OpenNeuralElectronApi {
    * @returns The backend port number, or null if not available
    */
   getBackendPort(): Promise<number | null>;
+
+  // File Dialog APIs (Task 20-21)
+
+  /**
+   * Open a file dialog for CSV/Parquet file selection.
+   *
+   * @param options - Dialog options
+   * @param options.multiSelections - Allow selecting multiple files
+   * @param options.title - Custom dialog title
+   * @returns Selected file path(s), or null if cancelled
+   */
+  openFileDialog(options?: {
+    multiSelections?: boolean;
+    title?: string;
+  }): Promise<string | string[] | null>;
+
+  /**
+   * Open a directory dialog for export destination selection.
+   *
+   * @param options - Dialog options
+   * @param options.title - Custom dialog title
+   * @returns Selected directory path, or null if cancelled
+   */
+  openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
 }
 
 /**
@@ -113,7 +137,13 @@ const electronApi: OpenNeuralElectronApi = {
     ipcRenderer.invoke("auth:change-password", currentPassword, newPassword),
 
   // Backend Process APIs
-  getBackendPort: () => ipcRenderer.invoke("backend:get-port")
+  getBackendPort: () => ipcRenderer.invoke("backend:get-port"),
+
+  // File Dialog APIs
+  openFileDialog: (options?: { multiSelections?: boolean; title?: string }) =>
+    ipcRenderer.invoke("dialog:open-file", options),
+  openDirectoryDialog: (options?: { title?: string }) =>
+    ipcRenderer.invoke("dialog:open-directory", options)
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronApi);
