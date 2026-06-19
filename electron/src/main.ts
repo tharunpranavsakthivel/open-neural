@@ -13,7 +13,14 @@
  * - CSP via headers: Prevents inline scripts and external resource loading
  */
 import path from "node:path";
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, session, ipcMain } from "electron";
+import {
+  checkAuthState,
+  validatePassword,
+  validateSetupPassword,
+  storePassword,
+  changePassword
+} from "./auth";
 
 /**
  * Content Security Policy string preventing inline scripts and external
@@ -110,9 +117,71 @@ function createMainWindow(): BrowserWindow {
   return mainWindow;
 }
 
+/**
+ * Register all IPC handlers for the main process.
+ *
+ * These handlers are invoked by the renderer via preload.ts using
+ * ipcRenderer.invoke. They provide privileged access to:
+ * - Authentication (bcrypt validation against SQLite)
+ * - File system dialogs
+ * - Backend process management
+ */
+function registerIpcHandlers(): void {
+  // Auth handlers (Task 16)
+
+  /**
+   * Handler: auth:check-state
+   * Checks if this is the first launch by verifying if auth record exists.
+   */
+  ipcMain.handle("auth:check-state", async () => {
+    return checkAuthState();
+  });
+
+  /**
+   * Handler: auth:validate-password
+   * Validates a password against the stored bcrypt hash.
+   */
+  ipcMain.handle("auth:validate-password", async (_event, password: string) => {
+    return validatePassword(password);
+  });
+
+  /**
+   * Handler: auth:validate-setup-password
+   * Validates a new password during first-time setup.
+   */
+  ipcMain.handle(
+    "auth:validate-setup-password",
+    async (_event, password: string, confirmPassword: string) => {
+      return validateSetupPassword(password, confirmPassword);
+    }
+  );
+
+  /**
+   * Handler: auth:store-password
+   * Stores a password hash in the database during first-time setup.
+   */
+  ipcMain.handle("auth:store-password", async (_event, password: string) => {
+    return storePassword(password);
+  });
+
+  /**
+   * Handler: auth:change-password
+   * Changes the existing password after validating the current one.
+   */
+  ipcMain.handle(
+    "auth:change-password",
+    async (_event, currentPassword: string, newPassword: string) => {
+      return changePassword(currentPassword, newPassword);
+    }
+  );
+}
+
 app.whenReady().then(() => {
   // Configure security headers before creating windows
   configureSecurityHeaders();
+
+  // Register IPC handlers before creating windows
+  registerIpcHandlers();
 
   createMainWindow();
 

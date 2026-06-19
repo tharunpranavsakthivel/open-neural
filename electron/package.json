@@ -14,8 +14,13 @@
     "package:linux": "electron-builder --linux --config electron-builder.config.js",
     "postinstall": "electron-builder install-app-deps"
   },
-  "dependencies": {},
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "better-sqlite3": "^11.0.0"
+  },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/better-sqlite3": "^7.6.10",
     "@types/node": "20.14.10",
     "electron": "30.1.2",
     "electron-builder": "24.13.3",
