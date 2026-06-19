@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
-from openneural_backend.db.migrations import ensure_database_schema
+from openneural_backend.db.init import initialize_database
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 from openneural_backend.routers import (
     evaluation_router,
@@ -91,19 +91,23 @@ def create_app() -> FastAPI:
         """
         return {"status": "ok", "version": __version__}
 
-    # Register startup event handler for database migrations
+    # Register startup event handler for database initialization
     @app.on_event("startup")
     async def on_startup() -> None:
-        """Run database migrations on application startup.
+        """Initialize database on application startup.
 
-        Ensures the database schema is up-to-date before serving requests.
+        Performs full database initialization:
+        1. Ensures data directories exist
+        2. Applies pending Alembic migrations
+        3. Verifies WAL mode is active
+
         This runs automatically when the application starts.
 
         Raises:
-            RuntimeError: If migrations fail to run.
+            RuntimeError: If initialization fails.
         """
         logger.info("Running startup tasks...")
-        ensure_database_schema()
+        await initialize_database()
         logger.info("Startup tasks completed.")
 
     return app
