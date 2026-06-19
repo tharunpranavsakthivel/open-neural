@@ -564,11 +564,11 @@ async def get_snapshots(project_id: str) -> list[dict[str, Any]]:
         if project_result.scalar_one_or_none() is None:
             raise ProjectNotFoundError(project_id)
 
-        # Query snapshots
+        # Query snapshots - order by created_at ASC (oldest first per SRS FR-DATA-09)
         stmt = (
             select(DatasetSnapshot)
             .where(DatasetSnapshot.project_id == project_id)
-            .order_by(DatasetSnapshot.created_at.desc())
+            .order_by(DatasetSnapshot.created_at.asc())
         )
         result = await session.execute(stmt)
         snapshots = result.scalars().all()
@@ -577,6 +577,7 @@ async def get_snapshots(project_id: str) -> list[dict[str, Any]]:
             {
                 "id": snap.id,
                 "version_label": snap.version_label,
+                "file_name": snap.file_name,
                 "row_count": snap.row_count,
                 "created_at": snap.created_at.isoformat(),
             }

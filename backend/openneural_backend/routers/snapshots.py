@@ -53,12 +53,14 @@ class SnapshotListResponse(BaseModel):
     Attributes:
         id: UUID of the snapshot.
         version_label: Human-readable version label.
+        file_name: Original file name.
         row_count: Number of rows in the dataset.
         created_at: ISO-formatted timestamp.
     """
 
     id: str
     version_label: str
+    file_name: str
     row_count: int
     created_at: str
 
@@ -126,15 +128,15 @@ async def create_snapshot(
     summary="List all snapshots for a project",
     description="""
     Retrieve a list of all dataset snapshots for the specified project.
-    Results are ordered by creation time (newest first).
+    Results are ordered by creation time (oldest first).
     """,
 )
 async def list_snapshots(project_id: str) -> list[dict]:
     """List all snapshots for a project.
 
     Returns a list of snapshot summaries ordered by creation time
-    (newest first). Each snapshot includes id, version_label, row_count,
-    and created_at.
+    (oldest first). Each snapshot includes id, version_label, file_name,
+    row_count, and created_at.
 
     Args:
         project_id: The UUID of the project.
