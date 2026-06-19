@@ -16,6 +16,7 @@ Exposes:
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import uuid
@@ -427,13 +428,28 @@ async def import_file(
             profile = profile_dataset(df)
 
             # Compute the next version label for this project
+            # Query the maximum version_label to ensure monotonic assignment
+            # even if snapshots are deleted (count-based would reuse numbers)
             version_stmt = (
-                select(func.count(DatasetSnapshot.id))
+                select(DatasetSnapshot.version_label)
                 .where(DatasetSnapshot.project_id == project_id)
+                .order_by(DatasetSnapshot.version_label.desc())
             )
             version_result = await session.execute(version_stmt)
-            snapshot_count = version_result.scalar() or 0
-            version_label = f"Snapshot v{snapshot_count + 1}"
+            existing_labels = version_result.scalars().all()
+
+            # Find the highest version number from existing labels
+            max_version = 0
+            for label in existing_labels:
+                # Parse version label like "Snapshot v5" to extract the number
+                match = re.match(r"Snapshot v(\d+)", label)
+                if match:
+                    version_num = int(match.group(1))
+                    if version_num > max_version:
+                        max_version = version_num
+
+            # Assign the next version label
+            version_label = f"Snapshot v{max_version + 1}"
 
             # Generate snapshot ID and create directory structure
             snapshot_id = str(uuid.uuid4())
