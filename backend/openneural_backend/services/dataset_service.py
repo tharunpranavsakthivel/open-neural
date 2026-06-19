@@ -149,7 +149,13 @@ def infer_schema(df: pd.DataFrame) -> list[dict[str, Any]]:
 def _infer_column_type(col_data: pd.Series) -> str:
     """Infer the OpenNeural type for a column.
 
-    Maps pandas dtypes to OpenNeural type categories.
+    Maps pandas dtypes to OpenNeural type categories. Uses a hierarchical
+    detection approach to handle various Python/pandas dtype mappings:
+    - boolean: bool dtype, or boolean extension dtype
+    - categorical: CategoricalDtype, or object/string with low cardinality
+    - integer: int8, int16, int32, int64, uint8, uint16, uint32, uint64, Int64 (nullable)
+    - float: float16, float32, float64, Float64 (nullable)
+    - string: object, string, datetime, or other types
 
     Args:
         col_data: The pandas Series to analyze.
@@ -158,28 +164,61 @@ def _infer_column_type(col_data: pd.Series) -> str:
         str: One of: "string", "integer", "float", "categorical", "boolean".
     """
     dtype = col_data.dtype
+    dtype_name = str(dtype).lower()
 
-    # Check for boolean first
+    # Check for boolean dtype - handle both primitive bool and nullable boolean
     if pd.api.types.is_bool_dtype(dtype):
         return "boolean"
 
-    # Check for categorical
+    # Check for nullable boolean extension types (pandas 2.0+)
+    if dtype_name in ("boolean", "bool"):
+        return "boolean"
+
+    # Check for categorical dtype
     if isinstance(dtype, pd.CategoricalDtype) or pd.api.types.is_categorical_dtype(dtype):
         return "categorical"
 
-    # Check for integer
+    # Check for integer dtype - includes nullable integer extension types
+    # e.g., int8, int16, int32, int64, uint8, uint16, uint32, uint64, Int8, Int16, Int32, Int64
     if pd.api.types.is_integer_dtype(dtype):
         return "integer"
 
-    # Check for float
+    # Check for float dtype - includes nullable float extension types
+    # e.g., float16, float32, float64, Float32, Float64
     if pd.api.types.is_float_dtype(dtype):
         return "float"
 
-    # Check for datetime
+    # Check for datetime/timedelta types - store as string for MVP
     if pd.api.types.is_datetime64_any_dtype(dtype):
-        return "string"  # Store datetimes as strings for MVP
+        return "string"
+    if pd.api.types.is_timedelta64_dtype(dtype):
+        return "string"
 
-    # Default to string
+    # For object dtype, analyze the data to determine if it could be categorical
+    if pd.api.types.is_object_dtype(dtype):
+        # Check if it's actually a boolean stored as object (e.g., [True, False, None])
+        non_null = col_data.dropna()
+        if len(non_null) > 0:
+            # Check if all values are boolean-like
+            if non_null.apply(lambda x: isinstance(x, bool)).all():
+                return "boolean"
+
+        # Check for string type (pandas string extension dtype)
+        if hasattr(pd, "StringDtype") and isinstance(dtype, pd.StringDtype):
+            return "string"
+
+        # For object columns with low cardinality, could be categorical
+        # Use unique ratio heuristic: < 10% unique values suggests categorical
+        total_count = len(col_data)
+        unique_count = col_data.nunique(dropna=True)
+        if total_count > 0 and (unique_count / total_count) < 0.1 and unique_count <= 100:
+            return "categorical"
+
+    # For string dtype (pandas 2.0+ StringDtype)
+    if hasattr(pd, "StringDtype") and isinstance(dtype, pd.StringDtype):
+        return "string"
+
+    # Default to string for all other types (object, complex, etc.)
     return "string"
 
 
