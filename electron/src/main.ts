@@ -346,13 +346,23 @@ app.on("window-all-closed", () => {
 });
 
 // Graceful shutdown: stop Python backend before quitting (Task 22)
+// Track if we're in the process of quitting to prevent infinite loops
+let isGracefulQuitting = false;
+
 app.on("before-quit", async (event) => {
+  // If we're already in the graceful quit flow, let it proceed
+  if (isGracefulQuitting) {
+    return;
+  }
+
   if (isBackendRunning() || isBackendStarting()) {
     console.log("Stopping Python backend...");
-    // Prevent immediate quit
+    // Prevent immediate quit while we handle graceful shutdown
     event.preventDefault();
+    isGracefulQuitting = true;
 
-    // Stop the backend with 5 second timeout
+    // Stop the backend with 5 second timeout, sending SIGTERM first,
+    // then SIGKILL if the process hasn't exited after the timeout (Task 22)
     const stopped = await stopBackend(5000);
     if (stopped) {
       console.log("Python backend stopped gracefully");
@@ -360,7 +370,7 @@ app.on("before-quit", async (event) => {
       console.warn("Python backend required SIGKILL");
     }
 
-    // Now quit
+    // Now quit - the isGracefulQuitting flag prevents recursion
     app.quit();
   }
 });
