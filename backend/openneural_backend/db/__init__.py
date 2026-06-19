@@ -1,7 +1,7 @@
 """Database module for OpenNeural backend.
 
 Provides database engine, session management, ORM models, migrations,
-initialization, and connection handling for the SQLite backend.
+initialization, transactions, and connection handling for the SQLite backend.
 
 Exports:
     engine: The async SQLAlchemy engine instance.
@@ -12,6 +12,11 @@ Exports:
     ensure_data_directories: Create required data directories.
     apply_database_migrations: Apply Alembic migrations.
     verify_wal_mode: Verify SQLite WAL mode is active.
+    atomic_transaction: Context manager for atomic database transactions.
+    atomic_transaction_with_result: Transaction context with session persistence.
+    atomic: Decorator to wrap functions in atomic transactions.
+    service_method: Decorator for service class methods with transactions.
+    with_transaction: Convenience function to execute operations in transactions.
     Base: Declarative base class for ORM models.
     SchemaMigration: Schema migration tracking model.
     Auth: Authentication model.
@@ -52,6 +57,13 @@ from openneural_backend.db.models import (
     SchemaMigration,
     SubgroupAnalysis,
 )
+from openneural_backend.db.transaction import (
+    atomic,
+    atomic_transaction,
+    atomic_transaction_with_result,
+    service_method,
+    with_transaction,
+)
 
 __all__ = [
     "engine",
@@ -62,6 +74,11 @@ __all__ = [
     "ensure_data_directories",
     "apply_database_migrations",
     "verify_wal_mode",
+    "atomic_transaction",
+    "atomic_transaction_with_result",
+    "atomic",
+    "service_method",
+    "with_transaction",
     "Base",
     "SchemaMigration",
     "Auth",
