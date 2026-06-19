@@ -17,6 +17,7 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -283,6 +284,17 @@ async def import_file(
     Handles CSV and Parquet files, validates size limits, infers schema,
     computes checksums, and stores the file in managed storage.
 
+    The ingestion process:
+    1. Save uploaded file to a temporary location
+    2. Compute SHA-256 checksum on the temporary file
+    3. Parse file into DataFrame (CSV or Parquet)
+    4. Infer schema and profile the dataset
+    5. Create snapshot directory structure
+    6. Convert DataFrame to Parquet and write to final location
+    7. Set file permissions to 0o600 (owner read/write only)
+    8. Write schema to schema.json
+    9. Create database record for the snapshot
+
     Args:
         project_id: The UUID of the project to associate with the snapshot.
         upload_file: The uploaded file from FastAPI UploadFile.
@@ -312,24 +324,10 @@ async def import_file(
         if project is None:
             raise ProjectNotFoundError(project_id)
 
-        # Validate file exists and get size
+        # Validate file exists
         if not upload_file.file:
             raise DatasetImportError("No file provided")
 
-        # Get file size by reading content
-        content = await upload_file.read()
-        file_size = len(content)
-
-        if file_size == 0:
-            raise DatasetImportError("File is empty")
-
-        if file_size > MAX_FILE_SIZE_BYTES:
-            raise DatasetImportError(
-                f"File size ({file_size} bytes) exceeds maximum allowed size "
-                f"({MAX_FILE_SIZE_BYTES} bytes = 2 GB)"
-            )
-
-        # Determine file format from content type or filename
         filename = upload_file.filename or "unknown"
         file_ext = Path(filename).suffix.lower()
 
@@ -338,82 +336,134 @@ async def import_file(
                 f"Unsupported file format: {file_ext}. Supported formats: .csv, .parquet"
             )
 
+        # Create temporary file to store uploaded content
+        temp_file_path = None
         try:
+            # Create a temporary file with appropriate suffix
+            with tempfile.NamedTemporaryFile(
+                suffix=file_ext,
+                delete=False,
+                mode="wb",
+            ) as temp_file:
+                temp_file_path = temp_file.name
+
+                # Read and write content in chunks to handle large files efficiently
+                file_size = 0
+                chunk_size = 8 * 1024 * 1024  # 8MB chunks
+
+                while True:
+                    chunk = await upload_file.read(chunk_size)
+                    if not chunk:
+                        break
+                    file_size += len(chunk)
+
+                    # Check size limit while reading
+                    if file_size > MAX_FILE_SIZE_BYTES:
+                        raise DatasetImportError(
+                            f"File size ({file_size} bytes) exceeds maximum allowed size "
+                            f"({MAX_FILE_SIZE_BYTES} bytes = 2 GB)"
+                        )
+
+                    temp_file.write(chunk)
+
+            if file_size == 0:
+                raise DatasetImportError("File is empty")
+
+            # Compute SHA-256 checksum on the temporary file
+            checksum = compute_checksum(temp_file_path)
+
             # Parse the file into a DataFrame
-            if file_ext == ".csv":
-                df = pd.read_csv(pd.io.common.BytesIO(content))
-            else:  # .parquet
-                df = pd.read_parquet(pd.io.common.BytesIO(content))
-        except Exception as e:
-            raise DatasetImportError(f"Failed to parse file: {str(e)}")
+            try:
+                if file_ext == ".csv":
+                    df = pd.read_csv(temp_file_path)
+                else:  # .parquet
+                    df = pd.read_parquet(temp_file_path)
+            except Exception as e:
+                raise DatasetImportError(f"Failed to parse file: {str(e)}")
 
-        # Compute the next version label for this project
-        version_stmt = (
-            select(func.count(DatasetSnapshot.id))
-            .where(DatasetSnapshot.project_id == project_id)
-        )
-        version_result = await session.execute(version_stmt)
-        snapshot_count = version_result.scalar() or 0
-        version_label = f"Snapshot v{snapshot_count + 1}"
+            # Infer schema
+            schema = infer_schema(df)
 
-        # Generate snapshot ID and paths
-        snapshot_id = str(uuid.uuid4())
-        snapshots_dir = Settings.get().data_dir / "snapshots" / snapshot_id
-        snapshots_dir.mkdir(parents=True, exist_ok=True)
+            # Profile dataset
+            profile = profile_dataset(df)
 
-        # Store as Parquet for internal consistency
-        stored_path = snapshots_dir / "data.parquet"
-        df.to_parquet(stored_path, index=False)
+            # Compute the next version label for this project
+            version_stmt = (
+                select(func.count(DatasetSnapshot.id))
+                .where(DatasetSnapshot.project_id == project_id)
+            )
+            version_result = await session.execute(version_stmt)
+            snapshot_count = version_result.scalar() or 0
+            version_label = f"Snapshot v{snapshot_count + 1}"
 
-        # Compute checksum of the stored file
-        checksum = compute_checksum(stored_path)
+            # Generate snapshot ID and create directory structure
+            snapshot_id = str(uuid.uuid4())
+            snapshots_dir = Settings.get().data_dir / "snapshots" / snapshot_id
+            snapshots_dir.mkdir(parents=True, exist_ok=True)
 
-        # Infer schema
-        schema = infer_schema(df)
+            # Define paths for stored files
+            stored_path = snapshots_dir / "data.parquet"
+            schema_path = snapshots_dir / "schema.json"
 
-        # Profile dataset
-        profile = profile_dataset(df)
+            # Convert DataFrame to Parquet and write to final location
+            df.to_parquet(stored_path, index=False)
 
-        # Create snapshot record
-        snapshot = DatasetSnapshot(
-            id=snapshot_id,
-            project_id=project_id,
-            version_label=version_label,
-            original_path=filename,
-            stored_path=str(stored_path),
-            file_name=filename,
-            file_size_bytes=file_size,
-            row_count=profile["row_count"],
-            col_count=profile["col_count"],
-            schema_json=json.dumps(schema),
-            checksum_sha256=checksum,
-            created_at=datetime.utcnow(),
-        )
+            # Set file permissions to 0o600 (owner read/write only, no group/other access)
+            # Per SRS NFR-SEC-03: snapshot files must be stored with restricted permissions
+            os.chmod(stored_path, 0o600)
 
-        session.add(snapshot)
-        await session.commit()
-        await session.refresh(snapshot)
+            # Write inferred schema to schema.json
+            with open(schema_path, "w", encoding="utf-8") as schema_file:
+                json.dump(schema, schema_file, indent=2)
 
-        # Update project updated_at timestamp
-        project.updated_at = datetime.utcnow()
-        await session.commit()
+            # Set permissions on schema.json as well
+            os.chmod(schema_path, 0o600)
 
-        return {
-            "id": snapshot.id,
-            "version_label": snapshot.version_label,
-            "file_name": snapshot.file_name,
-            "file_size_bytes": snapshot.file_size_bytes,
-            "row_count": snapshot.row_count,
-            "col_count": snapshot.col_count,
-            "schema": schema,
-            "checksum_sha256": snapshot.checksum_sha256,
-            "created_at": snapshot.created_at.isoformat(),
-            "warning": (
-                "File size exceeds 500 MB. Training may take longer and use significant memory."
-                if file_size > WARNING_FILE_SIZE_BYTES
-                else None
-            ),
-        }
+            # Create snapshot record
+            snapshot = DatasetSnapshot(
+                id=snapshot_id,
+                project_id=project_id,
+                version_label=version_label,
+                original_path=filename,
+                stored_path=str(stored_path),
+                file_name=filename,
+                file_size_bytes=file_size,
+                row_count=profile["row_count"],
+                col_count=profile["col_count"],
+                schema_json=json.dumps(schema),
+                checksum_sha256=checksum,
+                created_at=datetime.utcnow(),
+            )
+
+            session.add(snapshot)
+            await session.commit()
+            await session.refresh(snapshot)
+
+            # Update project updated_at timestamp
+            project.updated_at = datetime.utcnow()
+            await session.commit()
+
+            return {
+                "id": snapshot.id,
+                "version_label": snapshot.version_label,
+                "file_name": snapshot.file_name,
+                "file_size_bytes": snapshot.file_size_bytes,
+                "row_count": snapshot.row_count,
+                "col_count": snapshot.col_count,
+                "schema": schema,
+                "checksum_sha256": snapshot.checksum_sha256,
+                "created_at": snapshot.created_at.isoformat(),
+                "warning": (
+                    "File size exceeds 500 MB. Training may take longer and use significant memory."
+                    if file_size > WARNING_FILE_SIZE_BYTES
+                    else None
+                ),
+            }
+
+        finally:
+            # Clean up temporary file if it exists
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
 
 
 async def get_snapshots(project_id: str) -> list[dict[str, Any]]:
