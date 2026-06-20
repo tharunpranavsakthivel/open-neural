@@ -59,6 +59,61 @@ METRIC_FUNCTIONS = {
 }
 
 
+def _save_predictions(
+    y_test: pd.Series,
+    y_pred: np.ndarray,
+    y_pred_proba: np.ndarray | None,
+    experiment_id: str,
+    run_id: str,
+    data_dir: str,
+) -> None:
+    """Save test-set predictions to a Parquet file.
+
+    Stores y_true, y_pred, and y_proba (if available) in a Parquet file
+    under {data_dir}/experiments/{experiment_id}/runs/{run_id}/predictions.parquet.
+    This enables fast threshold adjustment without re-running model inference.
+
+    Args:
+        y_test: True target values (y_true).
+        y_pred: Predicted target values.
+        y_pred_proba: Predicted probabilities (for classification), or None.
+        experiment_id: The experiment UUID.
+        run_id: The run UUID.
+        data_dir: Path to the data directory.
+    """
+    try:
+        # Build the predictions file path
+        # Per Task 106: {data_dir}/experiments/{experiment_id}/runs/{run_id}/predictions.parquet
+        predictions_dir = Path(data_dir) / "experiments" / experiment_id / "runs" / run_id
+        predictions_dir.mkdir(parents=True, exist_ok=True)
+        predictions_path = predictions_dir / "predictions.parquet"
+
+        # Create DataFrame with predictions
+        predictions_df = pd.DataFrame({
+            "y_true": y_test.values if hasattr(y_test, "values") else y_test,
+            "y_pred": y_pred,
+        })
+
+        # Add probability column for classification
+        if y_pred_proba is not None:
+            # For binary classification, store positive class probability
+            if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] == 2:
+                predictions_df["y_proba"] = y_pred_proba[:, 1]
+            elif len(y_pred_proba.shape) == 1:
+                predictions_df["y_proba"] = y_pred_proba
+            else:
+                # Multi-class: store as list in each row
+                predictions_df["y_proba"] = list(y_pred_proba)
+
+        # Save to Parquet
+        predictions_df.to_parquet(predictions_path, index=False)
+
+        logger.info(f"Saved predictions to {predictions_path}")
+    except Exception as e:
+        # Log error but don't fail the training
+        logger.warning(f"Failed to save predictions: {e}")
+
+
 def _compute_test_metrics(
     y_true: pd.Series,
     y_pred: pd.Series,
@@ -117,6 +172,9 @@ def _run_optuna_study(
     max_trials: int,
     metric: str,
     task_type: str,
+    experiment_id: str = "",
+    run_id: str = "",
+    data_dir: str = "",
 ) -> Dict[str, Any]:
     """Run a single Optuna study for a candidate model.
 
@@ -132,6 +190,9 @@ def _run_optuna_study(
         max_trials: Maximum Optuna trials.
         metric: Optimization metric.
         task_type: "classification" or "regression".
+        experiment_id: Experiment ID for saving predictions (optional).
+        run_id: Run ID for saving predictions (optional).
+        data_dir: Data directory path for saving predictions (optional).
 
     Returns:
         dict: Study results containing best_params, cv_metrics, test_metrics, etc.
@@ -175,6 +236,18 @@ def _run_optuna_study(
         pd.DataFrame(y_pred_proba) if y_pred_proba is not None else None,
         task_type, metric,
     )
+
+    # Save predictions to Parquet file for threshold adjustment
+    # Per Task 106: Store test-set predictions for fast threshold queries
+    if data_dir and experiment_id and run_id:
+        _save_predictions(
+            y_test=y_test,
+            y_pred=y_pred,
+            y_pred_proba=y_pred_proba,
+            experiment_id=experiment_id,
+            run_id=run_id,
+            data_dir=data_dir,
+        )
 
     # Cross-validation metrics from best trial
     cv_metrics = {
@@ -425,6 +498,13 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
         """Run a single study and track completion."""
         nonlocal best_run_id, best_test_score
 
+        # Get run_id for this model
+        run_id = run_records[model_key]
+
+        # Get data_dir from config
+        from openneural_backend.config import Settings
+        data_dir = str(Settings.get().data_dir)
+
         loop = asyncio.get_event_loop()
         with ProcessPoolExecutor(max_workers=1) as executor:
             future = loop.run_in_executor(
@@ -439,6 +519,9 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 max_trials,
                 optimize_metric,
                 task_type,
+                experiment_id,
+                run_id,
+                data_dir,
             )
 
             try:
