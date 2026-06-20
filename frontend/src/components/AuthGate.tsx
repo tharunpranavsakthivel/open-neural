@@ -11,7 +11,7 @@
 import { useEffect } from "react";
 import { useAppStore } from "../stores/appStore";
 import { PasswordSetup } from "../screens/PasswordSetup";
-import { LoginScreen } from "./LoginScreen";
+import { LoginScreen } from "../screens/LoginScreen";
 import { AppShell } from "./AppShell";
 import { Toast } from "./Toast";
 
