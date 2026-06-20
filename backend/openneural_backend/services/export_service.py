@@ -346,7 +346,7 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
 async def export_model_joblib(run_id: str, dest_dir: str | Path) -> dict[str, Any]:
     """Export model in joblib format.
 
-    Exports the joblib-serialized model artifact from a run to the specified destination.
+    Copies model.joblib from the run artifact directory to the specified destination.
     Per SRS FR-EXP-01: joblib export is available for all models as a fallback.
 
     Args:
@@ -364,7 +364,7 @@ async def export_model_joblib(run_id: str, dest_dir: str | Path) -> dict[str, An
 
     Raises:
         RunNotFoundError: If the run does not exist.
-        ArtifactNotFoundError: If the joblib artifact is not available for this run.
+        ArtifactNotFoundError: If the model.joblib artifact is not available.
         ExportError: If the export fails due to I/O or permission issues.
     """
     dest_path = Path(dest_dir).expanduser().resolve()
@@ -372,17 +372,16 @@ async def export_model_joblib(run_id: str, dest_dir: str | Path) -> dict[str, An
     try:
         run, experiment = await _get_run_and_experiment(run_id)
 
-        # Check if joblib artifact exists
-        if not run.artifact_model_jlib:
-            raise ArtifactNotFoundError(run_id, "joblib")
+        # Get run directory for model artifact
+        run_dir = _get_run_dir(experiment.id, run_id)
+        model_path = run_dir / "model.joblib"
 
-        source_path = Path(run.artifact_model_jlib)
-        if not source_path.exists():
-            raise ArtifactNotFoundError(run_id, "joblib")
+        if not model_path.exists():
+            raise ArtifactNotFoundError(run_id, "model.joblib")
 
-        # Copy file to destination
-        dest_file = dest_path / f"{run.model_type}_{run_id[:8]}.joblib"
-        file_size, checksum = _copy_with_checksum(source_path, dest_file)
+        # Copy file to destination: {dest_dir}/{model_type}.joblib
+        dest_file = dest_path / f"{run.model_type}.joblib"
+        file_size, checksum = _copy_with_checksum(model_path, dest_file)
 
         # Create export record
         await _create_export_record(experiment.id, "model_joblib", dest_file)
