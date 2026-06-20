@@ -15,6 +15,7 @@ from openneural_backend.pipeline.blocks.fill_missing import (
     FillMissingMeanBlock,
     FillMissingMedianBlock,
 )
+from openneural_backend.pipeline.blocks.log_transform import LogTransformBlock, LogTransformer
 from openneural_backend.pipeline.blocks.scale_numerics import (
     ScaleNumericMinMaxBlock,
     ScaleNumericStandardBlock,
@@ -27,6 +28,8 @@ __all__ = [
     "EncodeCategoricalsOrdinalBlock",
     "FillMissingMeanBlock",
     "FillMissingMedianBlock",
+    "LogTransformBlock",
+    "LogTransformer",
     "ScaleNumericMinMaxBlock",
     "ScaleNumericStandardBlock",
 ]
