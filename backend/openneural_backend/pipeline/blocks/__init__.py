@@ -16,6 +16,10 @@ from openneural_backend.pipeline.blocks.fill_missing import (
     FillMissingMedianBlock,
 )
 from openneural_backend.pipeline.blocks.log_transform import LogTransformBlock, LogTransformer
+from openneural_backend.pipeline.blocks.remove_outliers import (
+    RemoveOutliersIQRBlock,
+    RemoveOutliersIQRTransformer,
+)
 from openneural_backend.pipeline.blocks.scale_numerics import (
     ScaleNumericMinMaxBlock,
     ScaleNumericStandardBlock,
@@ -30,6 +34,8 @@ __all__ = [
     "FillMissingMedianBlock",
     "LogTransformBlock",
     "LogTransformer",
+    "RemoveOutliersIQRBlock",
+    "RemoveOutliersIQRTransformer",
     "ScaleNumericMinMaxBlock",
     "ScaleNumericStandardBlock",
 ]
