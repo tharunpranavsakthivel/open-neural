@@ -16,7 +16,11 @@ from sqlalchemy import select
 
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import Auth
-from openneural_backend.services.auth_service import hash_password
+from openneural_backend.services.auth_service import (
+    AuthenticationError,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -81,6 +85,54 @@ class AuthStatusResponse(BaseModel):
     """
 
     configured: bool
+
+
+class AuthVerifyRequest(BaseModel):
+    """Request body for password verification.
+
+    Attributes:
+        password: The plain-text password to verify.
+    """
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "password": "my_password",
+                }
+            ]
+        }
+    }
+
+    password: str = Field(..., description="The password to verify")
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        """Validate that the password is not empty.
+
+        Args:
+            v: The password string to validate.
+
+        Returns:
+            str: The validated password string.
+
+        Raises:
+            ValueError: If the password is empty.
+        """
+        if not v or not v.strip():
+            raise ValueError("Password cannot be empty")
+        return v
+
+
+class AuthVerifyResponse(BaseModel):
+    """Response body for password verification.
+
+    Attributes:
+        valid: Whether the password is valid.
+    """
+
+    valid: bool
 
 
 async def is_auth_configured() -> bool:
@@ -221,4 +273,64 @@ async def auth_status() -> AuthStatusResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to check auth status: {str(e)}",
+        )
+
+
+@router.post(
+    "/verify",
+    response_model=AuthVerifyResponse,
+    responses={
+        400: {"description": "Invalid password"},
+        401: {"description": "Authentication failed"},
+        500: {"description": "Internal server error"},
+    },
+)
+async def auth_verify(request: AuthVerifyRequest) -> AuthVerifyResponse:
+    """Verify a password against the stored bcrypt hash.
+
+    This endpoint validates the provided password against the stored bcrypt
+    hash in the database. It is used by the Electron main process during
+    session authentication before spawning the backend.
+
+    Note: According to TDD §5.1, the Electron main process should
+    ideally validate the password directly against SQLite using better-sqlite3
+    rather than calling this endpoint. This endpoint is provided as an
+    alternative for scenarios where direct database access is not available.
+
+    Args:
+        request: The verify request containing the password to check.
+
+    Returns:
+        AuthVerifyResponse: Object containing the valid boolean.
+
+    Raises:
+        HTTPException: 400 for invalid password, 401 if authentication fails,
+            500 for unexpected errors.
+    """
+    try:
+        # Get the stored hash
+        stored_hash = await get_auth_hash()
+
+        if not stored_hash:
+            # No auth record exists
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication not configured",
+            )
+
+        # Verify the password
+        verify_password(request.password, stored_hash)
+
+        return AuthVerifyResponse(valid=True)
+    except AuthenticationError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify password: {str(e)}",
         )

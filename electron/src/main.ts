@@ -244,9 +244,32 @@ function registerIpcHandlers(): void {
   /**
    * Handler: auth:store-password
    * Stores a password hash in the database during first-time setup.
+   * After successful storage, starts the Python backend.
    */
   ipcMain.handle("auth:store-password", async (_event, password: string) => {
-    return storePassword(password);
+    const result = await storePassword(password);
+
+    // After successful password storage, start the Python backend
+    // This is needed for first launch when the backend wasn't started yet
+    if (result.success) {
+      const ephemeralSecret = getEphemeralSecret();
+      const dataDir = getDataDir();
+
+      console.log("Password stored successfully, starting Python backend...");
+      const backendResult = await startBackend(dataDir, ephemeralSecret);
+
+      if (backendResult.success) {
+        console.log(`Python backend started on port ${backendResult.port}`);
+      } else {
+        console.error("Failed to start Python backend:", backendResult.error);
+        return {
+          success: false,
+          error: `Password stored but failed to start backend: ${backendResult.error}`
+        };
+      }
+    }
+
+    return result;
   });
 
   /**
@@ -367,6 +390,10 @@ app.whenReady().then(async () => {
 
   // Start Python backend subprocess (Task 18)
   // Spawned with ephemeral secret and data directory
+  // Note: The backend is started before auth validation because it needs to
+  // be available for the auth/setup endpoint. Per TDD §5.1, auth validation
+  // is handled by the Electron main process reading from SQLite directly
+  // and validating with bcrypt before passing the secret to the renderer.
   const dataDir = getDataDir();
   console.log("Starting Python backend...");
   console.log(`Data directory: ${dataDir}`);
