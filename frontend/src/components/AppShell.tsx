@@ -50,7 +50,6 @@ export function AppShell(): JSX.Element {
     if (currentStep === "projects" || !currentProjectId) {
       return (
         <ProjectsDashboard
-          projects={projects}
           onSelectProject={selectProject}
           onCreateProject={openProjectModal}
         />
