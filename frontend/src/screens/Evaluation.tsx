@@ -2,8 +2,16 @@
  * Evaluation screen - Step 5: Evaluation dashboard and metrics.
  *
  * Displays model evaluation metrics, confusion matrix, and subgroup analysis.
+ * This is a wrapper component that retrieves the current experiment ID from the
+ * app store and renders the EvaluationDashboard component.
  *
  * @module screens/Evaluation
+ */
+import { useAppStore } from "../stores/appStore";
+import { EvaluationDashboard } from "./EvaluationDashboard";
+
+/**
+ * EvaluationProps interface.
  */
 interface EvaluationProps {
   /** Currently selected project ID */
@@ -13,55 +21,43 @@ interface EvaluationProps {
 /**
  * Evaluation wizard step component.
  *
- * @param props - Component props
+ * Retrieves the current experiment ID from the app store and renders the
+ * EvaluationDashboard component. If no experiment is selected, displays
+ * a message prompting the user to complete training first.
+ *
+ * @param props - Component props (projectId is passed but experimentId comes from store)
  * @returns The evaluation screen
  */
 export function Evaluation({ projectId: _projectId }: EvaluationProps): JSX.Element {
-  return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Evaluation</h1>
-        <p style={styles.description}>
-          Review model performance metrics and analysis.
-        </p>
-      </header>
+  const { currentExperimentId } = useAppStore();
 
-      <div style={styles.metricsGrid}>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>F1 Score</span>
-          <span style={styles.metricValue}>—</span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>AUC-ROC</span>
-          <span style={styles.metricValue}>—</span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>Precision</span>
-          <span style={styles.metricValue}>—</span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>Recall</span>
-          <span style={styles.metricValue}>—</span>
+  // If no experiment is selected, show a placeholder
+  if (!currentExperimentId) {
+    return (
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <h1 style={styles.title}>Evaluation</h1>
+          <p style={styles.description}>
+            Review model performance metrics and analysis.
+          </p>
+        </header>
+
+        <div style={styles.placeholderCard}>
+          <h2 style={styles.placeholderTitle}>No Evaluation Available</h2>
+          <p style={styles.placeholderText}>
+            Please complete training first to view evaluation results.
+          </p>
+          <p style={styles.placeholderHint}>
+            Navigate to the Model Selection step and start training to generate
+            evaluation metrics.
+          </p>
         </div>
       </div>
+    );
+  }
 
-      <div style={styles.contentGrid}>
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Confusion Matrix</h2>
-          <div style={styles.placeholder}>
-            <p>Train a model to see the confusion matrix</p>
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Subgroup Analysis</h2>
-          <div style={styles.placeholder}>
-            <p>Subgroup performance analysis will appear here</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Render the evaluation dashboard with the current experiment
+  return <EvaluationDashboard experimentId={currentExperimentId} />;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -84,56 +80,27 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#6b7280",
     fontSize: "0.875rem",
   },
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-    gap: "1rem",
-    marginBottom: "2rem",
-  },
-  metricCard: {
+  placeholderCard: {
     backgroundColor: "#ffffff",
     border: "1px solid #e5e7eb",
     borderRadius: "8px",
-    padding: "1rem",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  metricLabel: {
-    fontSize: "0.75rem",
-    color: "#6b7280",
-    textTransform: "uppercase",
-    letterSpacing: "0.025em",
-    marginBottom: "0.5rem",
-  },
-  metricValue: {
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    color: "#111827",
-  },
-  contentGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-    gap: "1.5rem",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    padding: "1.5rem",
-  },
-  cardTitle: {
-    margin: "0 0 1rem 0",
-    fontSize: "1rem",
-    fontWeight: 600,
-    color: "#111827",
-  },
-  placeholder: {
     padding: "3rem",
-    backgroundColor: "#f9fafb",
-    borderRadius: "6px",
     textAlign: "center",
+  },
+  placeholderTitle: {
+    margin: "0 0 1rem 0",
+    fontSize: "1.25rem",
+    fontWeight: 600,
+    color: "#374151",
+  },
+  placeholderText: {
+    margin: "0 0 0.5rem 0",
+    fontSize: "1rem",
     color: "#6b7280",
+  },
+  placeholderHint: {
+    margin: 0,
     fontSize: "0.875rem",
+    color: "#9ca3af",
   },
 };

@@ -848,3 +848,148 @@ export async function recoverExperiment(
 
   return (await response.json()) as RecoverExperimentResponse;
 }
+
+/**
+ * Subgroup analysis item from the backend.
+ */
+export interface SubgroupAnalysis {
+  /** Name of the slice/subgroup */
+  slice_name: string;
+  /** Sample count in this subgroup */
+  n: number;
+  /** Metrics for this subgroup */
+  metrics: {
+    f1?: number;
+    recall?: number;
+    precision?: number;
+  };
+}
+
+/**
+ * Confusion matrix from the backend.
+ */
+export interface ConfusionMatrix {
+  /** True negatives */
+  tn: number;
+  /** False positives */
+  fp: number;
+  /** False negatives */
+  fn: number;
+  /** True positives */
+  tp: number;
+}
+
+/**
+ * Classification metrics from the backend.
+ */
+export interface ClassificationMetrics {
+  /** F1 score */
+  f1: number;
+  /** AUC-ROC score */
+  auc_roc: number;
+  /** Precision */
+  precision: number;
+  /** Recall */
+  recall: number;
+}
+
+/**
+ * Evaluation response from the backend.
+ */
+export interface EvaluationResponse {
+  /** ID of the best performing run */
+  best_run_id: string;
+  /** Type of the best model */
+  best_model_type: string;
+  /** Evaluation metrics */
+  metrics: ClassificationMetrics;
+  /** Confusion matrix for binary/multiclass classification */
+  confusion_matrix: ConfusionMatrix;
+  /** Current decision threshold */
+  threshold: number;
+  /** Subgroup analyses for fairness/performance breakdown */
+  subgroup_analyses: SubgroupAnalysis[];
+}
+
+/**
+ * Threshold update request body.
+ */
+export interface UpdateThresholdRequest {
+  /** New threshold value (0.10-0.90) */
+  threshold: number;
+}
+
+/**
+ * Threshold update response from the backend.
+ */
+export interface UpdateThresholdResponse {
+  /** Updated precision */
+  precision: number;
+  /** Updated recall */
+  recall: number;
+  /** Updated F1 score */
+  f1: number;
+}
+
+/**
+ * Fetch evaluation data for an experiment.
+ *
+ * GET /api/v1/experiments/{experimentId}/evaluation
+ *
+ * @param experimentId - The ID of the experiment
+ * @returns Evaluation data including metrics, confusion matrix, and subgroup analyses
+ * @throws Error if the request fails
+ */
+export async function fetchExperimentEvaluation(
+  experimentId: string
+): Promise<EvaluationResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/${experimentId}/evaluation`
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to fetch evaluation: ${response.status} ${errorText}`
+    );
+  }
+
+  return (await response.json()) as EvaluationResponse;
+}
+
+/**
+ * Update the decision threshold for binary classification.
+ *
+ * POST /api/v1/experiments/{experimentId}/evaluation/threshold
+ *
+ * @param experimentId - The ID of the experiment
+ * @param threshold - The new threshold value (0.10-0.90)
+ * @returns Updated metrics at the new threshold
+ * @throws Error if the request fails
+ */
+export async function updateEvaluationThreshold(
+  experimentId: string,
+  threshold: number
+): Promise<UpdateThresholdResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/${experimentId}/evaluation/threshold`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ threshold }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to update threshold: ${response.status} ${errorText}`
+    );
+  }
+
+  return (await response.json()) as UpdateThresholdResponse;
+}
