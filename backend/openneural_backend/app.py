@@ -6,7 +6,7 @@ module depends on FastAPI and performs no network binding by itself.
 
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
@@ -33,6 +33,36 @@ API_V1_PREFIX = "/api/v1"
 logger = logging.getLogger(__name__)
 
 
+async def network_isolation_middleware(request: Request, call_next) -> Response:
+    """Middleware to reject external network connections.
+
+    Validates that the request client host is 127.0.0.1 (localhost only).
+    Returns 403 Forbidden for any external connections as per security
+    requirements (Task 125, TDD §5.2).
+
+    Args:
+        request: The incoming HTTP request.
+        call_next: The next handler in the chain.
+
+    Returns:
+        Response: The response from the next handler (if from localhost),
+            or a 403 Forbidden response if from an external host.
+    """
+    client_host = request.client.host if request.client else None
+
+    # Allow only localhost connections
+    # request.client.host can be "127.0.0.1" or "::1" for IPv6 localhost
+    if client_host not in ("127.0.0.1", "::1", None):
+        logger.warning(f"Rejected external connection from: {client_host}")
+        return Response(
+            content='{"detail": "Forbidden - external connections not allowed"}',
+            status_code=403,
+            headers={"Content-Type": "application/json"},
+        )
+
+    return await call_next(request)
+
+
 def create_app() -> FastAPI:
     """Create the OpenNeural FastAPI application.
 
@@ -48,6 +78,10 @@ def create_app() -> FastAPI:
         docs_url=f"{API_V1_PREFIX}/docs",
         openapi_url=f"{API_V1_PREFIX}/openapi.json",
     )
+
+    # Add network isolation middleware first (before CORS)
+    # This rejects any request where request.client.host is not 127.0.0.1
+    app.middleware("http")(network_isolation_middleware)
 
     # Configure CORS restricted to localhost origins only
     # This ensures the API only accepts requests from local Electron renderer
