@@ -335,6 +335,28 @@ export function DatasetImport({
       {/* Schema Table */}
       {snapshot && <SchemaTable schema={snapshot.schema} />}
 
+      {/* 500 MB Warning Banner (FR-DATA-08) */}
+      {snapshot && snapshot.file_size_bytes > 524_288_000 && (
+        <div style={styles.largeFileWarningBanner} role="alert">
+          <div style={styles.largeFileWarningHeader}>
+            <span style={styles.largeFileWarningIcon}>📊</span>
+            <span style={styles.largeFileWarningTitle}>Large Dataset Advisory</span>
+          </div>
+          <p style={styles.largeFileWarningMessage}>
+            This file exceeds 500 MB. Training time and memory usage may be significantly impacted. 
+            Consider preprocessing the data or using a smaller sample for initial experiments.
+          </p>
+          <div style={styles.largeFileWarningStats}>
+            <span style={styles.largeFileWarningStat}>
+              <strong>Size:</strong> {(snapshot.file_size_bytes / (1024 * 1024)).toFixed(1)} MB
+            </span>
+            <span style={styles.largeFileWarningStat}>
+              <strong>Rows:</strong> {snapshot.row_count.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Memory Warning Banner */}
       {snapshot?.memory_warning && (
         <div style={styles.memoryWarningBanner} role="alert">
@@ -604,5 +626,43 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     cursor: "pointer",
     transition: "color 0.15s ease",
+  },
+  largeFileWarningBanner: {
+    marginTop: "1.5rem",
+    padding: "1rem",
+    backgroundColor: "#fff7ed", // orange-50
+    border: "1px solid #fb923c", // orange-400
+    borderRadius: "8px",
+    borderLeftWidth: "4px",
+    borderLeftColor: "#f97316", // orange-500
+  },
+  largeFileWarningHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    marginBottom: "0.5rem",
+  },
+  largeFileWarningIcon: {
+    fontSize: "1.25rem",
+  },
+  largeFileWarningTitle: {
+    fontWeight: 600,
+    color: "#9a3412", // orange-800
+    fontSize: "0.875rem",
+  },
+  largeFileWarningMessage: {
+    margin: "0 0 0.75rem 0",
+    fontSize: "0.875rem",
+    color: "#c2410c", // orange-700
+    lineHeight: 1.5,
+  },
+  largeFileWarningStats: {
+    display: "flex",
+    gap: "1.5rem",
+    marginTop: "0.5rem",
+  },
+  largeFileWarningStat: {
+    fontSize: "0.75rem",
+    color: "#9a3412", // orange-800
   },
 };
