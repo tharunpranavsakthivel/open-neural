@@ -22,7 +22,7 @@ export function ModelSelection({ projectId: _projectId }: ModelSelectionProps): 
       <header style={styles.header}>
         <h1 style={styles.title}>Model Selection</h1>
         <p style={styles.description}>
-          Choose candidate models and configure AutoML settings.
+          Choose which models to train and configure the optimization settings.
         </p>
       </header>
 
