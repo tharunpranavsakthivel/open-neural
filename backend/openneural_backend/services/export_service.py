@@ -1006,7 +1006,12 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
 async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str, Any]:
     """Export test-set predictions as CSV.
 
-    Exports test-set predictions with predicted labels and class probabilities.
+    Loads stored predictions Parquet and writes CSV with columns:
+    - row_index: Original row index from the dataset
+    - predicted_label: Predicted class label
+    - true_label: Actual class label
+    - prob_{class}: One column per class with probability scores
+    
     Per SRS FR-EXP-04: CSV file contains row index, predicted label, true label,
     and per-class probability scores.
 
@@ -1028,6 +1033,8 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
         ArtifactNotFoundError: If the predictions file is not available.
         ExportError: If the export fails.
     """
+    import numpy as np
+    
     dest_path = Path(dest_dir).expanduser().resolve()
 
     try:
@@ -1040,13 +1047,71 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
         if not predictions_path.exists():
             raise ArtifactNotFoundError(run_id, "predictions")
 
-        # Read Parquet and convert to CSV
+        # Read Parquet file
         df = pd.read_parquet(predictions_path)
 
-        # Export to CSV
-        dest_file = dest_path / f"predictions_{run_id[:8]}.csv"
+        # Build output DataFrame with required columns
+        output_df = pd.DataFrame()
+        
+        # Add row_index
+        if "row_index" in df.columns:
+            output_df["row_index"] = df["row_index"]
+        else:
+            # Generate sequential row indices
+            output_df["row_index"] = range(len(df))
+        
+        # Add predicted_label
+        if "y_pred" in df.columns:
+            output_df["predicted_label"] = df["y_pred"]
+        elif "predicted_label" in df.columns:
+            output_df["predicted_label"] = df["predicted_label"]
+        else:
+            raise ExportError("Predictions file missing 'y_pred' or 'predicted_label' column")
+        
+        # Add true_label
+        if "y_true" in df.columns:
+            output_df["true_label"] = df["y_true"]
+        elif "true_label" in df.columns:
+            output_df["true_label"] = df["true_label"]
+        else:
+            output_df["true_label"] = None  # May not be available for inference-only exports
+        
+        # Add probability columns: prob_{class}
+        # Check if y_proba exists and is array-like
+        if "y_proba" in df.columns:
+            y_proba_values = df["y_proba"].values
+            
+            if len(y_proba_values) > 0 and isinstance(y_proba_values[0], (np.ndarray, list)):
+                # y_proba is array of probability vectors
+                # Determine unique classes
+                unique_classes = sorted(set(output_df["predicted_label"].dropna().unique()))
+                
+                # If binary classification with 2-class probabilities
+                if len(y_proba_values[0]) == 2:
+                    # Binary: prob_0 and prob_1 (or use class names if available)
+                    class_labels = unique_classes if len(unique_classes) == 2 else [0, 1]
+                    for i, class_label in enumerate(class_labels):
+                        col_name = f"prob_{class_label}"
+                        output_df[col_name] = [proba[i] if len(proba) > i else None for proba in y_proba_values]
+                elif len(y_proba_values[0]) > 2:
+                    # Multiclass: prob_{class} for each class
+                    class_labels = unique_classes if len(unique_classes) == len(y_proba_values[0]) else list(range(len(y_proba_values[0])))
+                    for i, class_label in enumerate(class_labels):
+                        col_name = f"prob_{class_label}"
+                        output_df[col_name] = [proba[i] if len(proba) > i else None for proba in y_proba_values]
+                else:
+                    # Single probability (binary case with just positive class)
+                    output_df["prob_1"] = [proba[0] if isinstance(proba, (np.ndarray, list)) else proba for proba in y_proba_values]
+            elif len(y_proba_values) > 0:
+                # y_proba is a scalar per row (binary classification)
+                output_df["prob_1"] = y_proba_values
+                # Compute prob_0 as 1 - prob_1 for binary case
+                output_df["prob_0"] = 1 - output_df["prob_1"]
+        
+        # Export to CSV: {dest_dir}/predictions.csv
+        dest_file = dest_path / "predictions.csv"
         dest_path.mkdir(parents=True, exist_ok=True)
-        df.to_csv(dest_file, index=False)
+        output_df.to_csv(dest_file, index=False)
 
         # Create export record
         await _create_export_record(experiment.id, "predictions", dest_file)
@@ -1064,6 +1129,8 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
         }
 
     except (RunNotFoundError, ArtifactNotFoundError):
+        raise
+    except ExportError:
         raise
     except Exception as e:
         raise ExportError(f"Failed to export predictions: {e}")
