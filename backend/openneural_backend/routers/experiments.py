@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import psutil
 from openneural_backend.db.engine import get_async_session
 from openneural_backend.db.models import Pipeline, Project
 from openneural_backend.models.registry import list_models
@@ -269,18 +270,118 @@ async def start_experiment_endpoint(
     )
 
 
-@router.get("/{experiment_id}/status")
-async def get_experiment_status(project_id: str, experiment_id: str) -> dict:
-    """Get real-time experiment status.
+class ExperimentStatusResponse(BaseModel):
+    """Response model for experiment status.
+
+    Returns real-time experiment status including progress percentage,
+    CPU and RAM usage, and per-run status with metrics.
+    """
+
+    status: str = Field(..., description="Experiment status (created, running, done, cancelled, interrupted)")
+    progress_pct: float = Field(..., description="Progress percentage (0-100)")
+    cpu_pct: float = Field(..., description="Current CPU usage percentage")
+    ram_used_gb: float = Field(..., description="Used RAM in GB")
+    ram_total_gb: float = Field(..., description="Total RAM in GB")
+    runs: list[dict] = Field(..., description="List of run statuses with model_type, status, and metrics")
+
+
+@router.get("/{experiment_id}/status", response_model=ExperimentStatusResponse)
+async def get_experiment_status(
+    project_id: str,
+    experiment_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> ExperimentStatusResponse:
+    """Get real-time experiment status with progress.
+
+    Returns the current experiment status, progress percentage calculated as
+    done_runs / total_runs * 100, system resource usage (CPU, RAM), and
+    detailed status for each model run including metrics if available.
 
     Args:
         project_id: The project ID.
         experiment_id: The experiment ID.
+        session: Database session.
 
     Returns:
-        dict: Experiment status with progress.
+        ExperimentStatusResponse: Real-time status with progress, resource usage,
+            and per-run details.
+
+    Raises:
+        HTTPException 404: If project or experiment not found.
     """
-    raise HTTPException(status_code=501, detail="Not implemented")
+    import json
+
+    # Validate project exists
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Get experiment and validate it belongs to project
+    from openneural_backend.db.models import Experiment
+    exp_result = await session.execute(
+        select(Experiment).where(
+            Experiment.id == experiment_id,
+            Experiment.project_id == project_id,
+        )
+    )
+    experiment = exp_result.scalar_one_or_none()
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found in project '{project_id}'",
+        )
+
+    # Get all runs for this experiment
+    from openneural_backend.db.models import Run
+    runs_result = await session.execute(
+        select(Run).where(Run.experiment_id == experiment_id)
+    )
+    runs = runs_result.scalars().all()
+
+    # Calculate progress percentage: done_runs / total_runs * 100
+    total_runs = len(runs)
+    done_runs = sum(1 for run in runs if run.status == "done")
+    progress_pct = (done_runs / total_runs * 100) if total_runs > 0 else 0.0
+
+    # Get system resource usage via psutil
+    # Per SRS FR-TRAIN-05: Display real-time CPU and RAM usage
+    cpu_pct = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    ram_used_gb = memory.used / (1024 ** 3)
+    ram_total_gb = memory.total / (1024 ** 3)
+
+    # Build runs list with model_type, status, and metrics
+    runs_list = []
+    for run in runs:
+        run_info = {
+            "model_type": run.model_type,
+            "status": run.status,
+            "metrics": None,
+        }
+
+        # Parse test metrics if available
+        if run.test_metrics_json:
+            try:
+                run_info["metrics"] = json.loads(run.test_metrics_json)
+            except json.JSONDecodeError:
+                run_info["metrics"] = None
+
+        runs_list.append(run_info)
+
+    return ExperimentStatusResponse(
+        status=experiment.status,
+        progress_pct=round(progress_pct, 1),
+        cpu_pct=round(cpu_pct, 1),
+        ram_used_gb=round(ram_used_gb, 2),
+        ram_total_gb=round(ram_total_gb, 2),
+        runs=runs_list,
+    )
 
 
 @router.delete("/{experiment_id}/cancel")
