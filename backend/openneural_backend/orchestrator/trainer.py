@@ -13,7 +13,7 @@ import json
 import logging
 import os
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -355,10 +355,78 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
     max_workers = min(len(candidate_models), os.cpu_count() or 4)
     logger.info(f"Starting training with ProcessPoolExecutor(max_workers={max_workers}) for {len(candidate_models)} candidate models")
 
-    loop = asyncio.get_event_loop()
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for model_key in candidate_models:
+    # Track completed studies for periodic persistence
+    completed_studies: Dict[str, Dict[str, Any]] = {}
+    completed_count = 0
+    persistence_lock = asyncio.Lock()
+
+    async def _persist_completed_studies(force: bool = False) -> None:
+        """Persist completed studies to SQLite.
+
+        Per SRS FR-TRAIN-09: Persist experiment state to disk at regular
+        intervals (≤ 60 seconds) so that a machine crash does not lose more
+        than 60 seconds of completed run data.
+
+        Args:
+            force: If True, persist even if no new studies have completed.
+        """
+        nonlocal completed_count
+
+        async with persistence_lock:
+            studies_to_persist = dict(completed_studies)
+            if not studies_to_persist and not force:
+                return
+
+            # Clear persisted studies from the tracking dict
+            for model_key in studies_to_persist:
+                if model_key in completed_studies:
+                    del completed_studies[model_key]
+
+        # Persist outside the lock to allow concurrent study completion
+        async with async_session() as session:
+            for model_key, study_data in studies_to_persist.items():
+                run_id = run_records[model_key]
+                result = await session.execute(
+                    select(Run).where(Run.id == run_id)
+                )
+                run = result.scalar_one()
+
+                if study_data.get("status") == "done":
+                    run.status = "done"
+                    run.hyperparams_json = json.dumps(study_data["best_params"])
+                    run.cv_metrics_json = json.dumps(study_data["cv_metrics"])
+                    run.test_metrics_json = json.dumps(study_data["test_metrics"])
+                    run.training_time_sec = study_data["training_time_sec"]
+                else:
+                    run.status = "failed"
+
+                await session.commit()
+                completed_count += 1
+
+        if studies_to_persist:
+            logger.info(f"Persisted {len(studies_to_persist)} completed studies to database")
+
+    async def _periodic_persistence_task() -> None:
+        """Background task to persist state every 60 seconds.
+
+        Runs until all studies are completed, ensuring crash recovery
+        loses at most 60 seconds of work.
+        """
+        while True:
+            await asyncio.sleep(60)  # SRS FR-TRAIN-09: ≤ 60 second intervals
+            await _persist_completed_studies()
+
+            # Exit if all studies are done
+            async with persistence_lock:
+                if completed_count >= len(candidate_models):
+                    break
+
+    async def _run_single_study(model_key: str) -> None:
+        """Run a single study and track completion."""
+        nonlocal best_run_id, best_test_score
+
+        loop = asyncio.get_event_loop()
+        with ProcessPoolExecutor(max_workers=1) as executor:
             future = loop.run_in_executor(
                 executor,
                 _run_optuna_study,
@@ -372,30 +440,18 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 optimize_metric,
                 task_type,
             )
-            futures.append((model_key, future))
 
-        # Process results as they complete
-        for model_key, future in futures:
             try:
                 start_time = datetime.utcnow()
                 study_result = await future
                 end_time = datetime.utcnow()
                 training_time = (end_time - start_time).total_seconds()
                 study_result["training_time_sec"] = training_time
+                study_result["status"] = "done"
 
-                # Update run record
-                run_id = run_records[model_key]
-                async with async_session() as session:
-                    result = await session.execute(
-                        select(Run).where(Run.id == run_id)
-                    )
-                    run = result.scalar_one()
-                    run.status = "done"
-                    run.hyperparams_json = json.dumps(study_result["best_params"])
-                    run.cv_metrics_json = json.dumps(study_result["cv_metrics"])
-                    run.test_metrics_json = json.dumps(study_result["test_metrics"])
-                    run.training_time_sec = training_time
-                    await session.commit()
+                # Store in completed studies dict for persistence
+                async with persistence_lock:
+                    completed_studies[model_key] = study_result
 
                 results.append(study_result)
 
@@ -403,20 +459,34 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 test_score = study_result["test_metrics"].get(optimize_metric, 0)
                 if test_score > best_test_score:
                     best_test_score = test_score
-                    best_run_id = run_id
+                    best_run_id = run_records[model_key]
 
                 logger.info(f"Completed study for {model_key}: test_{optimize_metric}={test_score:.4f}")
 
             except Exception as e:
                 logger.error(f"Study failed for {model_key}: {e}")
-                run_id = run_records[model_key]
-                async with async_session() as session:
-                    result = await session.execute(
-                        select(Run).where(Run.id == run_id)
-                    )
-                    run = result.scalar_one()
-                    run.status = "failed"
-                    await session.commit()
+                async with persistence_lock:
+                    completed_studies[model_key] = {"status": "failed"}
+
+    # Start all studies concurrently with periodic persistence
+    logger.info("Starting training studies with 60-second periodic persistence (SRS FR-TRAIN-09)")
+
+    # Create study tasks
+    study_tasks = [asyncio.create_task(_run_single_study(model_key)) for model_key in candidate_models]
+
+    # Start periodic persistence task
+    persistence_task = asyncio.create_task(_periodic_persistence_task())
+
+    # Wait for all studies to complete
+    await asyncio.gather(*study_tasks, return_exceptions=True)
+
+    # Final persistence and cleanup
+    await _persist_completed_studies(force=True)
+    persistence_task.cancel()
+    try:
+        await persistence_task
+    except asyncio.CancelledError:
+        pass
 
     # Mark experiment as done
     async with async_session() as session:
