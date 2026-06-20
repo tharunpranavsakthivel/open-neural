@@ -36,6 +36,9 @@ from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import DatasetSnapshot, Experiment, Pipeline, Run
 from openneural_backend.models.optuna_adapter import build_optuna_objective
 from openneural_backend.models.registry import get_model
+from openneural_backend.orchestrator.event_bus import (
+    publish_status_update,
+)
 from openneural_backend.pipeline.builder import build_sklearn_pipeline
 from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
 
@@ -494,12 +497,79 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 if completed_count >= len(candidate_models):
                     break
 
+    async def _publish_status_event() -> None:
+        """Publish current experiment status to event bus.
+
+        Fetches current run statuses from database and publishes a status
+        update event to all subscribed SSE consumers.
+        """
+        import psutil
+
+        async with async_session() as session:
+            # Get experiment status
+            exp_result = await session.execute(
+                select(Experiment).where(Experiment.id == experiment_id)
+            )
+            experiment = exp_result.scalar_one()
+
+            # Get all runs
+            runs_result = await session.execute(
+                select(Run).where(Run.experiment_id == experiment_id)
+            )
+            runs = runs_result.scalars().all()
+
+            # Calculate progress
+            total_runs = len(runs)
+            done_runs = sum(1 for run in runs if run.status == "done")
+            progress_pct = (done_runs / total_runs * 100) if total_runs > 0 else 0.0
+
+            # Get system metrics
+            cpu_pct = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            ram_used_gb = memory.used / (1024 ** 3)
+            ram_total_gb = memory.total / (1024 ** 3)
+
+            # Build runs list
+            runs_list = []
+            for run in runs:
+                run_info = {
+                    "model_type": run.model_type,
+                    "status": run.status,
+                    "metrics": None,
+                }
+                if run.test_metrics_json:
+                    try:
+                        run_info["metrics"] = json.loads(run.test_metrics_json)
+                    except json.JSONDecodeError:
+                        run_info["metrics"] = None
+                runs_list.append(run_info)
+
+            # Publish event
+            await publish_status_update(
+                experiment_id=experiment_id,
+                status=experiment.status,
+                progress_pct=round(progress_pct, 1),
+                cpu_pct=round(cpu_pct, 1),
+                ram_used_gb=round(ram_used_gb, 2),
+                ram_total_gb=round(ram_total_gb, 2),
+                runs=runs_list,
+            )
+
     async def _run_single_study(model_key: str) -> None:
         """Run a single study and track completion."""
         nonlocal best_run_id, best_test_score
 
-        # Get run_id for this model
+        # Update run status to running
         run_id = run_records[model_key]
+        async with async_session() as session:
+            result = await session.execute(select(Run).where(Run.id == run_id))
+            run = result.scalar_one()
+            run.status = "running"
+            run.started_at = datetime.utcnow()
+            await session.commit()
+
+        # Publish status update
+        await _publish_status_event()
 
         # Get data_dir from config
         from openneural_backend.config import Settings
@@ -546,10 +616,16 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
 
                 logger.info(f"Completed study for {model_key}: test_{optimize_metric}={test_score:.4f}")
 
+                # Publish status update after study completion
+                await _publish_status_event()
+
             except Exception as e:
                 logger.error(f"Study failed for {model_key}: {e}")
                 async with persistence_lock:
                     completed_studies[model_key] = {"status": "failed"}
+
+                # Publish status update after study failure
+                await _publish_status_event()
 
     # Start all studies concurrently with periodic persistence
     logger.info("Starting training studies with 60-second periodic persistence (SRS FR-TRAIN-09)")
@@ -580,6 +656,9 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
         experiment.status = "done"
         experiment.completed_at = datetime.utcnow()
         await session.commit()
+
+    # Publish final status update
+    await _publish_status_event()
 
     logger.info(f"Experiment {experiment_id} completed. Best run: {best_run_id}")
 
