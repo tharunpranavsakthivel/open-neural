@@ -73,11 +73,33 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
   /** Selected model keys for manual mode */
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
 
+  /** Selected optimization metric */
+  const [optimizationMetric, setOptimizationMetric] = useState<string>("");
+
   /** Loading state for fetching project */
   const [isLoading, setIsLoading] = useState(true);
 
   /** Error state */
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Classification metrics with F1 as default.
+   */
+  const CLASSIFICATION_METRICS = [
+    { value: "f1", label: "F1" },
+    { value: "auc_roc", label: "AUC-ROC" },
+    { value: "precision", label: "Precision" },
+    { value: "recall", label: "Recall" },
+  ];
+
+  /**
+   * Regression metrics with RMSE as default.
+   */
+  const REGRESSION_METRICS = [
+    { value: "rmse", label: "RMSE" },
+    { value: "mae", label: "MAE" },
+    { value: "r2", label: "R²" },
+  ];
 
   /**
    * Fetch project to determine task type.
@@ -93,6 +115,10 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
 
         if (project) {
           setTaskType(project.taskType);
+          // Set default optimization metric based on task type
+          setOptimizationMetric(
+            project.taskType === "regression" ? "rmse" : "f1"
+          );
           // Pre-select all models for the task type in AutoML mode
           const allModelKeys =
             project.taskType === "regression"
@@ -120,6 +146,19 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
    */
   const availableModels =
     taskType === "regression" ? REGRESSION_MODELS : CLASSIFICATION_MODELS;
+
+  /**
+   * Get available metrics based on task type.
+   */
+  const availableMetrics =
+    taskType === "regression" ? REGRESSION_METRICS : CLASSIFICATION_METRICS;
+
+  /**
+   * Handle metric selection change.
+   */
+  const handleMetricChange = useCallback((metric: string) => {
+    setOptimizationMetric(metric);
+  }, []);
 
   /**
    * Toggle AutoML mode.
@@ -283,14 +322,24 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Optimization Settings</h2>
         <div style={styles.settingsGrid}>
-          <div style={styles.setting}>
+          {/* Optimization Metric - Radio Buttons */}
+          <div style={{ ...styles.setting, gridColumn: "span 2" }}>
             <label style={styles.settingLabel}>Optimization Metric</label>
-            <select style={styles.select} defaultValue="f1">
-              <option value="f1">F1 Score</option>
-              <option value="auc_roc">AUC-ROC</option>
-              <option value="precision">Precision</option>
-              <option value="recall">Recall</option>
-            </select>
+            <div style={styles.radioGroup}>
+              {availableMetrics.map((metric) => (
+                <label key={metric.value} style={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="optimizationMetric"
+                    value={metric.value}
+                    checked={optimizationMetric === metric.value}
+                    onChange={() => handleMetricChange(metric.value)}
+                    style={styles.radio}
+                  />
+                  <span style={styles.radioText}>{metric.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div style={styles.setting}>
             <label style={styles.settingLabel}>Max Trials</label>
@@ -456,8 +505,34 @@ const styles: Record<string, React.CSSProperties> = {
   },
   settingsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "1rem",
+  },
+  radioGroup: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "1rem",
+    marginTop: "0.25rem",
+  },
+  radioLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    cursor: "pointer",
+    padding: "0.5rem 0.75rem",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "6px",
+    transition: "all 0.15s ease",
+  },
+  radio: {
+    width: "1rem",
+    height: "1rem",
+    cursor: "pointer",
+  },
+  radioText: {
+    fontSize: "0.875rem",
+    color: "#374151",
   },
   setting: {
     display: "flex",
