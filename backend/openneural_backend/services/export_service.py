@@ -462,8 +462,16 @@ async def export_pipeline_joblib(run_id: str, dest_dir: str | Path) -> dict[str,
 async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[str, Any]:
     """Generate and export evaluation report as PDF.
 
-    Creates a structured PDF report containing experiment metadata, dataset snapshot info,
-    pipeline configuration summary, metric summary table, confusion matrix, and subgroup analysis.
+    Creates a structured PDF report using reportlab with the following sections:
+    - Cover page with experiment ID and timestamp
+    - Experiment metadata table
+    - Dataset snapshot info (version label, row count, schema summary)
+    - Pipeline configuration summary (ordered block list with params)
+    - Metric summary table (all metrics)
+    - Confusion matrix (rendered as a colored grid)
+    - Subgroup analysis table (with fairness flag indicators)
+    - Decision threshold selection note
+    
     Per SRS FR-EXP-03: Evaluation report is generated as a structured PDF.
 
     Args:
@@ -570,8 +578,8 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                     subg_result = await session.execute(subg_stmt)
                     subgroup_analyses = subg_result.scalars().all()
 
-            # Generate PDF report
-            dest_file = dest_path / f"report_{experiment.experiment_id_human}.pdf"
+            # Generate PDF report to {dest_dir}/report.pdf
+            dest_file = dest_path / "report.pdf"
             dest_path.mkdir(parents=True, exist_ok=True)
 
             doc = SimpleDocTemplate(
@@ -586,19 +594,48 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             styles = getSampleStyleSheet()
             story = []
 
+            # ============================================
+            # COVER PAGE
+            # ============================================
+            story.append(Spacer(1, 100))
+            
             # Title
             story.append(Paragraph(
-                f"OpenNeural Evaluation Report",
+                "OpenNeural Evaluation Report",
                 styles["Heading1"]
             ))
+            story.append(Spacer(1, 30))
+            
+            # Experiment ID
             story.append(Paragraph(
-                f"Experiment: {experiment.experiment_id_human}",
+                f"<b>Experiment ID:</b> {experiment.experiment_id_human}",
                 styles["Heading2"]
             ))
             story.append(Spacer(1, 12))
+            
+            # Timestamp
+            report_timestamp = datetime.utcnow().isoformat()
+            story.append(Paragraph(
+                f"<b>Report Generated:</b> {report_timestamp}",
+                styles["Normal"]
+            ))
+            story.append(Spacer(1, 12))
+            
+            # Experiment UUID
+            story.append(Paragraph(
+                f"<b>UUID:</b> {experiment.id}",
+                styles["Normal"]
+            ))
+            
+            # Page break after cover
+            story.append(Spacer(1, 400))
 
-            # Experiment Metadata
-            story.append(Paragraph("Experiment Metadata", styles["Heading3"]))
+            # ============================================
+            # EXPERIMENT METADATA TABLE
+            # ============================================
+            story.append(Paragraph("Experiment Metadata", styles["Heading2"]))
+            story.append(Spacer(1, 12))
+            
             metadata = [
                 ["Field", "Value"],
                 ["Experiment ID", experiment.id],
@@ -628,17 +665,21 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             story.append(metadata_table)
             story.append(Spacer(1, 20))
 
-            # Dataset Snapshot Info
+            # ============================================
+            # DATASET SNAPSHOT INFO
+            # ============================================
             if snapshot:
-                story.append(Paragraph("Dataset Snapshot", styles["Heading3"]))
+                story.append(Paragraph("Dataset Snapshot", styles["Heading2"]))
+                story.append(Spacer(1, 12))
+                
                 snapshot_data = [
                     ["Field", "Value"],
                     ["Snapshot ID", snapshot.id],
-                    ["Version", snapshot.version_label],
+                    ["Version Label", snapshot.version_label],
                     ["File Name", snapshot.file_name],
                     ["File Size", f"{snapshot.file_size_bytes:,} bytes"],
-                    ["Rows", f"{snapshot.row_count:,}"],
-                    ["Columns", snapshot.col_count],
+                    ["Row Count", f"{snapshot.row_count:,}"],
+                    ["Column Count", snapshot.col_count],
                     ["Created At", snapshot.created_at.isoformat()],
                 ]
                 snapshot_table = Table(snapshot_data)
@@ -653,49 +694,98 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                     ("GRID", (0, 0), (-1, -1), 1, colors.black),
                 ]))
                 story.append(snapshot_table)
+                story.append(Spacer(1, 12))
+
+                # Schema Summary
+                try:
+                    schema = json.loads(snapshot.schema_json)
+                    if schema and isinstance(schema, list):
+                        story.append(Paragraph("Schema Summary", styles["Heading3"]))
+                        story.append(Spacer(1, 6))
+                        
+                        schema_data = [["Column", "Type", "Null %", "Unique Count"]]
+                        for col_info in schema[:20]:  # Limit to first 20 columns
+                            schema_data.append([
+                                col_info.get("name", "N/A"),
+                                col_info.get("inferred_type", "N/A"),
+                                f"{col_info.get('null_pct', 0):.1f}%",
+                                str(col_info.get("unique_count", "N/A")),
+                            ])
+                        
+                        if len(schema) > 20:
+                            schema_data.append([f"... and {len(schema) - 20} more columns", "", "", ""])
+                        
+                        schema_table = Table(schema_data)
+                        schema_table.setStyle(TableStyle([
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 10),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]))
+                        story.append(schema_table)
+                except json.JSONDecodeError:
+                    pass
+                
                 story.append(Spacer(1, 20))
 
-            # Pipeline Configuration Summary
+            # ============================================
+            # PIPELINE CONFIGURATION SUMMARY
+            # ============================================
             if pipeline:
-                story.append(Paragraph("Pipeline Configuration", styles["Heading3"]))
+                story.append(Paragraph("Pipeline Configuration", styles["Heading2"]))
+                story.append(Spacer(1, 12))
+                
                 try:
                     pipeline_config = json.loads(pipeline.config_json)
                     blocks = pipeline_config.get("blocks", [])
-                    pipeline_data = [["Step", "Block Type", "Parameters"]]
-                    for i, block in enumerate(blocks, 1):
-                        block_type = block.get("type", "unknown")
-                        params = block.get("params", {})
-                        params_str = ", ".join(f"{k}={v}" for k, v in params.items())
-                        pipeline_data.append([str(i), block_type, params_str])
+                    
+                    if blocks:
+                        pipeline_data = [["Step", "Block Type", "Parameters"]]
+                        for i, block in enumerate(blocks, 1):
+                            block_type = block.get("type", "unknown")
+                            params = block.get("params", {})
+                            params_str = ", ".join(f"{k}={v}" for k, v in params.items())
+                            if len(params_str) > 50:
+                                params_str = params_str[:47] + "..."
+                            pipeline_data.append([str(i), block_type, params_str])
 
-                    if len(pipeline_data) > 1:
-                        pipeline_table = Table(pipeline_data)
+                        pipeline_table = Table(pipeline_data, colWidths=[50, 150, 250])
                         pipeline_table.setStyle(TableStyle([
                             ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
                             ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 12),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                            ("FONTSIZE", (0, 0), (-1, 0), 10),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
                             ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
                             ("GRID", (0, 0), (-1, -1), 1, colors.black),
                         ]))
                         story.append(pipeline_table)
-                        story.append(Spacer(1, 20))
+                    else:
+                        story.append(Paragraph("No pipeline blocks configured.", styles["Normal"]))
                 except json.JSONDecodeError:
                     story.append(Paragraph("Unable to parse pipeline configuration", styles["Normal"]))
-                    story.append(Spacer(1, 20))
+                
+                story.append(Spacer(1, 20))
 
-            # Best Run Metrics
+            # ============================================
+            # METRIC SUMMARY TABLE
+            # ============================================
             if best_run and best_metrics:
-                story.append(Paragraph("Best Model Performance", styles["Heading3"]))
-                story.append(Paragraph(f"Model Type: {best_run.model_type}", styles["Normal"]))
-                story.append(Spacer(1, 6))
+                story.append(Paragraph("Model Performance Metrics", styles["Heading2"]))
+                story.append(Paragraph(f"Best Model: <b>{best_run.model_type}</b>", styles["Normal"]))
+                story.append(Spacer(1, 12))
 
                 metrics_data = [["Metric", "Value"]]
                 for metric_name, metric_value in best_metrics.items():
                     if isinstance(metric_value, float):
                         metrics_data.append([metric_name, f"{metric_value:.4f}"])
+                    elif isinstance(metric_value, list):
+                        metrics_data.append([metric_name, f"{len(metric_value)} items"])
                     else:
                         metrics_data.append([metric_name, str(metric_value)])
 
@@ -716,20 +806,52 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                 story.append(metrics_table)
                 story.append(Spacer(1, 20))
 
-            # Confusion Matrix
+            # ============================================
+            # CONFUSION MATRIX (COLORED GRID)
+            # ============================================
             if evaluation and evaluation.confusion_matrix_json:
                 try:
                     cm = json.loads(evaluation.confusion_matrix_json)
-                    story.append(Paragraph("Confusion Matrix", styles["Heading3"]))
-                    story.append(Spacer(1, 6))
+                    story.append(Paragraph("Confusion Matrix", styles["Heading2"]))
+                    
+                    if evaluation.threshold:
+                        story.append(Paragraph(
+                            f"Decision Threshold: {evaluation.threshold:.2f}",
+                            styles["Normal"]
+                        ))
+                    story.append(Spacer(1, 12))
 
                     # Handle binary confusion matrix
                     if "tn" in cm:
+                        tn, fp, fn, tp = cm.get("tn", 0), cm.get("fp", 0), cm.get("fn", 0), cm.get("tp", 0)
                         cm_data = [
                             ["", "Predicted: Negative", "Predicted: Positive"],
-                            ["Actual: Negative", str(cm.get("tn", 0)), str(cm.get("fp", 0))],
-                            ["Actual: Positive", str(cm.get("fn", 0)), str(cm.get("tp", 0))],
+                            ["Actual: Negative", str(tn), str(fp)],
+                            ["Actual: Positive", str(fn), str(tp)],
                         ]
+                        
+                        # Calculate max value for color scaling
+                        max_val = max(tn, fp, fn, tp) if any([tn, fp, fn, tp]) else 1
+                        
+                        cm_table = Table(cm_data)
+                        cm_table.setStyle(TableStyle([
+                            # Header row
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                            ("BACKGROUND", (0, 0), (0, -1), colors.grey),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 10),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                            # Data cells with color gradient based on value
+                            ("BACKGROUND", (1, 1), (1, 1), colors.Color(1, 1 - tn/max_val, 1 - tn/max_val)),
+                            ("BACKGROUND", (2, 1), (2, 1), colors.Color(1, 1 - fp/max_val, 1 - fp/max_val)),
+                            ("BACKGROUND", (1, 2), (1, 2), colors.Color(1, 1 - fn/max_val, 1 - fn/max_val)),
+                            ("BACKGROUND", (2, 2), (2, 2), colors.Color(1, 1 - tp/max_val, 1 - tp/max_val)),
+                        ]))
                     else:
                         # Multiclass - show full matrix
                         matrix = cm.get("matrix", [[]])
@@ -739,58 +861,123 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                             row = [label] + [str(x) for x in matrix[i]]
                             cm_data.append(row)
 
-                    cm_table = Table(cm_data)
-                    cm_table.setStyle(TableStyle([
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                        ("BACKGROUND", (0, 0), (0, -1), colors.grey),
-                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                        ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, 0), 10),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                    ]))
+                        cm_table = Table(cm_data)
+                        cm_table.setStyle(TableStyle([
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                            ("BACKGROUND", (0, 0), (0, -1), colors.grey),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 9),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]))
+                    
                     story.append(cm_table)
                     story.append(Spacer(1, 20))
                 except json.JSONDecodeError:
                     pass
 
-            # Subgroup Analysis
+            # ============================================
+            # SUBGROUP ANALYSIS TABLE
+            # ============================================
             if subgroup_analyses:
-                story.append(Paragraph("Subgroup Analysis", styles["Heading3"]))
+                story.append(Paragraph("Subgroup Analysis", styles["Heading2"]))
                 story.append(Spacer(1, 6))
 
-                subgroup_data = [["Slice", "Samples", "F1", "Recall", "Precision", "Warning"]]
+                # Add fairness explanation
+                story.append(Paragraph(
+                    "<i>Fairness Warning: Groups with F1 score > 0.15 below overall F1 are flagged.</i>",
+                    styles["Normal"]
+                ))
+                story.append(Spacer(1, 6))
+
+                subgroup_data = [["Slice", "Samples", "F1", "Recall", "Precision", "Fairness Flag"]]
+                
+                # Get overall F1 for comparison
+                overall_f1 = best_metrics.get("f1", 1.0) if best_metrics else 1.0
+                
                 for sg in subgroup_analyses:
                     try:
                         sg_metrics = json.loads(sg.metrics_json)
-                        warning = "Yes" if sg_metrics.get("f1", 1.0) < (best_metrics.get("f1", 1.0) - 0.15) else "No"
+                        sg_f1 = sg_metrics.get("f1", 0)
+                        
+                        # Fairness flag (per SRS FR-EVAL-07: F1 more than 0.15 below overall)
+                        fairness_warning = sg_f1 < (overall_f1 - 0.15)
+                        flag_text = "⚠️ LOW F1" if fairness_warning else "✓ OK"
+                        flag_color = colors.orange if fairness_warning else colors.green
+                        
                         subgroup_data.append([
                             sg.slice_name,
                             str(sg.n),
-                            f"{sg_metrics.get('f1', 0):.4f}",
+                            f"{sg_f1:.4f}",
                             f"{sg_metrics.get('recall', 0):.4f}",
                             f"{sg_metrics.get('precision', 0):.4f}",
-                            warning,
+                            flag_text,
                         ])
                     except json.JSONDecodeError:
                         continue
 
                 if len(subgroup_data) > 1:
                     sg_table = Table(subgroup_data)
-                    sg_table.setStyle(TableStyle([
+                    
+                    # Build table style
+                    table_style = [
                         ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                        ("ALIGN", (1, 1), (1, -1), "RIGHT"),  # Samples column right-aligned
                         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, 0), 12),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                        ("FONTSIZE", (0, 0), (-1, 0), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
                         ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                    ]))
+                    ]
+                    
+                    # Add conditional coloring for fairness flags
+                    for i, row in enumerate(subgroup_data[1:], start=1):
+                        if len(row) >= 6:
+                            flag_text = row[5]
+                            if "⚠️" in flag_text:
+                                table_style.append(("BACKGROUND", (0, i), (-1, i), colors.Color(1, 0.9, 0.9)))
+                                table_style.append(("TEXTCOLOR", (5, i), (5, i), colors.red))
+                            else:
+                                table_style.append(("BACKGROUND", (0, i), (-1, i), colors.Color(0.9, 1, 0.9)))
+                    
+                    sg_table.setStyle(TableStyle(table_style))
                     story.append(sg_table)
+                    story.append(Spacer(1, 20))
+
+            # ============================================
+            # DECISION THRESHOLD SELECTION NOTE
+            # ============================================
+            if evaluation and evaluation.threshold is not None:
+                story.append(Paragraph("Decision Threshold Selection", styles["Heading2"]))
+                story.append(Spacer(1, 6))
+                
+                threshold_note = f"""
+                The classification decision threshold is set to <b>{evaluation.threshold:.2f}</b>.
+                This threshold was used to compute the confusion matrix and all classification metrics above.
+                
+                <i>Note:</i> The default threshold is 0.5 for binary classification. Adjusting this threshold
+                can trade off between precision and recall based on your application's requirements.
+                """
+                story.append(Paragraph(threshold_note, styles["Normal"]))
+                story.append(Spacer(1, 20))
+
+            # ============================================
+            # FOOTER
+            # ============================================
+            story.append(Spacer(1, 40))
+            story.append(Paragraph(
+                "— End of Report —",
+                styles["Normal"]
+            ))
+            story.append(Paragraph(
+                f"Generated by OpenNeural v0.1.0 | {report_timestamp}",
+                styles["Normal"]
+            ))
 
             # Build PDF
             doc.build(story)
