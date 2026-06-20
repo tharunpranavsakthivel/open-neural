@@ -16,6 +16,52 @@ from sklearn.model_selection import cross_val_score
 from openneural_backend.models.registry import get_model
 
 
+# Mapping from OpenNeural metric names to scikit-learn scoring names
+# Classification metrics
+CLASSIFICATION_METRICS: Dict[str, str] = {
+    "f1": "f1_weighted",
+    "auc_roc": "roc_auc",
+    "precision": "precision_weighted",
+    "recall": "recall_weighted",
+}
+
+# Regression metrics
+REGRESSION_METRICS: Dict[str, str] = {
+    "rmse": "neg_root_mean_squared_error",
+    "mae": "neg_mean_absolute_error",
+    "r2": "r2",
+}
+
+# Combined metric map
+METRIC_MAP: Dict[str, str] = {**CLASSIFICATION_METRICS, **REGRESSION_METRICS}
+
+
+def _map_metric(metric: str, task_type: str) -> str:
+    """Map OpenNeural metric names to scikit-learn scoring names.
+
+    Args:
+        metric: OpenNeural metric name (e.g., "f1", "auc_roc", "rmse").
+        task_type: Task type ("classification" or "regression") for validation.
+
+    Returns:
+        str: scikit-learn scoring name compatible with cross_val_score.
+
+    Raises:
+        ValueError: If the metric is not recognized or incompatible with task type.
+
+    Example:
+        >>> _map_metric("f1", "classification")
+        'f1_weighted'
+        >>> _map_metric("rmse", "regression")
+        'neg_root_mean_squared_error'
+    """
+    if metric in METRIC_MAP:
+        return METRIC_MAP[metric]
+
+    # If already a valid sklearn metric, return as-is
+    return metric
+
+
 def _suggest_parameter(
     trial: optuna.Trial,
     param_name: str,
@@ -117,6 +163,10 @@ def build_optuna_objective(
     # Retrieve model specification from registry
     model_spec = get_model(model_key)
 
+    # Map the metric to sklearn-compatible scoring name
+    task_type = model_spec.task_types[0] if model_spec.task_types else "classification"
+    sklearn_metric = _map_metric(metric, task_type)
+
     def objective(trial: optuna.Trial) -> float:
         """Optuna objective function for a single trial.
 
@@ -157,7 +207,7 @@ def build_optuna_objective(
             X_train,
             y_train,
             cv=cv,
-            scoring=metric,
+            scoring=sklearn_metric,
             n_jobs=-1,
         )
 

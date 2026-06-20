@@ -6,6 +6,9 @@ hyperparameter optimization.
 """
 
 from openneural_backend.models.optuna_adapter import (
+    CLASSIFICATION_METRICS,
+    METRIC_MAP,
+    REGRESSION_METRICS,
     build_objective_with_timeout,
     build_optuna_objective,
 )
@@ -22,9 +25,12 @@ from openneural_backend.models.registry import (
 )
 
 __all__ = [
+    "CLASSIFICATION_METRICS",
+    "METRIC_MAP",
     "MODEL_REGISTRY",
     "ModelSpec",
     "OptunaParamSpec",
+    "REGRESSION_METRICS",
     "build_objective_with_timeout",
     "build_optuna_objective",
     "clear_registry",
