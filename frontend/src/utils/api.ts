@@ -738,3 +738,113 @@ export async function cancelExperiment(
 
   return (await response.json()) as CancelExperimentResponse;
 }
+
+/**
+ * Interrupted experiment response from the backend.
+ */
+export interface InterruptedExperiment {
+  /** Unique experiment ID (UUID) */
+  id: string;
+  /** Human-readable experiment ID */
+  experiment_id_human: string;
+  /** ID of the project this experiment belongs to */
+  project_id: string;
+  /** Name of the project */
+  project_name?: string;
+  /** Current experiment status */
+  status: "interrupted";
+  /** Timestamp when the experiment was created */
+  created_at: string;
+  /** Timestamp when the experiment was started */
+  started_at?: string;
+  /** Best model type from the partial run */
+  best_model_type?: string;
+  /** Partial metrics from the interrupted run */
+  metrics?: {
+    f1?: number;
+    auc_roc?: number;
+    precision?: number;
+    recall?: number;
+  };
+}
+
+/**
+ * Response for interrupted experiments list.
+ */
+export interface InterruptedExperimentsResponse {
+  /** List of interrupted experiments */
+  interrupted_experiments: InterruptedExperiment[];
+}
+
+/**
+ * Fetch all interrupted experiments across all projects.
+ *
+ * GET /api/v1/experiments/interrupted
+ *
+ * @returns List of interrupted experiments
+ * @throws Error if the request fails
+ */
+export async function fetchInterruptedExperiments(): Promise<
+  InterruptedExperiment[]
+> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/interrupted`
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to fetch interrupted experiments: ${response.status} ${errorText}`
+    );
+  }
+
+  const data = (await response.json()) as InterruptedExperimentsResponse;
+  return data.interrupted_experiments ?? [];
+}
+
+/**
+ * Recover experiment response.
+ */
+export interface RecoverExperimentResponse {
+  /** Current status after recovery action */
+  status: "created" | "cancelled";
+  /** Recovery action taken */
+  action: "restart" | "discard";
+}
+
+/**
+ * Recover an interrupted experiment by restarting or discarding it.
+ *
+ * PATCH /api/v1/experiments/{experimentId}/recover
+ *
+ * @param experimentId - The ID of the interrupted experiment
+ * @param action - The recovery action: "restart" or "discard"
+ * @returns The recovered experiment status
+ * @throws Error if the request fails
+ */
+export async function recoverExperiment(
+  experimentId: string,
+  action: "restart" | "discard"
+): Promise<RecoverExperimentResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/${experimentId}/recover`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to recover experiment: ${response.status} ${errorText}`
+    );
+  }
+
+  return (await response.json()) as RecoverExperimentResponse;
+}

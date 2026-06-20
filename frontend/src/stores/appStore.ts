@@ -81,6 +81,8 @@ interface AppStore extends AppState {
   setCurrentStep: (step: WizardStep) => void;
   /** Set the current experiment ID */
   setCurrentExperimentId: (experimentId: string | null) => void;
+  /** Set the current project ID directly */
+  setCurrentProjectId: (projectId: string | null) => void;
   /** Select a project and navigate to dataset step */
   selectProject: (projectId: string) => void;
   /** Return to projects dashboard */
@@ -160,6 +162,10 @@ function initializeStore(): AppStore {
     state = { ...state, currentExperimentId: experimentId };
   };
 
+  const setCurrentProjectId = (projectId: string | null): void => {
+    state = { ...state, currentProjectId: projectId };
+  };
+
   const selectProject = (projectId: string): void => {
     state = { ...state, currentProjectId: projectId, currentStep: "dataset" };
   };
@@ -202,6 +208,7 @@ function initializeStore(): AppStore {
     setAuthenticated,
     setCurrentStep,
     setCurrentExperimentId,
+    setCurrentProjectId,
     selectProject,
     goToProjects,
     setProjects,
