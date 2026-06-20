@@ -12,8 +12,11 @@ from openneural_backend.db.engine import get_async_session
 from openneural_backend.db.models import Pipeline, Project
 from openneural_backend.models.registry import list_models
 from openneural_backend.orchestrator.experiment_manager import (
+    ExperimentNotFoundError,
+    ExperimentStateError,
     ExperimentValidationError,
     create_experiment,
+    start_experiment,
 )
 
 router = APIRouter(prefix="/projects/{project_id}/experiments", tags=["experiments"])
@@ -183,18 +186,87 @@ async def get_experiment(project_id: str, experiment_id: str) -> dict:
     raise HTTPException(status_code=501, detail="Not implemented")
 
 
-@router.post("/{experiment_id}/start")
-async def start_experiment(project_id: str, experiment_id: str) -> dict:
+class ExperimentStartResponse(BaseModel):
+    """Response model for experiment start."""
+
+    status: str
+    started_at: str
+
+
+@router.post("/{experiment_id}/start", response_model=ExperimentStartResponse)
+async def start_experiment_endpoint(
+    project_id: str,
+    experiment_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> ExperimentStartResponse:
     """Start an experiment training run.
+
+    Verifies the experiment exists and belongs to the project, verifies
+    the snapshot checksum for data integrity, marks the experiment as
+    'running', spawns the training coroutine, and returns the status.
 
     Args:
         project_id: The project ID.
         experiment_id: The experiment ID.
+        session: Database session.
 
     Returns:
-        dict: Experiment status.
+        ExperimentStartResponse: Status and started_at timestamp.
+
+    Raises:
+        HTTPException 404: If project or experiment not found.
+        HTTPException 400: If experiment is not in 'created' status.
+        HTTPException 500: If checksum verification fails.
     """
-    raise HTTPException(status_code=501, detail="Not implemented")
+    # Validate project exists
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Validate experiment exists and belongs to this project
+    from openneural_backend.db.models import Experiment
+    exp_result = await session.execute(
+        select(Experiment).where(
+            Experiment.id == experiment_id,
+            Experiment.project_id == project_id,
+        )
+    )
+    experiment = exp_result.scalar_one_or_none()
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found in project '{project_id}'",
+        )
+
+    # Start the experiment via experiment_manager
+    try:
+        result = await start_experiment(experiment_id)
+    except ExperimentNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found",
+        )
+    except ExperimentStateError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except ExperimentValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    return ExperimentStartResponse(
+        status=result["status"],
+        started_at=result["started_at"],
+    )
 
 
 @router.get("/{experiment_id}/status")

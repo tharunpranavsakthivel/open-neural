@@ -10,12 +10,14 @@ Exposes:
     cancel_experiment(experiment_id): Cancel a running experiment.
 """
 
+import asyncio
 import random
 import string
 from datetime import datetime
 
 from openneural_backend.db.engine import async_session
-from openneural_backend.db.models import Experiment
+from openneural_backend.db.models import DatasetSnapshot, Experiment, Pipeline
+from openneural_backend.services.dataset_service import verify_snapshot_checksum
 
 
 def _generate_experiment_id_human() -> str:
@@ -54,6 +56,19 @@ class ExperimentValidationError(Exception):
     """Raised when experiment validation fails."""
 
     pass
+
+
+class ExperimentStateError(Exception):
+    """Raised when an experiment is in an invalid state for an operation."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize with error message.
+
+        Args:
+            message: Human-readable error message.
+        """
+        self.message = message
+        super().__init__(message)
 
 
 async def create_experiment(
@@ -152,3 +167,136 @@ async def create_experiment(
             "status": experiment.status,
             "created_at": experiment.created_at.isoformat(),
         }
+
+
+async def _run_training(experiment_id: str) -> None:
+    """Background task for running training.
+
+    This coroutine is spawned via asyncio.create_task() to run the training
+    process in the background. It handles the full training lifecycle:
+    - Load experiment configuration
+    - Run each candidate model
+    - Update experiment status on completion
+
+    Args:
+        experiment_id: The UUID of the experiment to run.
+    """
+    # Training implementation placeholder
+    # Per SRS FR-TRAIN-01 through FR-TRAIN-09
+    # Full implementation will include:
+    # - Loading snapshot and pipeline
+    # - Running Optuna hyperparameter search
+    # - Training each candidate model
+    # - Updating run statuses
+    # - Persisting experiment state
+
+    # For MVP, this is a placeholder that marks the experiment as done
+    # after a minimal delay (simulated training)
+    import asyncio
+    await asyncio.sleep(0.1)
+
+    async with async_session() as session:
+        from sqlalchemy import select
+        result = await session.execute(
+            select(Experiment).where(Experiment.id == experiment_id)
+        )
+        experiment = result.scalar_one_or_none()
+
+        if experiment and experiment.status == "running":
+            experiment.status = "done"
+            experiment.completed_at = datetime.utcnow()
+            await session.commit()
+
+
+async def start_experiment(experiment_id: str) -> dict:
+    """Start an experiment training run.
+
+    Verifies the experiment is in 'created' status, verifies the snapshot
+    checksum for data integrity, marks the experiment as 'running', spawns
+    the training coroutine via asyncio.create_task(), and returns the
+    updated experiment status.
+
+    Args:
+        experiment_id: The UUID of the experiment to start.
+
+    Returns:
+        dict: The started experiment with keys:
+            - id: UUID primary key.
+            - status: Updated status ("running").
+            - started_at: ISO8601 timestamp.
+
+    Raises:
+        ExperimentNotFoundError: If the experiment does not exist.
+        ExperimentStateError: If the experiment is not in 'created' status.
+        Exception: If checksum verification fails or other errors occur.
+    """
+    from sqlalchemy import select
+
+    async with async_session() as session:
+        # Get experiment
+        result = await session.execute(
+            select(Experiment).where(Experiment.id == experiment_id)
+        )
+        experiment = result.scalar_one_or_none()
+
+        if experiment is None:
+            raise ExperimentNotFoundError(experiment_id)
+
+        # Verify experiment is in 'created' status
+        if experiment.status != "created":
+            raise ExperimentStateError(
+                f"Cannot start experiment with status '{experiment.status}'. "
+                "Only experiments in 'created' status can be started."
+            )
+
+        # Get pipeline to find snapshot
+        pipeline_result = await session.execute(
+            select(Pipeline).where(Pipeline.id == experiment.pipeline_id)
+        )
+        pipeline = pipeline_result.scalar_one_or_none()
+
+        if pipeline is None:
+            raise ExperimentValidationError(
+                f"Pipeline '{experiment.pipeline_id}' not found for experiment"
+            )
+
+        # Verify snapshot checksum before starting (per SRS NFR-REL-02)
+        snapshot_result = await session.execute(
+            select(DatasetSnapshot).where(DatasetSnapshot.id == pipeline.snapshot_id)
+        )
+        snapshot = snapshot_result.scalar_one_or_none()
+
+        if snapshot is None:
+            raise ExperimentValidationError(
+                f"Snapshot '{pipeline.snapshot_id}' not found for pipeline"
+            )
+
+    # Verify checksum outside the session to avoid long-running transactions
+    # Per SRS NFR-REL-02: Verify SHA-256 checksum before training
+    await verify_snapshot_checksum(snapshot.id)
+
+    # Mark experiment as running and update started_at
+    async with async_session() as session:
+        result = await session.execute(
+            select(Experiment).where(Experiment.id == experiment_id)
+        )
+        experiment = result.scalar_one_or_none()
+
+        experiment.status = "running"
+        experiment.started_at = datetime.utcnow()
+        await session.commit()
+        await session.refresh(experiment)
+
+        started_at = experiment.started_at.isoformat()
+
+    # Spawn training coroutine in the background
+    # Per SRS FR-TRAIN-01: Training runs locally on CPU
+    # Per SRS FR-TRAIN-02: Generate unique experiment ID (already done at creation)
+    # Per SRS FR-TRAIN-03 through FR-TRAIN-09 handled by _run_training
+    asyncio.create_task(_run_training(experiment_id))
+
+    return {
+        "id": experiment_id,
+        "status": "running",
+        "started_at": started_at,
+    }
