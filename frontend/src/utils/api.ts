@@ -327,3 +327,40 @@ export async function uploadDatasetSnapshot(
     xhr.send(formData);
   });
 }
+
+/**
+ * Snapshot list item from the backend.
+ */
+export interface SnapshotListItem {
+  /** Unique identifier for the snapshot */
+  id: string;
+  /** Human-readable version label */
+  version_label: string;
+  /** Number of rows */
+  row_count: number;
+  /** UTC timestamp */
+  created_at: string;
+}
+
+/**
+ * Fetch all snapshots for a project.
+ *
+ * GET /api/v1/projects/{projectId}/snapshots
+ *
+ * @param projectId - The ID of the project
+ * @returns Array of snapshot list items
+ * @throws Error if the request fails
+ */
+export async function fetchProjectSnapshots(
+  projectId: string
+): Promise<SnapshotListItem[]> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/snapshots`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch snapshots: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as SnapshotListItem[];
+}
