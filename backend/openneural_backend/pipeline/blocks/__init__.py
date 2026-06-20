@@ -11,6 +11,7 @@ from openneural_backend.pipeline.blocks.encode_categoricals import (
     EncodeCategoricalsOneHotBlock,
     EncodeCategoricalsOrdinalBlock,
 )
+from openneural_backend.pipeline.blocks.feature_selection import FeatureSelectionBlock
 from openneural_backend.pipeline.blocks.fill_missing import (
     FillMissingMeanBlock,
     FillMissingMedianBlock,
@@ -30,6 +31,7 @@ __all__ = [
     "DropNullsTransformer",
     "EncodeCategoricalsOneHotBlock",
     "EncodeCategoricalsOrdinalBlock",
+    "FeatureSelectionBlock",
     "FillMissingMeanBlock",
     "FillMissingMedianBlock",
     "LogTransformBlock",
