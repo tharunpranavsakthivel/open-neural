@@ -702,3 +702,39 @@ export async function startExperiment(
 
   return (await response.json()) as StartExperimentResponse;
 }
+
+/**
+ * Cancel experiment training response.
+ */
+export interface CancelExperimentResponse {
+  /** Current status */
+  status: "cancelled";
+}
+
+/**
+ * Cancel training for an experiment.
+ *
+ * DELETE /api/v1/experiments/{experimentId}/cancel
+ *
+ * @param experimentId - The ID of the experiment
+ * @returns The cancelled experiment status
+ * @throws Error if the request fails
+ */
+export async function cancelExperiment(
+  experimentId: string
+): Promise<CancelExperimentResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/${experimentId}/cancel`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to cancel experiment: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as CancelExperimentResponse;
+}
