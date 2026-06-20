@@ -5,30 +5,48 @@
  * AutoML mode is enabled by default, which pre-selects all models for the
  * current task type and disables individual model selection.
  *
+ * Model labels correspond to the backend MODEL_REGISTRY keys but display
+ * user-friendly names:
+ * - Classification: Logistic Regression, Random Forest, Gradient Boosting, XGBoost,
+ *   Support Vector Machine, k-Nearest Neighbors
+ * - Regression: Ridge Regression, Random Forest Regressor, Gradient Boosting Regressor,
+ *   XGBoost Regressor, Support Vector Regressor, k-Nearest Neighbors Regressor
+ *
  * @module screens/ModelSelection
  */
 import { useState, useEffect, useCallback } from "react";
 import { fetchProjects } from "../utils/api";
 import type { Project } from "../stores/appStore";
 
-/** Classification model options */
-const CLASSIFICATION_MODELS = [
-  "Logistic Regression",
-  "Random Forest",
-  "Gradient Boosting",
-  "XGBoost",
-  "SVM",
-  "k-NN",
+/**
+ * Model registry entry mapping a model key to its display label.
+ * Keys correspond to the backend MODEL_REGISTRY.
+ */
+interface ModelRegistryEntry {
+  /** Backend model registry key */
+  key: string;
+  /** User-friendly display label */
+  label: string;
+}
+
+/** Classification models from MODEL_REGISTRY with display labels */
+const CLASSIFICATION_MODELS: ModelRegistryEntry[] = [
+  { key: "logistic_regression", label: "Logistic Regression" },
+  { key: "random_forest", label: "Random Forest" },
+  { key: "gradient_boosting", label: "Gradient Boosting" },
+  { key: "xgboost", label: "XGBoost" },
+  { key: "svm", label: "Support Vector Machine" },
+  { key: "knn", label: "k-Nearest Neighbors" },
 ];
 
-/** Regression model options */
-const REGRESSION_MODELS = [
-  "Ridge Regression",
-  "Random Forest Regressor",
-  "Gradient Boosting Regressor",
-  "XGBoost Regressor",
-  "SVR",
-  "k-NN Regressor",
+/** Regression models from MODEL_REGISTRY with display labels */
+const REGRESSION_MODELS: ModelRegistryEntry[] = [
+  { key: "ridge_regression", label: "Ridge Regression" },
+  { key: "random_forest_regressor", label: "Random Forest Regressor" },
+  { key: "gradient_boosting_regressor", label: "Gradient Boosting Regressor" },
+  { key: "xgboost_regressor", label: "XGBoost Regressor" },
+  { key: "svr", label: "Support Vector Regressor" },
+  { key: "knn_regressor", label: "k-Nearest Neighbors Regressor" },
 ];
 
 interface ModelSelectionProps {
@@ -39,22 +57,25 @@ interface ModelSelectionProps {
 /**
  * Model selection wizard step component.
  *
+ * Renders a checklist of candidate models from MODEL_REGISTRY filtered by
+ * project task type. Each model is displayed with its user-friendly label.
+ *
  * @param props - Component props
  * @returns The model selection screen
  */
 export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element {
   /** AutoML mode state - defaults to enabled */
   const [isAutoMLEnabled, setIsAutoMLEnabled] = useState(true);
-  
+
   /** Project task type */
   const [taskType, setTaskType] = useState<Project["taskType"] | null>(null);
-  
-  /** Selected models for manual mode */
+
+  /** Selected model keys for manual mode */
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
-  
+
   /** Loading state for fetching project */
   const [isLoading, setIsLoading] = useState(true);
-  
+
   /** Error state */
   const [error, setError] = useState<string | null>(null);
 
@@ -66,22 +87,24 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
       try {
         setIsLoading(true);
         setError(null);
-        
+
         const projects = await fetchProjects();
         const project = projects.find((p) => p.id === projectId);
-        
+
         if (project) {
           setTaskType(project.taskType);
           // Pre-select all models for the task type in AutoML mode
-          const allModels = project.taskType === "regression" 
-            ? REGRESSION_MODELS 
-            : CLASSIFICATION_MODELS;
-          setSelectedModels(new Set(allModels));
+          const allModelKeys =
+            project.taskType === "regression"
+              ? REGRESSION_MODELS.map((m) => m.key)
+              : CLASSIFICATION_MODELS.map((m) => m.key);
+          setSelectedModels(new Set(allModelKeys));
         } else {
           setError("Project not found");
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load project";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load project";
         setError(errorMessage);
         console.error("Project load failed:", err);
       } finally {
@@ -95,9 +118,8 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
   /**
    * Get available models based on task type.
    */
-  const availableModels = taskType === "regression" 
-    ? REGRESSION_MODELS 
-    : CLASSIFICATION_MODELS;
+  const availableModels =
+    taskType === "regression" ? REGRESSION_MODELS : CLASSIFICATION_MODELS;
 
   /**
    * Toggle AutoML mode.
@@ -107,7 +129,7 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
       const newValue = !prev;
       // When enabling AutoML, select all models
       if (newValue) {
-        setSelectedModels(new Set(availableModels));
+        setSelectedModels(new Set(availableModels.map((m) => m.key)));
       }
       return newValue;
     });
@@ -116,26 +138,29 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
   /**
    * Toggle individual model selection.
    */
-  const handleModelToggle = useCallback((model: string) => {
-    if (isAutoMLEnabled) return; // Disabled in AutoML mode
-    
-    setSelectedModels((prev) => {
-      const next = new Set(prev);
-      if (next.has(model)) {
-        next.delete(model);
-      } else {
-        next.add(model);
-      }
-      return next;
-    });
-  }, [isAutoMLEnabled]);
+  const handleModelToggle = useCallback(
+    (modelKey: string) => {
+      if (isAutoMLEnabled) return; // Disabled in AutoML mode
+
+      setSelectedModels((prev) => {
+        const next = new Set(prev);
+        if (next.has(modelKey)) {
+          next.delete(modelKey);
+        } else {
+          next.add(modelKey);
+        }
+        return next;
+      });
+    },
+    [isAutoMLEnabled]
+  );
 
   /**
    * Select all models in manual mode.
    */
   const handleSelectAll = useCallback(() => {
     if (isAutoMLEnabled) return;
-    setSelectedModels(new Set(availableModels));
+    setSelectedModels(new Set(availableModels.map((m) => m.key)));
   }, [isAutoMLEnabled, availableModels]);
 
   /**
@@ -202,7 +227,7 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
           </button>
         </div>
         <p style={styles.toggleDescription}>
-          {isAutoMLEnabled 
+          {isAutoMLEnabled
             ? "All candidate models will be automatically selected and optimized."
             : "Select specific models to train from the list below."}
         </p>
@@ -227,26 +252,30 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
         <div style={styles.modelGrid}>
           {availableModels.map((model) => (
             <label
-              key={model}
+              key={model.key}
               style={{
                 ...styles.modelCard,
                 ...(isAutoMLEnabled ? styles.modelCardDisabled : {}),
-                ...(selectedModels.has(model) ? styles.modelCardSelected : {}),
+                ...(selectedModels.has(model.key)
+                  ? styles.modelCardSelected
+                  : {}),
               }}
             >
               <input
                 type="checkbox"
-                checked={selectedModels.has(model)}
+                checked={selectedModels.has(model.key)}
                 disabled={isAutoMLEnabled}
-                onChange={() => handleModelToggle(model)}
+                onChange={() => handleModelToggle(model.key)}
                 style={styles.checkbox}
               />
-              <span style={styles.modelName}>{model}</span>
+              <span style={styles.modelName}>{model.label}</span>
             </label>
           ))}
         </div>
         {!isAutoMLEnabled && selectedModels.size === 0 && (
-          <p style={styles.warningText}>Please select at least one model to train.</p>
+          <p style={styles.warningText}>
+            Please select at least one model to train.
+          </p>
         )}
       </div>
 
@@ -265,15 +294,33 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
           </div>
           <div style={styles.setting}>
             <label style={styles.settingLabel}>Max Trials</label>
-            <input type="number" defaultValue={25} style={styles.input} min={1} max={100} />
+            <input
+              type="number"
+              defaultValue={25}
+              style={styles.input}
+              min={1}
+              max={100}
+            />
           </div>
           <div style={styles.setting}>
             <label style={styles.settingLabel}>CV Folds</label>
-            <input type="number" defaultValue={5} style={styles.input} min={2} max={10} />
+            <input
+              type="number"
+              defaultValue={5}
+              style={styles.input}
+              min={2}
+              max={10}
+            />
           </div>
           <div style={styles.setting}>
             <label style={styles.settingLabel}>Time Budget (min)</label>
-            <input type="number" defaultValue={8} style={styles.input} min={1} max={60} />
+            <input
+              type="number"
+              defaultValue={8}
+              style={styles.input}
+              min={1}
+              max={60}
+            />
           </div>
         </div>
       </div>
@@ -371,7 +418,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modelGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
     gap: "0.75rem",
   },
   modelCard: {
