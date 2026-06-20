@@ -437,8 +437,8 @@ async def export_pipeline_joblib(run_id: str, dest_dir: str | Path) -> dict[str,
         if not pipeline_path.exists():
             raise ArtifactNotFoundError(run_id, "pipeline")
 
-        # Copy file to destination
-        dest_file = dest_path / f"pipeline_{run_id[:8]}.joblib"
+        # Copy file to destination: {dest_dir}/pipeline.joblib
+        dest_file = dest_path / "pipeline.joblib"
         file_size, checksum = _copy_with_checksum(pipeline_path, dest_file)
 
         # Create export record
