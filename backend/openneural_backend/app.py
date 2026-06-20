@@ -24,6 +24,7 @@ from openneural_backend.routers import (
     recovery_router,
     snapshots_router,
     stream_router,
+    system_router,
 )
 
 # API version prefix for all routes
@@ -119,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(exports_router, prefix=API_V1_PREFIX)
     app.include_router(stream_router, prefix=API_V1_PREFIX)
     app.include_router(dashboard_router, prefix=API_V1_PREFIX)
+    app.include_router(system_router, prefix=API_V1_PREFIX)
 
     @app.get(f"{API_V1_PREFIX}/health", tags=["system"])
     def health_check() -> dict[str, str]:

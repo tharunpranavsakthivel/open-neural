@@ -14,6 +14,7 @@ from openneural_backend.routers.projects import router as projects_router
 from openneural_backend.routers.recovery import router as recovery_router
 from openneural_backend.routers.snapshots import router as snapshots_router
 from openneural_backend.routers.stream import router as stream_router
+from openneural_backend.routers.system import router as system_router
 
 __all__ = [
     "auth_router",
@@ -27,4 +28,5 @@ __all__ = [
     "stream_router",
     "dashboard_router",
     "recovery_router",
+    "system_router",
 ]
