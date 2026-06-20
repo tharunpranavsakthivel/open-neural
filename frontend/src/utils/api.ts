@@ -30,6 +30,22 @@ export interface ProjectsResponse {
 }
 
 /**
+ * API response for project rename operation.
+ */
+export interface RenameProjectResponse {
+  /** The updated project */
+  project: Project;
+}
+
+/**
+ * API response for project delete operation.
+ */
+export interface DeleteProjectResponse {
+  /** Whether the deletion was successful */
+  deleted: boolean;
+}
+
+/**
  * Get the base API URL using the backend port from the Electron API.
  *
  * @returns The base URL for API requests (e.g., "http://127.0.0.1:52841")
@@ -82,4 +98,60 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   }
 
   return (await response.json()) as DashboardStats;
+}
+
+/**
+ * Rename a project.
+ *
+ * PUT /api/v1/projects/{projectId}
+ *
+ * @param projectId - The ID of the project to rename
+ * @param newName - The new name for the project
+ * @returns The updated project
+ * @throws Error if the request fails
+ */
+export async function renameProject(
+  projectId: string,
+  newName: string
+): Promise<Project> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name: newName }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to rename project: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as RenameProjectResponse;
+  return data.project;
+}
+
+/**
+ * Delete a project.
+ *
+ * DELETE /api/v1/projects/{projectId}
+ *
+ * @param projectId - The ID of the project to delete
+ * @returns Whether the deletion was successful
+ * @throws Error if the request fails
+ */
+export async function deleteProject(projectId: string): Promise<boolean> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete project: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as DeleteProjectResponse;
+  return data.deleted;
 }

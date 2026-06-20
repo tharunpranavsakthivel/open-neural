@@ -7,10 +7,16 @@
  *
  * @module screens/ProjectsDashboard
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Project } from "../stores/appStore";
 import type { DashboardStats } from "../utils/api";
-import { fetchProjects, fetchDashboardStats } from "../utils/api";
+import {
+  fetchProjects,
+  fetchDashboardStats,
+  renameProject,
+  deleteProject,
+} from "../utils/api";
+import { ProjectCard } from "../components/ProjectCard";
 
 interface ProjectsDashboardProps {
   /** Callback when a project is selected */
@@ -24,7 +30,7 @@ interface ProjectsDashboardProps {
  *
  * Fetches projects and dashboard statistics on mount via the backend API,
  * displays a stats bar with aggregate metrics, and renders a table of
- * all projects with sortable columns.
+ * all projects with action buttons for each project.
  *
  * @param props - Component props
  * @returns The projects dashboard
@@ -73,6 +79,56 @@ export function ProjectsDashboard({
     }
 
     loadData();
+  }, []);
+
+  /**
+   * Handle opening a project.
+   */
+  const handleOpenProject = useCallback(
+    (projectId: string) => {
+      onSelectProject(projectId);
+    },
+    [onSelectProject]
+  );
+
+  /**
+   * Handle renaming a project.
+   */
+  const handleRenameProject = useCallback(
+    async (projectId: string, newName: string) => {
+      try {
+        const updatedProject = await renameProject(projectId, newName);
+        setProjects((prev) =>
+          prev.map((p) => (p.id === projectId ? updatedProject : p))
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to rename project";
+        console.error("Project rename failed:", err);
+        alert(errorMessage);
+      }
+    },
+    []
+  );
+
+  /**
+   * Handle deleting a project.
+   */
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    try {
+      const deleted = await deleteProject(projectId);
+      if (deleted) {
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        // Also update stats after deletion
+        const statsData = await fetchDashboardStats();
+        setStats(statsData);
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete project";
+      console.error("Project delete failed:", err);
+      alert(errorMessage);
+    }
   }, []);
 
   const hasProjects = projects.length > 0;
@@ -155,49 +211,18 @@ export function ProjectsDashboard({
                 <th style={styles.tableHeader}>Task Type</th>
                 <th style={styles.tableHeader}>Experiments</th>
                 <th style={styles.tableHeader}>Last Updated</th>
+                <th style={styles.tableHeader}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {projects.map((project) => (
-                <tr
+                <ProjectCard
                   key={project.id}
-                  style={styles.tableRow}
-                  onClick={() => onSelectProject(project.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      onSelectProject(project.id);
-                    }
-                  }}
-                  aria-label={`Open project ${project.name}`}
-                >
-                  <td style={styles.tableCell}>
-                    <span style={styles.projectName}>{project.name}</span>
-                  </td>
-                  <td style={styles.tableCell}>
-                    <span
-                      style={{
-                        ...styles.taskBadge,
-                        ...(project.taskType === "classification"
-                          ? styles.badgeClassification
-                          : styles.badgeRegression),
-                      }}
-                    >
-                      {project.taskType}
-                    </span>
-                  </td>
-                  <td style={styles.tableCell}>
-                    <span style={styles.experimentCount}>
-                      {project.experimentCount}
-                    </span>
-                  </td>
-                  <td style={styles.tableCell}>
-                    <span style={styles.lastUpdated}>
-                      {formatRelativeTime(project.updatedAt)}
-                    </span>
-                  </td>
-                </tr>
+                  project={project}
+                  onOpen={handleOpenProject}
+                  onRename={handleRenameProject}
+                  onDelete={handleDeleteProject}
+                />
               ))}
             </tbody>
           </table>
@@ -205,28 +230,6 @@ export function ProjectsDashboard({
       )}
     </div>
   );
-}
-
-/**
- * Format a timestamp as relative time.
- *
- * @param timestamp - ISO timestamp string
- * @returns Relative time string (e.g., "2 hours ago")
- */
-function formatRelativeTime(timestamp: string): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -387,43 +390,5 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.05em",
     backgroundColor: "#f9fafb",
     borderBottom: "1px solid #e5e7eb",
-  },
-  tableRow: {
-    cursor: "pointer",
-    transition: "background-color 0.15s ease",
-    borderBottom: "1px solid #e5e7eb",
-  },
-  tableCell: {
-    padding: "1rem 1.5rem",
-  },
-  projectName: {
-    fontWeight: 500,
-    color: "#111827",
-    fontSize: "0.875rem",
-  },
-  taskBadge: {
-    display: "inline-block",
-    padding: "0.25rem 0.75rem",
-    borderRadius: "9999px",
-    fontSize: "0.75rem",
-    fontWeight: 500,
-    textTransform: "capitalize",
-  },
-  badgeClassification: {
-    backgroundColor: "#dbeafe",
-    color: "#1d4ed8",
-  },
-  badgeRegression: {
-    backgroundColor: "#dcfce7",
-    color: "#15803d",
-  },
-  experimentCount: {
-    fontWeight: 500,
-    color: "#111827",
-    fontSize: "0.875rem",
-  },
-  lastUpdated: {
-    color: "#6b7280",
-    fontSize: "0.875rem",
   },
 };
