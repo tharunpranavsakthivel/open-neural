@@ -16,6 +16,7 @@ Exposes:
 
 import hashlib
 import json
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -27,11 +28,16 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 from sqlalchemy import select
 
 from openneural_backend.config import Settings
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import Experiment, Export, Run
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
 
 
 def _compute_file_checksum(file_path: Path) -> str:
@@ -211,8 +217,13 @@ def _get_run_dir(experiment_id: str, run_id: str) -> Path:
 async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]:
     """Export model in ONNX format.
 
-    Exports the ONNX model artifact from a run to the specified destination.
+    Loads the fitted model from model.joblib, attempts ONNX conversion via
+    skl2onnx.convert_sklearn with target_opset=17, and writes to the destination.
     Per SRS FR-EXP-01: ONNX export is supported for models where conversion is available.
+    Per TDD 4.3: ONNX export via skl2onnx with fallback to joblib.
+
+    If conversion fails (unsupported model), logs a warning and skips ONNX export
+    without raising an error.
 
     Args:
         run_id: UUID of the run to export from.
@@ -224,12 +235,12 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
             - file_path: Absolute path to the exported file.
             - file_size_bytes: Size of the exported file.
             - checksum_sha256: SHA-256 checksum for integrity verification.
-            - status: "success" or "failed"
+            - status: "success" or "skipped"
             - message: Human-readable status message.
 
     Raises:
         RunNotFoundError: If the run does not exist.
-        ArtifactNotFoundError: If the ONNX artifact is not available for this run.
+        ArtifactNotFoundError: If the joblib model artifact is not available.
         ExportError: If the export fails due to I/O or permission issues.
     """
     dest_path = Path(dest_dir).expanduser().resolve()
@@ -237,31 +248,96 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
     try:
         run, experiment = await _get_run_and_experiment(run_id)
 
-        # Check if ONNX artifact exists
-        if not run.artifact_model_onnx:
-            raise ArtifactNotFoundError(run_id, "ONNX")
+        # Get run directory for model artifact
+        run_dir = _get_run_dir(experiment.id, run_id)
+        model_path = run_dir / "model.joblib"
 
-        source_path = Path(run.artifact_model_onnx)
-        if not source_path.exists():
-            raise ArtifactNotFoundError(run_id, "ONNX")
+        if not model_path.exists():
+            raise ArtifactNotFoundError(run_id, "model.joblib")
 
-        # Copy file to destination
-        dest_file = dest_path / f"{run.model_type}_{run_id[:8]}.onnx"
-        file_size, checksum = _copy_with_checksum(source_path, dest_file)
+        # Load the fitted model
+        try:
+            model = joblib.load(model_path)
+        except Exception as e:
+            raise ExportError(f"Failed to load model from {model_path}: {e}")
 
-        # Create export record
-        await _create_export_record(experiment.id, "model_onnx", dest_file)
+        # Prepare destination file path
+        dest_file = dest_path / f"{run.model_type}.onnx"
+        dest_path.mkdir(parents=True, exist_ok=True)
 
-        return {
-            "artifact_type": "model_onnx",
-            "file_path": str(dest_file),
-            "file_size_bytes": file_size,
-            "checksum_sha256": checksum,
-            "status": "success",
-            "message": f"ONNX model exported successfully to {dest_file}",
-        }
+        # Attempt ONNX conversion
+        try:
+            # Infer initial types - assume float32 input features
+            # This is a reasonable default for sklearn models
+            # The input shape will be (batch_size, n_features)
+            # We'll need to determine n_features from the model
+            n_features = None
+
+            # Try to get n_features from common sklearn attributes
+            if hasattr(model, "n_features_in_"):
+                n_features = model.n_features_in_
+            elif hasattr(model, "coef_"):
+                # Linear models have coef_ attribute
+                n_features = model.coef_.shape[-1] if len(model.coef_.shape) > 0 else model.coef_.shape[0]
+            elif hasattr(model, "feature_importances_"):
+                # Tree-based models
+                n_features = len(model.feature_importances_)
+            else:
+                # Default to a placeholder - ONNX conversion may still work
+                # if the model stores shape info internally
+                n_features = 1
+
+            if n_features is None:
+                n_features = 1
+
+            initial_type = [("float_input", FloatTensorType([None, n_features]))]
+
+            # Convert to ONNX with opset 17 (per TDD NFR-PORT-03)
+            onnx_model = convert_sklearn(
+                model,
+                initial_types=initial_type,
+                target_opset=17,
+            )
+
+            # Write ONNX model to file
+            with open(dest_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
+            # Compute checksum and file size
+            file_size = dest_file.stat().st_size
+            checksum = _compute_file_checksum(dest_file)
+
+            # Create export record
+            await _create_export_record(experiment.id, "model_onnx", dest_file)
+
+            return {
+                "artifact_type": "model_onnx",
+                "file_path": str(dest_file),
+                "file_size_bytes": file_size,
+                "checksum_sha256": checksum,
+                "status": "success",
+                "message": f"ONNX model exported successfully to {dest_file}",
+            }
+
+        except Exception as e:
+            # Conversion failed (unsupported model) - log warning and skip
+            logger.warning(
+                f"ONNX conversion failed for {run.model_type} (run {run_id[:8]}): {e}. "
+                f"Skipping ONNX export. Model can still be exported in joblib format."
+            )
+
+            return {
+                "artifact_type": "model_onnx",
+                "file_path": None,
+                "file_size_bytes": 0,
+                "checksum_sha256": None,
+                "status": "skipped",
+                "message": f"ONNX conversion not supported for {run.model_type}: {e}",
+            }
 
     except (RunNotFoundError, ArtifactNotFoundError):
+        raise
+    except ExportError:
         raise
     except Exception as e:
         raise ExportError(f"Failed to export ONNX model: {e}")
