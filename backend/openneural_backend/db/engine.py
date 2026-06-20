@@ -40,6 +40,12 @@ engine = create_async_engine(
 )
 
 
+import logging
+
+# Logger for database engine events
+logger = logging.getLogger(__name__)
+
+
 @event.listens_for(engine.sync_engine, "connect")
 def _set_sqlite_pragma(conn, _connection_record) -> None:
     """Execute SQLite PRAGMA statements on every new connection.
@@ -57,7 +63,20 @@ def _set_sqlite_pragma(conn, _connection_record) -> None:
         conn: The raw database connection (aiosqlite.Connection).
         _connection_record: Internal SQLAlchemy connection record (unused).
     """
-    conn.execute("PRAGMA journal_mode=WAL")
+    # Enable WAL mode and verify it was set successfully (Task 126)
+    cursor = conn.execute("PRAGMA journal_mode=WAL")
+    result = cursor.fetchone()
+    journal_mode = result[0] if result else None
+
+    if journal_mode != "wal":
+        logger.warning(
+            f"SQLite WAL mode activation failed. Expected 'wal', got '{journal_mode}'. "
+            "Database may be vulnerable to corruption on crashes."
+        )
+    else:
+        logger.debug("SQLite WAL mode activated successfully")
+
+    # Enable foreign key constraints
     conn.execute("PRAGMA foreign_keys=ON")
 
 
@@ -78,12 +97,28 @@ async def init_connection() -> None:
     the first connection establishes the WAL mode and foreign key settings.
     The event listener ensures these are set on every subsequent connection.
 
+    Also verifies that WAL mode is active and logs a warning if not.
+
     Returns:
         None
     """
     async with engine.connect() as conn:
         # Execute a simple query to trigger the connect event
         await conn.execute("SELECT 1")
+
+        # Verify WAL mode is active (Task 126)
+        # The event listener above sets it, but we verify here for startup logging
+        result = await conn.execute("PRAGMA journal_mode")
+        row = result.fetchone()
+        journal_mode = row[0] if row else None
+
+        if journal_mode == "wal":
+            logger.info("SQLite WAL mode is active")
+        else:
+            logger.warning(
+                f"SQLite WAL mode verification failed. Current mode: '{journal_mode}'. "
+                "Database may be vulnerable to corruption on crashes."
+            )
 
 
 __all__ = [
