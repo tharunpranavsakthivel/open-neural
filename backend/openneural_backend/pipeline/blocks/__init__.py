@@ -25,6 +25,7 @@ from openneural_backend.pipeline.blocks.scale_numerics import (
     ScaleNumericMinMaxBlock,
     ScaleNumericStandardBlock,
 )
+from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
 
 __all__ = [
     "DropNullsBlock",
@@ -40,4 +41,5 @@ __all__ = [
     "RemoveOutliersIQRTransformer",
     "ScaleNumericMinMaxBlock",
     "ScaleNumericStandardBlock",
+    "TrainValTestSplitBlock",
 ]
