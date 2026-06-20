@@ -20,6 +20,7 @@ from openneural_backend.routers import (
     leaderboard_router,
     pipelines_router,
     projects_router,
+    recovery_router,
     snapshots_router,
     stream_router,
 )
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(snapshots_router, prefix=API_V1_PREFIX)
     app.include_router(pipelines_router, prefix=API_V1_PREFIX)
     app.include_router(experiments_router, prefix=API_V1_PREFIX)
+    app.include_router(recovery_router, prefix=API_V1_PREFIX)
     app.include_router(evaluation_router, prefix=API_V1_PREFIX)
     app.include_router(leaderboard_router, prefix=API_V1_PREFIX)
     app.include_router(exports_router, prefix=API_V1_PREFIX)

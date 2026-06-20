@@ -10,6 +10,7 @@ from openneural_backend.routers.exports import router as exports_router
 from openneural_backend.routers.leaderboard import router as leaderboard_router
 from openneural_backend.routers.pipelines import router as pipelines_router
 from openneural_backend.routers.projects import router as projects_router
+from openneural_backend.routers.recovery import router as recovery_router
 from openneural_backend.routers.snapshots import router as snapshots_router
 from openneural_backend.routers.stream import router as stream_router
 
@@ -23,4 +24,5 @@ __all__ = [
     "exports_router",
     "stream_router",
     "dashboard_router",
+    "recovery_router",
 ]
