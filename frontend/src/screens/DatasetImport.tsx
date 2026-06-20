@@ -7,10 +7,16 @@
  * @module screens/DatasetImport
  */
 
-import { useState, useCallback } from "react";
-import { uploadDatasetSnapshot, type DatasetSnapshotResponse } from "../utils/api";
+import { useState, useCallback, useEffect } from "react";
+import {
+  uploadDatasetSnapshot,
+  fetchProjectSnapshots,
+  type DatasetSnapshotResponse,
+  type SnapshotListItem,
+} from "../utils/api";
 import { SchemaTable } from "../components/SchemaTable";
 import { DatasetSummary } from "../components/DatasetSummary";
+import { SnapshotHistory } from "../components/SnapshotHistory";
 
 interface DatasetImportProps {
   /** Currently selected project ID */
@@ -65,9 +71,11 @@ export function DatasetImport({
 }: DatasetImportProps): JSX.Element {
   const [importedFile, setImportedFile] = useState<File | null>(null);
   const [snapshot, setSnapshot] = useState<DatasetSnapshotResponse | null>(null);
+  const [snapshots, setSnapshots] = useState<SnapshotListItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [, setIsLoadingSnapshots] = useState(true);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -213,6 +221,33 @@ export function DatasetImport({
   }, [handleFileSelect]);
 
   /**
+   * Load existing snapshots on mount (FR-DATA-09).
+   */
+  useEffect(() => {
+    async function loadSnapshots() {
+      setIsLoadingSnapshots(true);
+      try {
+        const data = await fetchProjectSnapshots(projectId);
+        setSnapshots(data);
+      } catch (err) {
+        console.error("Failed to load snapshots:", err);
+      } finally {
+        setIsLoadingSnapshots(false);
+      }
+    }
+
+    void loadSnapshots();
+  }, [projectId]);
+
+  /**
+   * Handle snapshot selection from history panel.
+   */
+  const handleSelectSnapshot = useCallback((snapshotId: string) => {
+    // TODO: Load full snapshot details and set as current
+    console.log("Selected snapshot:", snapshotId);
+  }, []);
+
+  /**
    * Render upload progress indicator.
    */
   const renderUploadProgress = (): JSX.Element | null => {
@@ -257,6 +292,15 @@ export function DatasetImport({
           Upload a CSV or Parquet file to create a versioned dataset snapshot.
         </p>
       </header>
+
+      {/* Snapshot History Panel */}
+      {snapshots.length > 0 && (
+        <SnapshotHistory
+          projectId={projectId}
+          currentSnapshotId={snapshot?.id}
+          onSelectSnapshot={handleSelectSnapshot}
+        />
+      )}
 
       {/* Warning banner when no file is imported */}
       {!importedFile && !isUploading && !isAnalyzing && (
