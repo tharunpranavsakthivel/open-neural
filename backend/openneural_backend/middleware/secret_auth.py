@@ -3,6 +3,9 @@
 Provides a FastAPI middleware that validates an ephemeral shared secret passed
 via the X-OpenNeural-Secret HTTP header. This ensures only the Electron main
 process (which spawns the Python backend) can make requests to the local API.
+
+The auth setup and status endpoints are excluded from secret validation to
+allow first-launch password configuration.
 """
 
 import hmac
@@ -13,6 +16,13 @@ from typing import Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# Endpoints that are excluded from secret authentication
+# These endpoints handle first-launch setup and status checks
+EXCLUDED_PATHS = [
+    "/api/v1/auth/setup",
+    "/api/v1/auth/status",
+]
+
 
 class SecretAuthMiddleware(BaseHTTPMiddleware):
     """Middleware that validates the X-OpenNeural-Secret header.
@@ -21,6 +31,10 @@ class SecretAuthMiddleware(BaseHTTPMiddleware):
     stored in the OPENNEURAL_SECRET environment variable using constant-time
     comparison to prevent timing attacks. Returns 401 Unauthorized if the header
     is missing or does not match.
+
+    The following paths are excluded from secret validation:
+        - /api/v1/auth/setup (first-launch password setup)
+        - /api/v1/auth/status (check if auth is configured)
     """
 
     def __init__(self, app: Any) -> None:
@@ -58,6 +72,11 @@ class SecretAuthMiddleware(BaseHTTPMiddleware):
         Raises:
             No exceptions are raised; returns 401 response on auth failure.
         """
+        # Check if the request path is excluded from secret validation
+        if request.url.path in EXCLUDED_PATHS:
+            # Allow the request to proceed without secret validation
+            return await call_next(request)
+
         # Extract the secret header from the request
         provided_secret = request.headers.get("X-OpenNeural-Secret")
 

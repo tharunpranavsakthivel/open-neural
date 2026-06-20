@@ -13,6 +13,7 @@ from openneural_backend import __version__
 from openneural_backend.db.init import initialize_database
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 from openneural_backend.routers import (
+    auth_router,
     dashboard_router,
     evaluation_router,
     experiments_router,
@@ -72,6 +73,8 @@ def create_app() -> FastAPI:
     app.add_middleware(SecretAuthMiddleware)
 
     # Register all API routers
+    # Auth router is registered first and excluded from secret auth middleware
+    app.include_router(auth_router, prefix=API_V1_PREFIX)
     app.include_router(projects_router, prefix=API_V1_PREFIX)
     app.include_router(snapshots_router, prefix=API_V1_PREFIX)
     app.include_router(pipelines_router, prefix=API_V1_PREFIX)
