@@ -55,8 +55,11 @@ interface ModelSelectionProps {
   projectId: string;
   /** Currently selected pipeline ID (needed for time estimation and training) */
   pipelineId?: string;
-  /** Callback to navigate to training step */
-  onStartTraining?: () => void;
+  /**
+   * Callback when training starts with the experiment ID.
+   * Called after experiment is created and training is initiated.
+   */
+  onStartTraining?: (experimentId: string) => void;
 }
 
 /**
@@ -350,9 +353,9 @@ export function ModelSelection({
       // Step 2: Start training
       await startExperiment(experiment.id);
 
-      // Step 3: Navigate to training step
+      // Step 3: Navigate to training step with experiment ID
       if (onStartTraining) {
-        onStartTraining();
+        onStartTraining(experiment.id);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to start training";

@@ -14,7 +14,7 @@ import { ProjectsDashboard } from "../screens/ProjectsDashboard";
 import { DatasetImport } from "../screens/DatasetImport";
 import { PreprocessingPipeline } from "../screens/PreprocessingPipeline";
 import { ModelSelection } from "../screens/ModelSelection";
-import { Training } from "../screens/Training";
+import { TrainingProgress } from "../screens/TrainingProgress";
 import { Evaluation } from "../screens/Evaluation";
 import { Leaderboard } from "../screens/Leaderboard";
 import { Export } from "../screens/Export";
@@ -32,13 +32,39 @@ export function AppShell(): JSX.Element {
   const {
     currentStep,
     currentProjectId,
+    currentExperimentId,
     projects,
     setCurrentStep,
+    setCurrentExperimentId,
     selectProject,
     goToProjects,
   } = useAppStore();
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
+
+  /**
+   * Handle training complete - navigate to evaluation step.
+   */
+  const handleTrainingComplete = (): void => {
+    setCurrentStep("evaluation");
+  };
+
+  /**
+   * Handle training cancelled - navigate back to model selection.
+   */
+  const handleTrainingCancelled = (): void => {
+    // Clear the current experiment
+    setCurrentExperimentId(null);
+    setCurrentStep("model");
+  };
+
+  /**
+   * Handle start training from ModelSelection - store experiment ID and go to training.
+   */
+  const handleStartTraining = (experimentId: string): void => {
+    setCurrentExperimentId(experimentId);
+    setCurrentStep("training");
+  };
 
   /**
    * Render the active content based on current step.
@@ -63,8 +89,30 @@ export function AppShell(): JSX.Element {
         />
       ),
       preprocessing: <PreprocessingPipeline projectId={currentProjectId} />,
-      model: <ModelSelection projectId={currentProjectId} />,
-      training: <Training projectId={currentProjectId} />,
+      model: (
+        <ModelSelection
+          projectId={currentProjectId}
+          onStartTraining={handleStartTraining}
+        />
+      ),
+      training: currentExperimentId ? (
+        <TrainingProgress
+          experimentId={currentExperimentId}
+          onTrainingComplete={handleTrainingComplete}
+          onTrainingCancelled={handleTrainingCancelled}
+          onReturnToModelSelection={handleTrainingCancelled}
+        />
+      ) : (
+        <div style={styles.noExperimentMessage}>
+          <p>No active experiment. Please configure models and start training.</p>
+          <button
+            onClick={() => setCurrentStep("model")}
+            style={styles.returnButton}
+          >
+            Return to Model Selection
+          </button>
+        </div>
+      ),
       evaluation: <Evaluation projectId={currentProjectId} />,
       leaderboard: <Leaderboard projectId={currentProjectId} />,
       export: <Export projectId={currentProjectId} />,
@@ -101,5 +149,21 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflowY: "auto",
     minHeight: "100vh",
+  },
+  noExperimentMessage: {
+    padding: "2rem",
+    textAlign: "center" as const,
+    color: "#6b7280",
+  },
+  returnButton: {
+    marginTop: "1rem",
+    padding: "0.75rem 1.5rem",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    cursor: "pointer",
   },
 };

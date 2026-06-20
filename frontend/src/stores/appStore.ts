@@ -50,6 +50,8 @@ interface AppState {
   currentStep: WizardStep;
   /** Currently selected project ID, null if on projects dashboard */
   currentProjectId: string | null;
+  /** Currently active experiment ID for training/evaluation */
+  currentExperimentId: string | null;
   /** List of projects for the dashboard */
   projects: Project[];
   /** Whether a project is currently being created/edited */
@@ -77,6 +79,8 @@ interface AppStore extends AppState {
   setAuthenticated: () => void;
   /** Navigate to a wizard step */
   setCurrentStep: (step: WizardStep) => void;
+  /** Set the current experiment ID */
+  setCurrentExperimentId: (experimentId: string | null) => void;
   /** Select a project and navigate to dataset step */
   selectProject: (projectId: string) => void;
   /** Return to projects dashboard */
@@ -117,6 +121,7 @@ function initializeStore(): AppStore {
     error: null,
     currentStep: "projects",
     currentProjectId: null,
+    currentExperimentId: null,
     projects: [],
     isProjectModalOpen: false,
     toast: null,
@@ -149,6 +154,10 @@ function initializeStore(): AppStore {
 
   const setCurrentStep = (step: WizardStep): void => {
     state = { ...state, currentStep: step };
+  };
+
+  const setCurrentExperimentId = (experimentId: string | null): void => {
+    state = { ...state, currentExperimentId: experimentId };
   };
 
   const selectProject = (projectId: string): void => {
@@ -192,6 +201,7 @@ function initializeStore(): AppStore {
     setError,
     setAuthenticated,
     setCurrentStep,
+    setCurrentExperimentId,
     selectProject,
     goToProjects,
     setProjects,
