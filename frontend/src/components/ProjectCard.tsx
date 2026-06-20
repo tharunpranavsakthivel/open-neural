@@ -190,7 +190,7 @@ export function ProjectCard({
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         title="Delete Project"
-        description={`Are you sure you want to delete "${project.name}"? This action cannot be undone and will remove all associated experiments and snapshots.`}
+        description="Deleting this project will permanently remove all experiments, snapshots, and exports. This cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
