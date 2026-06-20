@@ -10,9 +10,10 @@
  */
 import { useEffect } from "react";
 import { useAppStore } from "../stores/appStore";
-import { PasswordSetup } from "./PasswordSetup";
+import { PasswordSetup } from "../screens/PasswordSetup";
 import { LoginScreen } from "./LoginScreen";
 import { AppShell } from "./AppShell";
+import { Toast } from "./Toast";
 
 /**
  * AuthGate component that conditionally renders screens based on auth state.
@@ -76,21 +77,32 @@ export function AuthGate(): JSX.Element {
   }
 
   // Render based on auth status
+  let content: JSX.Element;
   switch (authStatus) {
     case "setup":
-      return <PasswordSetup onComplete={setAuthenticated} />;
+      content = <PasswordSetup onComplete={() => setAuthStatus("login")} />;
+      break;
     case "login":
-      return <LoginScreen onLogin={setAuthenticated} />;
+      content = <LoginScreen onLogin={setAuthenticated} />;
+      break;
     case "authenticated":
-      return <AppShell />;
+      content = <AppShell />;
+      break;
     default:
       // Fallback to loading for any unexpected state
-      return (
+      content = (
         <div role="status" style={styles.loading}>
           <p>Initializing OpenNeural...</p>
         </div>
       );
   }
+
+  return (
+    <>
+      {content}
+      <Toast />
+    </>
+  );
 }
 
 const styles: Record<string, React.CSSProperties> = {

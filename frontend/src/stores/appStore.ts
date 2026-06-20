@@ -54,6 +54,8 @@ interface AppState {
   projects: Project[];
   /** Whether a project is currently being created/edited */
   isProjectModalOpen: boolean;
+  /** Current toast message */
+  toast: { message: string; type: "success" | "error" } | null;
 }
 
 /**
@@ -85,6 +87,12 @@ interface AppStore extends AppState {
   openProjectModal: () => void;
   /** Close project creation modal */
   closeProjectModal: () => void;
+  /** Show success toast message */
+  showSuccessToast: (message: string) => void;
+  /** Show error toast message */
+  showErrorToast: (message: string) => void;
+  /** Clear toast message */
+  clearToast: () => void;
 }
 
 // Store instance
@@ -111,6 +119,7 @@ function initializeStore(): AppStore {
     currentProjectId: null,
     projects: [],
     isProjectModalOpen: false,
+    toast: null,
   };
 
   // Actions
@@ -162,6 +171,18 @@ function initializeStore(): AppStore {
     state = { ...state, isProjectModalOpen: false };
   };
 
+  const showSuccessToast = (message: string): void => {
+    state = { ...state, toast: { message, type: "success" } };
+  };
+
+  const showErrorToast = (message: string): void => {
+    state = { ...state, toast: { message, type: "error" } };
+  };
+
+  const clearToast = (): void => {
+    state = { ...state, toast: null };
+  };
+
   storeInstance = {
     ...state,
     setBackendPort,
@@ -176,6 +197,9 @@ function initializeStore(): AppStore {
     setProjects,
     openProjectModal,
     closeProjectModal,
+    showSuccessToast,
+    showErrorToast,
+    clearToast,
   };
 
   return storeInstance;
