@@ -83,6 +83,41 @@ class ProjectNotFoundError(Exception):
         super().__init__(f"Project not found: {project_id}")
 
 
+class ChecksumMismatchError(Exception):
+    """Raised when snapshot checksum verification fails.
+
+    Per SRS NFR-REL-02: SHA-256 checksum must be verified before using
+    a snapshot in training. A mismatch indicates potential data corruption
+    or tampering.
+    """
+
+    def __init__(
+        self,
+        snapshot_id: str,
+        stored_checksum: str,
+        computed_checksum: str,
+        file_path: str,
+    ) -> None:
+        """Initialize with checksum mismatch details.
+
+        Args:
+            snapshot_id: The ID of the snapshot with the checksum mismatch.
+            stored_checksum: The checksum stored in the database.
+            computed_checksum: The freshly computed checksum.
+            file_path: Path to the file that was checked.
+        """
+        self.snapshot_id = snapshot_id
+        self.stored_checksum = stored_checksum
+        self.computed_checksum = computed_checksum
+        self.file_path = file_path
+        message = (
+            f"Checksum mismatch for snapshot {snapshot_id}: "
+            f"stored={stored_checksum[:16]}..., computed={computed_checksum[:16]}... "
+            f"(file: {file_path})"
+        )
+        super().__init__(message)
+
+
 def compute_checksum(path: str | Path) -> str:
     """Compute SHA-256 checksum for a file.
 
@@ -691,6 +726,78 @@ async def verify_snapshot_integrity(snapshot_id: str) -> dict[str, Any]:
             "is_valid": stored_checksum == computed_checksum,
             "stored_checksum": stored_checksum,
             "computed_checksum": computed_checksum,
+        }
+
+
+async def verify_snapshot_checksum(snapshot_id: str) -> dict[str, Any]:
+    """Verify snapshot checksum by recomputing SHA-256 of data.parquet.
+
+    Recomputes the SHA-256 checksum of the stored data.parquet file and
+    compares it to the stored value in the database. Raises
+    ChecksumMismatchError if the checksums do not match.
+
+    Per SRS NFR-REL-02: Dataset snapshots must be verified before use
+    in training runs to ensure data integrity.
+
+    Args:
+        snapshot_id: The UUID of the snapshot to verify.
+
+    Returns:
+        dict: Verification result containing:
+            - snapshot_id: The snapshot ID.
+            - is_valid: Boolean indicating if checksums match (always True).
+            - stored_checksum: The checksum stored in the database.
+            - computed_checksum: The freshly computed checksum.
+            - file_path: Path to the verified file.
+
+    Raises:
+        DatasetNotFoundError: If the snapshot does not exist.
+        ChecksumMismatchError: If the recomputed checksum does not match
+            the stored checksum, indicating potential data corruption.
+        DatasetImportError: If the stored file cannot be read.
+    """
+    async with async_session() as session:
+        stmt = select(DatasetSnapshot).where(DatasetSnapshot.id == snapshot_id)
+        result = await session.execute(stmt)
+        snapshot = result.scalar_one_or_none()
+
+        if snapshot is None:
+            raise DatasetNotFoundError(snapshot_id)
+
+        stored_path = Path(snapshot.stored_path)
+        stored_checksum = snapshot.checksum_sha256
+
+        # Check if file exists
+        if not stored_path.exists():
+            raise DatasetImportError(
+                f"Stored file not found: {stored_path}",
+                {"snapshot_id": snapshot_id}
+            )
+
+        # Recompute SHA-256 checksum of data.parquet
+        try:
+            computed_checksum = compute_checksum(stored_path)
+        except Exception as e:
+            raise DatasetImportError(
+                f"Failed to compute checksum: {str(e)}",
+                {"snapshot_id": snapshot_id, "file_path": str(stored_path)}
+            )
+
+        # Compare checksums and raise error if mismatch
+        if computed_checksum != stored_checksum:
+            raise ChecksumMismatchError(
+                snapshot_id=snapshot_id,
+                stored_checksum=stored_checksum,
+                computed_checksum=computed_checksum,
+                file_path=str(stored_path),
+            )
+
+        return {
+            "snapshot_id": snapshot_id,
+            "is_valid": True,
+            "stored_checksum": stored_checksum,
+            "computed_checksum": computed_checksum,
+            "file_path": str(stored_path),
         }
 
 
