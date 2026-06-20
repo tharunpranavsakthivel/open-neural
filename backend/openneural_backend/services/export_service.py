@@ -1252,7 +1252,7 @@ async def export_all(
             errors.append(f"Failed to export predictions: {e}")
 
         # Generate manifest
-        manifest_path = await generate_manifest(dest_path, exports)
+        manifest_path = await generate_manifest(dest_path, experiment_id, exports)
 
         # Determine overall status
         if len(errors) == 0:
@@ -1280,14 +1280,22 @@ async def export_all(
         raise ExportError(f"Failed to export all artifacts: {e}")
 
 
-async def generate_manifest(dest_dir: str | Path, exported_files: list[dict]) -> Path:
+async def generate_manifest(
+    dest_dir: str | Path,
+    experiment_id: str,
+    exported_files: list[dict],
+) -> Path:
     """Generate JSON manifest file listing all exported artifacts with checksums.
 
+    For each exported file, computes SHA-256 checksum and writes export_manifest.json
+    containing metadata about the export operation and all artifacts.
+    
     Per SRS NFR-SEC-04: Exported artifact files carry a manifest file listing their
     SHA-256 checksums for external verification.
 
     Args:
         dest_dir: Directory where the manifest will be written.
+        experiment_id: UUID of the experiment being exported.
         exported_files: List of export result dicts containing file_path and checksum_sha256.
 
     Returns:
@@ -1299,19 +1307,27 @@ async def generate_manifest(dest_dir: str | Path, exported_files: list[dict]) ->
     dest_path = Path(dest_dir).expanduser().resolve()
 
     try:
+        # Build manifest structure per task spec
         manifest = {
-            "generated_at": datetime.utcnow().isoformat(),
-            "version": "1.0",
+            "exported_at": datetime.utcnow().isoformat(),
+            "experiment_id": experiment_id,
             "artifacts": [],
         }
 
         for export in exported_files:
             if export.get("status") == "success":
+                # Recompute checksum if not provided (ensures integrity)
+                file_path = Path(export.get("file_path")) if export.get("file_path") else None
+                checksum = export.get("checksum_sha256")
+                
+                if file_path and file_path.exists() and not checksum:
+                    checksum = _compute_file_checksum(file_path)
+                
                 manifest["artifacts"].append({
-                    "artifact_type": export.get("artifact_type"),
-                    "file_path": export.get("file_path"),
-                    "file_size_bytes": export.get("file_size_bytes"),
-                    "checksum_sha256": export.get("checksum_sha256"),
+                    "type": export.get("artifact_type"),
+                    "path": str(file_path) if file_path else None,
+                    "size_bytes": export.get("file_size_bytes"),
+                    "checksum_sha256": checksum,
                 })
 
         manifest_path = dest_path / "export_manifest.json"
