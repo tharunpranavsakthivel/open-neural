@@ -2,12 +2,13 @@
  * DatasetImport screen - Step 1: Dataset upload and versioning.
  *
  * Allows users to upload CSV or Parquet files to create a versioned dataset
- * snapshot. Displays file drop zone and file browser dialog.
+ * snapshot. Displays file drop zone, file browser dialog, and upload progress.
  *
  * @module screens/DatasetImport
  */
 
 import { useState, useCallback } from "react";
+import { uploadDatasetSnapshot, type DatasetSnapshotResponse } from "../utils/api";
 
 interface DatasetImportProps {
   /** Currently selected project ID */
@@ -57,12 +58,53 @@ function isValidFileType(file: File): boolean {
  * @returns The dataset import screen
  */
 export function DatasetImport({
-  projectId: _projectId,
-  onComplete: _onComplete,
+  projectId,
+  onComplete,
 }: DatasetImportProps): JSX.Element {
   const [importedFile, setImportedFile] = useState<File | null>(null);
+  const [snapshot, setSnapshot] = useState<DatasetSnapshotResponse | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Handle file upload with progress tracking.
+   */
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      setError(null);
+      setUploadProgress(0);
+      setIsUploading(true);
+      setIsAnalyzing(false);
+
+      try {
+        // Upload file with progress tracking
+        const response = await uploadDatasetSnapshot(
+          projectId,
+          file,
+          (progress) => {
+            setUploadProgress(progress);
+            if (progress === 100) {
+              setIsUploading(false);
+              setIsAnalyzing(true);
+            }
+          }
+        );
+
+        setSnapshot(response);
+        setImportedFile(file);
+        setIsAnalyzing(false);
+        onComplete();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+        setIsUploading(false);
+        setIsAnalyzing(false);
+      }
+    },
+    [projectId, onComplete]
+  );
 
   /**
    * Handle file selection from dialog or drop.
@@ -87,14 +129,10 @@ export function DatasetImport({
         return;
       }
 
-      setImportedFile(file);
-
-      // TODO: Upload file to backend in future task
-      console.log("File selected:", file.name, "Size:", file.size);
-
-      // TODO: Call onComplete() after successful upload
+      // Start upload process
+      await handleFileUpload(file);
     },
-    []
+    [handleFileUpload]
   );
 
   /**
@@ -152,15 +190,18 @@ export function DatasetImport({
       });
 
       if (result && typeof result === "string") {
-        // Create a File-like object from the path
-        // In a real implementation, this would be handled by the backend
-        // For now, we just store the path and create a placeholder File object
+        // Create a File object from the selected path
+        // Note: In Electron, we need to read the file via the main process
+        // For now, we create a placeholder that will be replaced when uploaded
         const fileName = result.split("/").pop() || result.split("\\").pop() || "unknown";
         const file = new File([], fileName, {
           type: fileName.endsWith(".parquet")
             ? "application/vnd.apache.parquet"
             : "text/csv",
         });
+        // Store the actual path for later use
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (file as any).path = result;
         await handleFileSelect(file);
       }
     } catch (err) {
@@ -168,6 +209,43 @@ export function DatasetImport({
       console.error("File dialog error:", err);
     }
   }, [handleFileSelect]);
+
+  /**
+   * Render upload progress indicator.
+   */
+  const renderUploadProgress = (): JSX.Element | null => {
+    if (!isUploading && !isAnalyzing) {
+      return null;
+    }
+
+    return (
+      <div style={styles.progressOverlay}>
+        <div style={styles.progressContainer}>
+          {isUploading && (
+            <>
+              <div style={styles.progressBarContainer}>
+                <div
+                  style={{
+                    ...styles.progressBarFill,
+                    width: `${uploadProgress}%`,
+                  }}
+                />
+              </div>
+              <p style={styles.progressText}>
+                Uploading... {uploadProgress}%
+              </p>
+            </>
+          )}
+          {isAnalyzing && (
+            <div style={styles.analyzingContainer}>
+              <div style={styles.spinner} />
+              <p style={styles.analyzingText}>Analyzing dataset...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={styles.container}>
@@ -179,7 +257,7 @@ export function DatasetImport({
       </header>
 
       {/* Warning banner when no file is imported */}
-      {!importedFile && (
+      {!importedFile && !isUploading && !isAnalyzing && (
         <div style={styles.warningBanner} role="alert">
           <span style={styles.warningIcon}>⚠️</span>
           <span>
@@ -201,6 +279,7 @@ export function DatasetImport({
         style={{
           ...styles.dropZone,
           ...(isDragging ? styles.dropZoneActive : {}),
+          ...(isUploading || isAnalyzing ? styles.dropZoneDisabled : {}),
         }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -220,21 +299,29 @@ export function DatasetImport({
             onClick={handleBrowseClick}
             style={styles.browseButton}
             type="button"
+            disabled={isUploading || isAnalyzing}
           >
             Browse Files
           </button>
         </div>
+
+        {/* Upload progress overlay */}
+        {renderUploadProgress()}
       </div>
 
       {/* Imported file info */}
-      {importedFile && (
+      {snapshot && importedFile && (
         <div style={styles.successBanner}>
           <span style={styles.successIcon}>✅</span>
           <div>
-            <strong>File selected:</strong> {importedFile.name}
+            <strong>File imported:</strong> {snapshot.file_name}
             <br />
             <small>
-              Size: {(importedFile.size / (1024 * 1024)).toFixed(2)} MB
+              Version: {snapshot.version_label} • {snapshot.row_count.toLocaleString()} rows • {snapshot.col_count} columns
+            </small>
+            <br />
+            <small style={styles.checksumText}>
+              SHA-256: {snapshot.checksum_sha256.slice(0, 16)}...
             </small>
           </div>
         </div>
@@ -307,7 +394,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   successBanner: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "0.75rem",
     padding: "1rem",
     backgroundColor: "#f0fdf4",
@@ -319,8 +406,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   successIcon: {
     fontSize: "1.25rem",
+    marginTop: "0.125rem",
+  },
+  checksumText: {
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    fontFamily: "monospace",
   },
   dropZone: {
+    position: "relative",
     border: "2px dashed #d1d5db",
     borderRadius: "8px",
     padding: "3rem",
@@ -330,6 +424,10 @@ const styles: Record<string, React.CSSProperties> = {
   dropZoneActive: {
     borderColor: "#2563eb",
     backgroundColor: "#eff6ff",
+  },
+  dropZoneDisabled: {
+    opacity: 0.7,
+    pointerEvents: "none" as const,
   },
   dropZoneContent: {
     textAlign: "center",
@@ -358,6 +456,59 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     cursor: "pointer",
     transition: "background-color 0.15s ease",
+  },
+  progressOverlay: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+  },
+  progressContainer: {
+    textAlign: "center",
+    padding: "2rem",
+  },
+  progressBarContainer: {
+    width: "280px",
+    height: "8px",
+    backgroundColor: "#e5e7eb",
+    borderRadius: "4px",
+    overflow: "hidden",
+    marginBottom: "1rem",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#2563eb",
+    transition: "width 0.15s ease",
+    borderRadius: "4px",
+  },
+  progressText: {
+    margin: 0,
+    fontSize: "0.875rem",
+    color: "#374151",
+    fontWeight: 500,
+  },
+  analyzingContainer: {
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "1rem",
+  },
+  spinner: {
+    width: "40px",
+    height: "40px",
+    border: "3px solid #e5e7eb",
+    borderTopColor: "#2563eb",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  analyzingText: {
+    margin: 0,
+    fontSize: "1rem",
+    color: "#374151",
+    fontWeight: 500,
   },
   infoBox: {
     marginTop: "2rem",

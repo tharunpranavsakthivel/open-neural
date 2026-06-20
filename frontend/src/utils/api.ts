@@ -237,3 +237,89 @@ export async function createProject(
   const data = (await response.json()) as CreateProjectResponse;
   return data.project;
 }
+
+/**
+ * Dataset snapshot response from the backend.
+ */
+export interface DatasetSnapshotResponse {
+  /** Unique identifier for the snapshot */
+  id: string;
+  /** Human-readable version label */
+  version_label: string;
+  /** Original file name */
+  file_name: string;
+  /** File size in bytes */
+  file_size_bytes: number;
+  /** Number of rows */
+  row_count: number;
+  /** Number of columns */
+  col_count: number;
+  /** Inferred schema */
+  schema: Array<{
+    name: string;
+    inferred_type: string;
+    null_pct: number;
+    unique_count: number;
+  }>;
+  /** SHA-256 checksum */
+  checksum_sha256: string;
+  /** UTC timestamp */
+  created_at: string;
+}
+
+/**
+ * Upload a dataset file to create a snapshot.
+ *
+ * POST /api/v1/projects/{projectId}/snapshots
+ *
+ * @param projectId - The ID of the project
+ * @param file - The file to upload
+ * @param onProgress - Optional callback for upload progress (0-100)
+ * @returns The created snapshot
+ * @throws Error if the request fails
+ */
+export async function uploadDatasetSnapshot(
+  projectId: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<DatasetSnapshotResponse> {
+  const baseUrl = await getBaseUrl();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // Use XMLHttpRequest for progress tracking
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onProgress(progress);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as DatasetSnapshotResponse;
+          resolve(data);
+        } catch (err) {
+          reject(new Error("Failed to parse server response"));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload was aborted"));
+    });
+
+    xhr.open("POST", `${baseUrl}/api/v1/projects/${projectId}/snapshots`);
+    xhr.send(formData);
+  });
+}
