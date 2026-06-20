@@ -7,5 +7,14 @@ a full preprocessing pipeline.
 """
 
 from openneural_backend.pipeline.blocks.drop_nulls import DropNullsBlock, DropNullsTransformer
+from openneural_backend.pipeline.blocks.fill_missing import (
+    FillMissingMeanBlock,
+    FillMissingMedianBlock,
+)
 
-__all__ = ["DropNullsBlock", "DropNullsTransformer"]
+__all__ = [
+    "DropNullsBlock",
+    "DropNullsTransformer",
+    "FillMissingMeanBlock",
+    "FillMissingMedianBlock",
+]
