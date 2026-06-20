@@ -28,6 +28,11 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  PipelineBlock,
+  type BlockType,
+  type BlockStatus,
+} from "../components/PipelineBlock";
 
 interface PipelineBuilderProps {
   /** Currently selected project ID */
@@ -35,31 +40,9 @@ interface PipelineBuilderProps {
 }
 
 /**
- * Pipeline block types available for building preprocessing pipelines.
- * Matches the SRS preprocessing block definitions.
+ * Pipeline block data structure used internally by PipelineBuilder.
  */
-type BlockType =
-  | "drop_nulls"
-  | "fill_missing_mean"
-  | "fill_missing_median"
-  | "encode_categoricals_onehot"
-  | "encode_categoricals_ordinal"
-  | "scale_numerics_standard"
-  | "scale_numerics_minmax"
-  | "log_transform"
-  | "remove_outliers"
-  | "feature_selection"
-  | "split";
-
-/**
- * Status indicator for a pipeline block.
- */
-type BlockStatus = "configured" | "validated" | "warning";
-
-/**
- * Pipeline block data structure.
- */
-interface PipelineBlock {
+interface PipelineBlockData {
   /** Unique identifier for this block instance */
   id: string;
   /** Block type identifier */
@@ -123,31 +106,29 @@ function generateBlockId(type: BlockType): string {
 }
 
 /**
- * Props for the SortableBlock component.
+ * Props for the SortableBlockWrapper component.
  */
-interface SortableBlockProps {
-  block: PipelineBlock;
+interface SortableBlockWrapperProps {
+  block: PipelineBlockData;
   index: number;
   isSelected: boolean;
-  statusColor: string;
-  statusIcon: string;
   onSelect: (blockId: string) => void;
+  onConfigure: (blockId: string) => void;
   onRemove: (blockId: string) => void;
 }
 
 /**
- * Individual sortable pipeline block component.
- * Wraps each block with drag-and-drop functionality.
+ * Wrapper component that combines PipelineBlock with sortable functionality.
+ * Uses @dnd-kit's useSortable hook to provide drag-and-drop capabilities.
  */
-function SortableBlock({
+function SortableBlockWrapper({
   block,
   index,
   isSelected,
-  statusColor,
-  statusIcon,
   onSelect,
+  onConfigure,
   onRemove,
-}: SortableBlockProps): JSX.Element {
+}: SortableBlockWrapperProps): JSX.Element {
   const {
     attributes,
     listeners,
@@ -160,9 +141,6 @@ function SortableBlock({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : "auto",
-    position: "relative" as const,
   };
 
   return (
@@ -172,102 +150,21 @@ function SortableBlock({
       {...attributes}
       role="listitem"
     >
-      <div
-        style={{
-          ...styles.blockCard,
-          ...(isSelected ? styles.blockCardSelected : {}),
-        }}
-      >
-        {/* Drag handle */}
-        <div
-          style={styles.dragHandle}
-          {...listeners}
-          role="button"
-          aria-label={`Drag to reorder ${block.name}`}
-          title="Drag to reorder"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: "block" }}
-          >
-            <circle cx="4" cy="4" r="1.5" fill="#9ca3af" />
-            <circle cx="12" cy="4" r="1.5" fill="#9ca3af" />
-            <circle cx="4" cy="8" r="1.5" fill="#9ca3af" />
-            <circle cx="12" cy="8" r="1.5" fill="#9ca3af" />
-            <circle cx="4" cy="12" r="1.5" fill="#9ca3af" />
-            <circle cx="12" cy="12" r="1.5" fill="#9ca3af" />
-          </svg>
-        </div>
-
-        {/* Block number indicator */}
-        <div style={styles.blockNumber}>{index + 1}</div>
-
-        {/* Block content */}
-        <div
-          style={styles.blockContent}
-          onClick={() => onSelect(block.id)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              onSelect(block.id);
-            }
-          }}
-          aria-pressed={isSelected}
-        >
-          <div style={styles.blockHeader}>
-            <h3 style={styles.blockName}>{block.name}</h3>
-            <span
-              style={{
-                ...styles.blockStatus,
-                color: statusColor,
-              }}
-              aria-label={`Status: ${block.status}`}
-            >
-              {statusIcon}
-            </span>
-          </div>
-          <p style={styles.blockDescription}>{block.description}</p>
-
-          {/* Status border indicator */}
-          <div
-            style={{
-              ...styles.blockStatusIndicator,
-              backgroundColor: statusColor,
-            }}
-            aria-hidden="true"
-          />
-        </div>
-
-        {/* Block actions */}
-        <div style={styles.blockActions}>
-          <button
-            style={styles.blockActionButton}
-            onClick={() => onSelect(block.id)}
-            type="button"
-            aria-label={`Configure ${block.name}`}
-            title="Configure"
-          >
-            ⚙️
-          </button>
-          <button
-            style={{
-              ...styles.blockActionButton,
-              ...styles.blockActionButtonDanger,
-            }}
-            onClick={() => onRemove(block.id)}
-            type="button"
-            aria-label={`Remove ${block.name}`}
-            title="Remove"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
+      <PipelineBlock
+        id={block.id}
+        blockType={block.type}
+        label={block.name}
+        description={block.description}
+        params={block.params}
+        status={block.status}
+        isSelected={isSelected}
+        sequenceNumber={index + 1}
+        onConfigure={onConfigure}
+        onRemove={onRemove}
+        onSelect={onSelect}
+        dragHandleProps={listeners}
+        isDragging={isDragging}
+      />
     </div>
   );
 }
@@ -286,7 +183,7 @@ export function PipelineBuilder({
   projectId: _projectId,
 }: PipelineBuilderProps): JSX.Element {
   /** Currently configured pipeline blocks */
-  const [blocks, setBlocks] = useState<PipelineBlock[]>([]);
+  const [blocks, setBlocks] = useState<PipelineBlockData[]>([]);
   /** Currently selected block for editing */
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   /** Whether the block palette is visible (for mobile) */
@@ -326,7 +223,7 @@ export function PipelineBuilder({
    * Add a new block to the pipeline.
    */
   const handleAddBlock = useCallback((paletteItem: BlockPaletteItem) => {
-    const newBlock: PipelineBlock = {
+    const newBlock: PipelineBlockData = {
       id: generateBlockId(paletteItem.type),
       type: paletteItem.type,
       name: paletteItem.name,
@@ -357,36 +254,13 @@ export function PipelineBuilder({
   }, []);
 
   /**
-   * Get status color based on block status.
+   * Configure a block (placeholder for future implementation).
    */
-  const getStatusColor = (status: BlockStatus): string => {
-    switch (status) {
-      case "configured":
-        return "#22c55e"; // green
-      case "validated":
-        return "#3b82f6"; // blue
-      case "warning":
-        return "#f59e0b"; // yellow
-      default:
-        return "#6b7280"; // gray
-    }
-  };
-
-  /**
-   * Get status icon based on block status.
-   */
-  const getStatusIcon = (status: BlockStatus): string => {
-    switch (status) {
-      case "configured":
-        return "✓";
-      case "validated":
-        return "✓";
-      case "warning":
-        return "⚠";
-      default:
-        return "○";
-    }
-  };
+  const handleConfigureBlock = useCallback((blockId: string) => {
+    // TODO: Open configuration panel for the block
+    console.log("Configure block:", blockId);
+    setSelectedBlockId(blockId);
+  }, []);
 
   return (
     <div style={styles.container}>
@@ -481,14 +355,13 @@ export function PipelineBuilder({
                     aria-label="Pipeline blocks"
                   >
                     {blocks.map((block, index) => (
-                      <SortableBlock
+                      <SortableBlockWrapper
                         key={block.id}
                         block={block}
                         index={index}
                         isSelected={selectedBlockId === block.id}
-                        statusColor={getStatusColor(block.status)}
-                        statusIcon={getStatusIcon(block.status)}
                         onSelect={handleSelectBlock}
+                        onConfigure={handleConfigureBlock}
                         onRemove={handleRemoveBlock}
                       />
                     ))}
@@ -682,93 +555,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
-  },
-  blockCard: {
-    display: "flex",
-    alignItems: "stretch",
-    backgroundColor: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    overflow: "hidden",
-    transition: "all 0.15s ease",
-    cursor: "pointer",
-    position: "relative",
-  },
-  blockCardSelected: {
-    borderColor: "#2563eb",
-    boxShadow: "0 0 0 2px rgba(37, 99, 235, 0.1)",
-  },
-  dragHandle: {
-    width: "32px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f9fafb",
-    borderRight: "1px solid #e5e7eb",
-    cursor: "grab",
-    transition: "background-color 0.15s ease",
-  },
-  blockNumber: {
-    width: "40px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f3f4f6",
-    color: "#6b7280",
-    fontSize: "0.875rem",
-    fontWeight: 600,
-    borderRight: "1px solid #e5e7eb",
-  },
-  blockContent: {
-    flex: 1,
-    padding: "1rem",
-    minWidth: 0,
-  },
-  blockHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "0.25rem",
-  },
-  blockName: {
-    margin: 0,
-    fontSize: "0.875rem",
-    fontWeight: 600,
-    color: "#374151",
-  },
-  blockStatus: {
-    fontSize: "1rem",
-    fontWeight: 600,
-  },
-  blockDescription: {
-    margin: 0,
-    fontSize: "0.75rem",
-    color: "#6b7280",
-  },
-  blockStatusIndicator: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: "4px",
-  },
-  blockActions: {
-    display: "flex",
-    flexDirection: "column",
-    borderLeft: "1px solid #e5e7eb",
-  },
-  blockActionButton: {
-    flex: 1,
-    padding: "0.75rem",
-    backgroundColor: "transparent",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "1rem",
-    transition: "background-color 0.15s ease",
-  },
-  blockActionButtonDanger: {
-    color: "#ef4444",
-    borderTop: "1px solid #e5e7eb",
   },
   pipelineActions: {
     display: "flex",
