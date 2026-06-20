@@ -20,6 +20,7 @@ from openneural_backend.orchestrator.experiment_manager import (
     create_experiment,
     start_experiment,
 )
+from openneural_backend.orchestrator.estimator import estimate_training_time
 
 router = APIRouter(prefix="/projects/{project_id}/experiments", tags=["experiments"])
 
@@ -472,4 +473,143 @@ async def cancel_experiment_endpoint(
         status=result["status"],
         completed_at=result["completed_at"],
         runs_failed=result["runs_failed"],
+    )
+
+
+class ExperimentEstimateResponse(BaseModel):
+    """Response model for training time estimation."""
+
+    estimated_seconds: float
+    estimated_minutes: float
+    estimated_time_str: str
+    row_count: int
+    feature_count: int
+    candidate_count: int
+    automl_config: dict
+
+
+@router.get("/{experiment_id}/estimate", response_model=ExperimentEstimateResponse)
+async def estimate_experiment_time(
+    project_id: str,
+    experiment_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> ExperimentEstimateResponse:
+    """Estimate training time for an experiment.
+
+    Applies a heuristic formula based on dataset size (rows × features),
+    number of candidate models, and AutoML configuration to estimate
+    the total training time.
+
+    Per SRS FR-MODEL-08: Display pre-training estimated time to completion
+    based on dataset size and candidate count. This estimate is advisory
+    and may differ from actual training time.
+
+    Args:
+        project_id: The project ID.
+        experiment_id: The experiment ID.
+        session: Database session.
+
+    Returns:
+        ExperimentEstimateResponse: Estimated training time in seconds and minutes,
+            along with dataset and configuration details.
+
+    Raises:
+        HTTPException 404: If project, experiment, pipeline, or snapshot not found.
+    """
+    import json
+
+    # Validate project exists
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Get experiment and validate it belongs to project
+    from openneural_backend.db.models import Experiment
+    exp_result = await session.execute(
+        select(Experiment).where(
+            Experiment.id == experiment_id,
+            Experiment.project_id == project_id,
+        )
+    )
+    experiment = exp_result.scalar_one_or_none()
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found in project '{project_id}'",
+        )
+
+    # Get pipeline
+    pipeline_result = await session.execute(
+        select(Pipeline).where(Pipeline.id == experiment.pipeline_id)
+    )
+    pipeline = pipeline_result.scalar_one_or_none()
+    if pipeline is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Pipeline '{experiment.pipeline_id}' not found",
+        )
+
+    # Get snapshot for row/feature counts
+    from openneural_backend.db.models import DatasetSnapshot
+    snapshot_result = await session.execute(
+        select(DatasetSnapshot).where(DatasetSnapshot.id == pipeline.snapshot_id)
+    )
+    snapshot = snapshot_result.scalar_one_or_none()
+    if snapshot is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Snapshot '{pipeline.snapshot_id}' not found",
+        )
+
+    # Get candidate count
+    candidate_models = experiment.candidate_models.split(",") if experiment.candidate_models else []
+    candidate_count = len(candidate_models)
+
+    # Get AutoML config
+    try:
+        automl_config = json.loads(experiment.automl_config_json)
+    except (json.JSONDecodeError, TypeError):
+        automl_config = {"max_trials": 25, "cv_folds": 5}
+
+    # Get feature count from schema
+    try:
+        schema = json.loads(snapshot.schema_json)
+        # Subtract 1 for target column
+        feature_count = max(1, len(schema) - 1)
+    except (json.JSONDecodeError, TypeError):
+        feature_count = 1
+
+    # Estimate training time
+    estimated_seconds = estimate_training_time(
+        row_count=snapshot.row_count,
+        feature_count=feature_count,
+        candidate_count=candidate_count,
+        automl_config=automl_config,
+    )
+
+    estimated_minutes = estimated_seconds / 60.0
+
+    # Format time string
+    if estimated_minutes < 1:
+        estimated_time_str = f"{int(estimated_seconds)}s"
+    elif estimated_minutes < 60:
+        estimated_time_str = f"{estimated_minutes:.1f} minutes"
+    else:
+        hours = estimated_minutes / 60
+        estimated_time_str = f"{hours:.1f} hours"
+
+    return ExperimentEstimateResponse(
+        estimated_seconds=estimated_seconds,
+        estimated_minutes=round(estimated_minutes, 1),
+        estimated_time_str=estimated_time_str,
+        row_count=snapshot.row_count,
+        feature_count=feature_count,
+        candidate_count=candidate_count,
+        automl_config=automl_config,
     )
