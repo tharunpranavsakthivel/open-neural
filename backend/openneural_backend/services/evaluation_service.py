@@ -200,8 +200,8 @@ def compute_regression_metrics(
         )
 
     # Compute metrics
-    mse = mean_squared_error(y_true_arr, y_pred_arr)
-    rmse = float(np.sqrt(mse))
+    # Use squared=False for RMSE as per scikit-learn best practice
+    rmse = float(mean_squared_error(y_true_arr, y_pred_arr, squared=False))
     mae = float(mean_absolute_error(y_true_arr, y_pred_arr))
     r2 = float(r2_score(y_true_arr, y_pred_arr))
 
