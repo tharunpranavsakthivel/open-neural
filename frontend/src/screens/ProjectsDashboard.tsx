@@ -223,13 +223,27 @@ export function ProjectsDashboard({
 
       {!hasProjects ? (
         <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>📁</div>
-          <h2 style={styles.emptyTitle}>No projects yet</h2>
+          <div style={styles.emptyIcon}>🚀</div>
+          <h2 style={styles.emptyTitle}>Create your first project</h2>
           <p style={styles.emptyDescription}>
-            Create your first project to start building machine learning models.
+            Start your machine learning journey in three simple steps:
           </p>
+          <div style={styles.workflowSteps}>
+            <div style={styles.step}>
+              <span style={styles.stepNumber}>1</span>
+              <span style={styles.stepText}>Import your dataset</span>
+            </div>
+            <div style={styles.step}>
+              <span style={styles.stepNumber}>2</span>
+              <span style={styles.stepText}>Configure preprocessing pipeline</span>
+            </div>
+            <div style={styles.step}>
+              <span style={styles.stepNumber}>3</span>
+              <span style={styles.stepText}>Train and evaluate models</span>
+            </div>
+          </div>
           <button onClick={handleOpenModal} style={styles.emptyButton}>
-            Create Project
+            + New Project
           </button>
         </div>
       ) : (
@@ -407,6 +421,40 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.875rem",
     fontWeight: 500,
     cursor: "pointer",
+    transition: "background-color 0.15s ease",
+  },
+  workflowSteps: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+    marginBottom: "2rem",
+    padding: "1rem",
+    backgroundColor: "#f9fafb",
+    borderRadius: "8px",
+    maxWidth: "320px",
+    margin: "0 auto 2rem auto",
+  },
+  step: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  stepNumber: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    borderRadius: "50%",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  stepText: {
+    fontSize: "0.875rem",
+    color: "#374151",
   },
   tableContainer: {
     backgroundColor: "#ffffff",
