@@ -13,7 +13,7 @@ import type { DashboardStats } from "../utils/api";
 import {
   fetchProjects,
   fetchDashboardStats,
-  renameProject,
+  patchProject,
   deleteProject,
   createProject,
 } from "../utils/api";
@@ -92,12 +92,12 @@ export function ProjectsDashboard({
   );
 
   /**
-   * Handle renaming a project.
+   * Handle renaming a project using PATCH.
    */
   const handleRenameProject = useCallback(
     async (projectId: string, newName: string) => {
       try {
-        const updatedProject = await renameProject(projectId, newName);
+        const updatedProject = await patchProject(projectId, newName);
         setProjects((prev) =>
           prev.map((p) => (p.id === projectId ? updatedProject : p))
         );

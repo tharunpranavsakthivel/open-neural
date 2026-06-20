@@ -119,7 +119,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 }
 
 /**
- * Rename a project.
+ * Rename a project using PUT.
  *
  * PUT /api/v1/projects/{projectId}
  *
@@ -135,6 +135,38 @@ export async function renameProject(
   const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name: newName }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to rename project: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as RenameProjectResponse;
+  return data.project;
+}
+
+/**
+ * Rename a project using PATCH (partial update).
+ *
+ * PATCH /api/v1/projects/{projectId}
+ *
+ * @param projectId - The ID of the project to rename
+ * @param newName - The new name for the project
+ * @returns The updated project
+ * @throws Error if the request fails
+ */
+export async function patchProject(
+  projectId: string,
+  newName: string
+): Promise<Project> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
