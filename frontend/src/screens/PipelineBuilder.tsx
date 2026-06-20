@@ -4,7 +4,7 @@
  * Allows users to build a preprocessing pipeline by arranging visual blocks.
  * Displays a step description, a vertical list of pipeline blocks, and a
  * block palette for adding new blocks. Supports drag-and-drop reordering
- * of blocks using @dnd-kit.
+ * of blocks using @dnd-kit and inline configuration panels.
  *
  * @module screens/PipelineBuilder
  */
@@ -33,6 +33,17 @@ import {
   type BlockType,
   type BlockStatus,
 } from "../components/PipelineBlock";
+import {
+  DropNullsConfig,
+  FillMissingConfig,
+  EncodeCategoricalsConfig,
+  ScaleNumericsConfig,
+  LogTransformConfig,
+  RemoveOutliersConfig,
+  FeatureSelectionConfig,
+  TrainValTestSplitConfig,
+  type ColumnOption,
+} from "../components/block-configs";
 
 interface PipelineBuilderProps {
   /** Currently selected project ID */
@@ -106,6 +117,95 @@ function generateBlockId(type: BlockType): string {
 }
 
 /**
+ * Map block type to the appropriate config component.
+ */
+function getBlockConfigComponent(
+  blockType: BlockType,
+  props: {
+    params: Record<string, unknown>;
+    onChange: (params: Record<string, unknown>) => void;
+    availableColumns: ColumnOption[];
+  }
+): JSX.Element | null {
+  const { params, onChange, availableColumns } = props;
+
+  switch (blockType) {
+    case "drop_nulls":
+      return (
+        <DropNullsConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+        />
+      );
+    case "fill_missing_mean":
+    case "fill_missing_median":
+      return (
+        <FillMissingConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+          isMean={blockType === "fill_missing_mean"}
+        />
+      );
+    case "encode_categoricals_onehot":
+    case "encode_categoricals_ordinal":
+      return (
+        <EncodeCategoricalsConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+          isOneHot={blockType === "encode_categoricals_onehot"}
+        />
+      );
+    case "scale_numerics_standard":
+    case "scale_numerics_minmax":
+      return (
+        <ScaleNumericsConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+          isStandard={blockType === "scale_numerics_standard"}
+        />
+      );
+    case "log_transform":
+      return (
+        <LogTransformConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+        />
+      );
+    case "remove_outliers":
+      return (
+        <RemoveOutliersConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+        />
+      );
+    case "feature_selection":
+      return (
+        <FeatureSelectionConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+        />
+      );
+    case "split":
+      return (
+        <TrainValTestSplitConfig
+          params={params}
+          onChange={onChange}
+          availableColumns={availableColumns}
+        />
+      );
+    default:
+      return null;
+  }
+}
+
+/**
  * Props for the SortableBlockWrapper component.
  */
 interface SortableBlockWrapperProps {
@@ -115,6 +215,8 @@ interface SortableBlockWrapperProps {
   onSelect: (blockId: string) => void;
   onConfigure: (blockId: string) => void;
   onRemove: (blockId: string) => void;
+  onParamsChange: (blockId: string, params: Record<string, unknown>) => void;
+  availableColumns: ColumnOption[];
 }
 
 /**
@@ -128,6 +230,8 @@ function SortableBlockWrapper({
   onSelect,
   onConfigure,
   onRemove,
+  onParamsChange,
+  availableColumns,
 }: SortableBlockWrapperProps): JSX.Element {
   const {
     attributes,
@@ -143,6 +247,21 @@ function SortableBlockWrapper({
     transition,
   };
 
+  const handleParamsChange = useCallback(
+    (params: Record<string, unknown>) => {
+      onParamsChange(block.id, params);
+    },
+    [block.id, onParamsChange]
+  );
+
+  const configComponent = isSelected
+    ? getBlockConfigComponent(block.type, {
+        params: block.params,
+        onChange: handleParamsChange,
+        availableColumns,
+      })
+    : null;
+
   return (
     <div
       ref={setNodeRef}
@@ -150,21 +269,28 @@ function SortableBlockWrapper({
       {...attributes}
       role="listitem"
     >
-      <PipelineBlock
-        id={block.id}
-        blockType={block.type}
-        label={block.name}
-        description={block.description}
-        params={block.params}
-        status={block.status}
-        isSelected={isSelected}
-        sequenceNumber={index + 1}
-        onConfigure={onConfigure}
-        onRemove={onRemove}
-        onSelect={onSelect}
-        dragHandleProps={listeners}
-        isDragging={isDragging}
-      />
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <PipelineBlock
+          id={block.id}
+          blockType={block.type}
+          label={block.name}
+          description={block.description}
+          params={block.params}
+          status={block.status}
+          isSelected={isSelected}
+          sequenceNumber={index + 1}
+          onConfigure={onConfigure}
+          onRemove={onRemove}
+          onSelect={onSelect}
+          dragHandleProps={listeners}
+          isDragging={isDragging}
+        />
+        {configComponent && (
+          <div style={styles.configPanel}>
+            {configComponent}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -174,7 +300,7 @@ function SortableBlockWrapper({
  *
  * Renders the step description, a vertical list of configured pipeline blocks,
  * and a block palette sidebar for adding new blocks. Supports drag-and-drop
- * reordering of blocks.
+ * reordering of blocks and inline configuration panels.
  *
  * @param props - Component props
  * @returns The pipeline builder screen
@@ -189,11 +315,20 @@ export function PipelineBuilder({
   /** Whether the block palette is visible (for mobile) */
   const [isPaletteOpen, setIsPaletteOpen] = useState(true);
 
+  // TODO: Fetch actual columns from the dataset snapshot
+  const availableColumns: ColumnOption[] = [
+    { value: "age", label: "Age", type: "numeric" },
+    { value: "income", label: "Income", type: "numeric" },
+    { value: "gender", label: "Gender", type: "categorical" },
+    { value: "city", label: "City", type: "categorical" },
+    { value: "score", label: "Score", type: "numeric" },
+  ];
+
   /** Configure DndKit sensors */
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Require 5px of movement before drag starts
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -254,13 +389,25 @@ export function PipelineBuilder({
   }, []);
 
   /**
-   * Configure a block (placeholder for future implementation).
+   * Configure a block (opens inline config panel).
    */
   const handleConfigureBlock = useCallback((blockId: string) => {
-    // TODO: Open configuration panel for the block
-    console.log("Configure block:", blockId);
     setSelectedBlockId(blockId);
   }, []);
+
+  /**
+   * Update block parameters.
+   */
+  const handleParamsChange = useCallback(
+    (blockId: string, params: Record<string, unknown>) => {
+      setBlocks((prevBlocks) =>
+        prevBlocks.map((b) =>
+          b.id === blockId ? { ...b, params, status: "configured" as BlockStatus } : b
+        )
+      );
+    },
+    []
+  );
 
   return (
     <div style={styles.container}>
@@ -363,6 +510,8 @@ export function PipelineBuilder({
                         onSelect={handleSelectBlock}
                         onConfigure={handleConfigureBlock}
                         onRemove={handleRemoveBlock}
+                        onParamsChange={handleParamsChange}
+                        availableColumns={availableColumns}
                       />
                     ))}
                   </div>
@@ -507,7 +656,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
   },
   paletteToggle: {
-    display: "none", // Hidden on desktop, shown on mobile
+    display: "none",
     marginBottom: "1rem",
     padding: "0.5rem 1rem",
     backgroundColor: "#f3f4f6",
@@ -555,6 +704,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+  },
+  configPanel: {
+    marginLeft: "2rem",
+    marginRight: "2rem",
   },
   pipelineActions: {
     display: "flex",
