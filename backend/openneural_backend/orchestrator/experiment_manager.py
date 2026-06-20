@@ -173,39 +173,150 @@ async def _run_training(experiment_id: str) -> None:
     """Background task for running training.
 
     This coroutine is spawned via asyncio.create_task() to run the training
-    process in the background. It handles the full training lifecycle:
-    - Load experiment configuration
-    - Run each candidate model
-    - Update experiment status on completion
+    process in the background. It delegates to the trainer module which handles:
+    - Loading snapshot and pipeline
+    - Running Optuna hyperparameter search via ProcessPoolExecutor
+    - Training each candidate model
+    - Updating run statuses in SQLite
+    - Persisting experiment state
+    - Marking experiment as done
 
     Args:
         experiment_id: The UUID of the experiment to run.
     """
-    # Training implementation placeholder
-    # Per SRS FR-TRAIN-01 through FR-TRAIN-09
-    # Full implementation will include:
-    # - Loading snapshot and pipeline
-    # - Running Optuna hyperparameter search
-    # - Training each candidate model
-    # - Updating run statuses
-    # - Persisting experiment state
+    from openneural_backend.orchestrator.trainer import run_experiment
 
-    # For MVP, this is a placeholder that marks the experiment as done
-    # after a minimal delay (simulated training)
-    import asyncio
-    await asyncio.sleep(0.1)
+    try:
+        await run_experiment(experiment_id)
+    except Exception as e:
+        # Log error and mark experiment as failed
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Training failed for experiment {experiment_id}: {e}")
+
+        async with async_session() as session:
+            from sqlalchemy import select
+            result = await session.execute(
+                select(Experiment).where(Experiment.id == experiment_id)
+            )
+            experiment = result.scalar_one_or_none()
+
+            if experiment:
+                experiment.status = "interrupted"
+                experiment.completed_at = datetime.utcnow()
+                await session.commit()
+
+
+async def get_experiment(experiment_id: str) -> dict:
+    """Get experiment details by ID.
+
+    Args:
+        experiment_id: The UUID of the experiment to retrieve.
+
+    Returns:
+        dict: The experiment details with keys:
+            - id: UUID primary key.
+            - experiment_id_human: Human-readable ID.
+            - project_id: Parent project ID.
+            - pipeline_id: Pipeline configuration ID.
+            - automl_enabled: Boolean indicating if AutoML is enabled.
+            - optimize_metric: Optimization metric name.
+            - automl_config: AutoML configuration dict.
+            - candidate_models: List of candidate model types.
+            - status: Current status.
+            - created_at: ISO8601 timestamp.
+            - started_at: ISO8601 timestamp (nullable).
+            - completed_at: ISO8601 timestamp (nullable).
+
+    Raises:
+        ExperimentNotFoundError: If the experiment does not exist.
+    """
+    from sqlalchemy import select
 
     async with async_session() as session:
-        from sqlalchemy import select
         result = await session.execute(
             select(Experiment).where(Experiment.id == experiment_id)
         )
         experiment = result.scalar_one_or_none()
 
-        if experiment and experiment.status == "running":
-            experiment.status = "done"
-            experiment.completed_at = datetime.utcnow()
-            await session.commit()
+        if experiment is None:
+            raise ExperimentNotFoundError(experiment_id)
+
+        # Parse automl_config_json
+        import json
+        try:
+            automl_config = json.loads(experiment.automl_config_json)
+        except (json.JSONDecodeError, TypeError):
+            automl_config = {}
+
+        # Parse candidate_models
+        candidate_models = experiment.candidate_models.split(",") if experiment.candidate_models else []
+
+        return {
+            "id": experiment.id,
+            "experiment_id_human": experiment.experiment_id_human,
+            "project_id": experiment.project_id,
+            "pipeline_id": experiment.pipeline_id,
+            "automl_enabled": experiment.automl_enabled == 1,
+            "optimize_metric": experiment.optimize_metric,
+            "automl_config": automl_config,
+            "candidate_models": candidate_models,
+            "status": experiment.status,
+            "created_at": experiment.created_at.isoformat() if experiment.created_at else None,
+            "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
+            "completed_at": experiment.completed_at.isoformat() if experiment.completed_at else None,
+        }
+
+
+async def cancel_experiment(experiment_id: str) -> dict:
+    """Cancel a running experiment.
+
+    Marks an experiment as 'cancelled' if it is currently 'running'.
+    Note: This does not actually stop the background training task,
+    but marks it for cancellation on next checkpoint.
+
+    Args:
+        experiment_id: The UUID of the experiment to cancel.
+
+    Returns:
+        dict: The cancelled experiment with keys:
+            - id: UUID primary key.
+            - status: Updated status ("cancelled").
+            - completed_at: ISO8601 timestamp.
+
+    Raises:
+        ExperimentNotFoundError: If the experiment does not exist.
+        ExperimentStateError: If the experiment is not in 'running' status.
+    """
+    from sqlalchemy import select
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(Experiment).where(Experiment.id == experiment_id)
+        )
+        experiment = result.scalar_one_or_none()
+
+        if experiment is None:
+            raise ExperimentNotFoundError(experiment_id)
+
+        # Verify experiment is in 'running' status
+        if experiment.status != "running":
+            raise ExperimentStateError(
+                f"Cannot cancel experiment with status '{experiment.status}'. "
+                "Only experiments in 'running' status can be cancelled."
+            )
+
+        # Mark as cancelled
+        experiment.status = "cancelled"
+        experiment.completed_at = datetime.utcnow()
+        await session.commit()
+        await session.refresh(experiment)
+
+        return {
+            "id": experiment.id,
+            "status": experiment.status,
+            "completed_at": experiment.completed_at.isoformat(),
+        }
 
 
 async def start_experiment(experiment_id: str) -> dict:
