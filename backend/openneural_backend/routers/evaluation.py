@@ -14,7 +14,8 @@ from sqlalchemy import select
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import Evaluation, Experiment, SubgroupAnalysis
 from openneural_backend.services.evaluation_service import (
-    ExperimentNotFoundError,
+    compute_metrics_with_threshold,
+    load_predictions,
     identify_best_run,
 )
 
@@ -142,24 +143,34 @@ async def get_evaluation(experiment_id: str) -> dict[str, Any]:
 
 
 @router.post("/threshold")
-async def update_threshold(experiment_id: str, threshold: float) -> dict[str, Any]:
+async def update_threshold(experiment_id: str, request: dict) -> dict[str, Any]:
     """Update decision threshold and recalculate metrics.
 
     Accepts a new threshold value, validates it, and returns updated metrics
-    computed with the new threshold. This is used for interactive threshold
-    adjustment in the evaluation dashboard.
+    computed with the new threshold using pre-stored test-set predictions.
+    This ensures response latency ≤ 200ms by loading from Parquet rather
+    than re-running model inference.
 
     Args:
         experiment_id: The UUID of the experiment.
-        threshold: New decision threshold (0.10-0.90, step 0.05).
+        request: Dict containing "threshold" key with float value (0.10-0.90, step 0.05).
 
     Returns:
         dict: Updated metrics (precision, recall, f1) with the new threshold.
 
     Raises:
         HTTPException 404: If the experiment is not found.
-        HTTPException 400: If threshold is out of valid range or no completed runs.
+        HTTPException 400: If threshold is out of valid range, step is invalid,
+            or no completed runs exist.
     """
+    # Extract threshold from request body
+    threshold = request.get("threshold")
+    if threshold is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Request body must contain 'threshold' field",
+        )
+
     # Validate threshold range (per Task 105: 0.10-0.90, step 0.05)
     if not (0.10 <= threshold <= 0.90):
         raise HTTPException(
@@ -196,15 +207,33 @@ async def update_threshold(experiment_id: str, threshold: float) -> dict[str, An
                 detail="No completed runs found for this experiment",
             )
 
-        # Note: Full implementation will load predictions from Parquet file
-        # and recompute metrics with new threshold (Task 106)
-        # For now, return a placeholder response
-        # TODO: Load predictions.parquet and recompute metrics
+        # Load predictions from Parquet file for fast threshold adjustment
+        # This ensures latency ≤ 200ms (per Task 105 requirement)
+        run_id = best_run_info["run_id"]
+        predictions = load_predictions(run_id, experiment_id)
+
+        if predictions is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Predictions data not available for threshold adjustment",
+            )
+
+        y_true, y_pred, y_proba = predictions
+
+        # For classification, we need probabilities to adjust threshold
+        if y_proba is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Probability predictions not available for this model",
+            )
+
+        # Compute metrics with the new threshold
+        # This is fast (< 200ms) since we're just applying a threshold to precomputed probabilities
+        metrics = compute_metrics_with_threshold(y_true, y_proba, threshold)
 
         return {
             "threshold": threshold,
-            "precision": None,
-            "recall": None,
-            "f1": None,
-            "note": "Full threshold adjustment requires predictions data (Task 106)",
+            "precision": metrics["precision"],
+            "recall": metrics["recall"],
+            "f1": metrics["f1"],
         }

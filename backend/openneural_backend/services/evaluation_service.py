@@ -550,3 +550,86 @@ class EvaluationError(Exception):
         self.message = message
         self.details = details or {}
         super().__init__(message)
+
+
+def load_predictions(run_id: str, experiment_id: str) -> tuple[np.ndarray, np.ndarray, np.ndarray | None] | None:
+    """Load test-set predictions from precomputed Parquet file.
+
+    Loads y_true, y_pred, and y_proba from the predictions.parquet file
+    stored during training. This enables fast threshold adjustment without
+    re-running model inference.
+
+    Args:
+        run_id: The UUID of the run to load predictions for.
+        experiment_id: The UUID of the experiment (for directory structure).
+
+    Returns:
+        tuple | None: (y_true, y_pred, y_proba) arrays if file exists and is valid,
+            None if file doesn't exist or can't be loaded.
+            y_proba may be None for non-probabilistic models.
+    """
+    from openneural_backend.config import Settings
+
+    # Build the predictions file path
+    # Per Task 106: {data_dir}/experiments/{experiment_id}/runs/{run_id}/predictions.parquet
+    predictions_path = (
+        Settings.get().data_dir
+        / "experiments"
+        / experiment_id
+        / "runs"
+        / run_id
+        / "predictions.parquet"
+    )
+
+    if not predictions_path.exists():
+        return None
+
+    try:
+        df = pd.read_parquet(predictions_path)
+
+        # Extract columns
+        y_true = df["y_true"].values
+        y_pred = df["y_pred"].values
+
+        # y_proba may not exist for non-probabilistic models
+        if "y_proba" in df.columns:
+            y_proba = df["y_proba"].values
+            return y_true, y_pred, y_proba
+        else:
+            return y_true, y_pred, None
+
+    except Exception:
+        return None
+
+
+def compute_metrics_with_threshold(
+    y_true: np.ndarray,
+    y_proba: np.ndarray,
+    threshold: float,
+) -> dict[str, float]:
+    """Compute classification metrics with a specific threshold.
+
+    Applies the threshold to probabilities and computes precision, recall, and F1.
+    Optimized for low latency (< 200ms) by avoiding unnecessary computations.
+
+    Args:
+        y_true: Ground truth labels.
+        y_proba: Predicted probabilities for the positive class.
+        threshold: Decision threshold to apply.
+
+    Returns:
+        dict: Metrics containing precision, recall, and f1.
+    """
+    # Apply threshold to get binary predictions
+    y_pred_thresh = (y_proba >= threshold).astype(int)
+
+    # Compute metrics using weighted average for compatibility
+    precision = float(precision_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
+    recall = float(recall_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
+    f1 = float(f1_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
+
+    return {
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1": round(f1, 4),
+    }
