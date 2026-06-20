@@ -188,14 +188,24 @@ async def get_leaderboard(
             # Remove None values for cleaner response
             entry_metrics = {k: v for k, v in entry_metrics.items() if v is not None}
 
+            # Store the primary optimization metric value for is_best computation
+            primary_metric_value = best_metrics.get(optimize_metric)
+            if optimize_metric in ("rmse", "mae"):
+                # For metrics where lower is better, negate for comparison
+                primary_metric_score = -primary_metric_value if primary_metric_value is not None else float("-inf")
+            else:
+                # For metrics where higher is better, use as-is
+                primary_metric_score = primary_metric_value if primary_metric_value is not None else float("-inf")
+
             entries.append({
                 "experiment_id": experiment.id,
                 "experiment_id_human": experiment.experiment_id_human,
                 "best_model_type": best_run.model_type,
                 "metrics": entry_metrics,
                 "training_time_seconds": best_run.training_time_sec or 0.0,
-                "is_best": False,  # Will be set after sorting
+                "is_best": False,  # Will be computed after all entries are collected
                 "created_at": experiment.created_at.isoformat(),
+                "_primary_metric_score": primary_metric_score,  # Internal field for comparison
             })
 
         # Sort entries by the requested column
@@ -214,9 +224,19 @@ async def get_leaderboard(
 
             entries.sort(key=get_sort_value, reverse=reverse)
 
-        # Mark the first entry as the best
+        # Compute is_best based on primary optimization metric
+        # Compare each experiment's primary metric value against all others
         if entries:
-            entries[0]["is_best"] = True
+            # Find the entry with the highest primary metric score
+            best_entry_index = max(
+                range(len(entries)),
+                key=lambda i: entries[i]["_primary_metric_score"]
+            )
+            entries[best_entry_index]["is_best"] = True
+
+        # Remove internal field before returning
+        for entry in entries:
+            entry.pop("_primary_metric_score", None)
 
         # Log performance for debugging (per NFR-PERF-05 requirement)
         elapsed_ms = (time.time() - start_time) * 1000
