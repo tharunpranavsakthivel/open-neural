@@ -9,6 +9,8 @@
 
 import { useState, useCallback } from "react";
 import { uploadDatasetSnapshot, type DatasetSnapshotResponse } from "../utils/api";
+import { SchemaTable } from "../components/SchemaTable";
+import { DatasetSummary } from "../components/DatasetSummary";
 
 interface DatasetImportProps {
   /** Currently selected project ID */
@@ -326,6 +328,12 @@ export function DatasetImport({
           </div>
         </div>
       )}
+
+      {/* Dataset Summary Cards */}
+      {snapshot && <DatasetSummary snapshot={snapshot} />}
+
+      {/* Schema Table */}
+      {snapshot && <SchemaTable schema={snapshot.schema} />}
 
       <div style={styles.infoBox}>
         <h3 style={styles.infoTitle}>Supported Formats</h3>
