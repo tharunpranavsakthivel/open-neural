@@ -43,3 +43,6 @@ __all__ = [
     "ScaleNumericStandardBlock",
     "TrainValTestSplitBlock",
 ]
+
+# Note: builder.py and validator.py are imported from pipeline/__init__.py
+# to avoid circular imports since they depend on blocks

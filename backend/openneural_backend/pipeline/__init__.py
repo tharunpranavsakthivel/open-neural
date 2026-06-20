@@ -7,6 +7,12 @@ and validator for constructing and executing preprocessing pipelines.
 """
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
+from openneural_backend.pipeline.builder import (
+    build_pipeline_config,
+    build_sklearn_pipeline,
+    extract_split_block,
+    instantiate_block,
+)
 from openneural_backend.pipeline.registry import (
     BLOCK_REGISTRY,
     get_block,
@@ -20,8 +26,12 @@ from openneural_backend.pipeline.registry import (
 __all__ = [
     "PipelineBlock",
     "BLOCK_REGISTRY",
+    "build_pipeline_config",
+    "build_sklearn_pipeline",
+    "extract_split_block",
     "get_block",
     "get_block_or_raise",
+    "instantiate_block",
     "is_registered",
     "list_blocks",
     "register_block",
