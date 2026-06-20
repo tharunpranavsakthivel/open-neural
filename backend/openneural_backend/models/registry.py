@@ -211,9 +211,7 @@ def _register_builtin_models() -> None:
                 task_types=["classification"],
                 default_params={"max_iter": 1000, "random_state": 42},
                 search_space={
-                    "C": ("loguniform", 0.01, 10.0),
-                    "penalty": ("categorical", ["l1", "l2"]),
-                    "solver": ("categorical", ["liblinear", "lbfgs"]),
+                    "C": ("loguniform", 1e-3, 1e3),
                 },
             ),
         )
@@ -228,8 +226,6 @@ def _register_builtin_models() -> None:
                     "n_estimators": ("int", 50, 500),
                     "max_depth": ("int", 3, 20),
                     "min_samples_split": ("int", 2, 20),
-                    "min_samples_leaf": ("int", 1, 10),
-                    "max_features": ("categorical", ["sqrt", "log2"]),
                 },
             ),
         )
@@ -241,11 +237,9 @@ def _register_builtin_models() -> None:
                 task_types=["classification"],
                 default_params={"random_state": 42},
                 search_space={
-                    "n_estimators": ("int", 50, 500),
-                    "max_depth": ("int", 3, 10),
+                    "n_estimators": ("int", 50, 300),
+                    "max_depth": ("int", 2, 8),
                     "learning_rate": ("loguniform", 0.01, 0.3),
-                    "subsample": ("float", 0.5, 1.0),
-                    "min_samples_split": ("int", 2, 20),
                 },
             ),
         )
@@ -262,8 +256,6 @@ def _register_builtin_models() -> None:
                         "max_depth": ("int", 3, 10),
                         "learning_rate": ("loguniform", 0.01, 0.3),
                         "subsample": ("float", 0.5, 1.0),
-                        "colsample_bytree": ("float", 0.5, 1.0),
-                        "min_child_weight": ("int", 1, 10),
                     },
                 ),
             )
@@ -275,8 +267,7 @@ def _register_builtin_models() -> None:
                 task_types=["classification"],
                 default_params={"random_state": 42, "probability": True},
                 search_space={
-                    "C": ("loguniform", 0.1, 100.0),
-                    "kernel": ("categorical", ["rbf", "linear", "poly"]),
+                    "C": ("loguniform", 1e-2, 1e2),
                     "gamma": ("categorical", ["scale", "auto"]),
                 },
             ),
@@ -289,9 +280,8 @@ def _register_builtin_models() -> None:
                 task_types=["classification"],
                 default_params={"n_jobs": -1},
                 search_space={
-                    "n_neighbors": ("int", 3, 20),
+                    "n_neighbors": ("int", 3, 25),
                     "weights": ("categorical", ["uniform", "distance"]),
-                    "metric": ("categorical", ["euclidean", "manhattan", "minkowski"]),
                 },
             ),
         )
