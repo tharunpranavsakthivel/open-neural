@@ -537,3 +537,168 @@ export async function validatePipelineConfig(
 
   return (await response.json()) as PipelineValidationResult;
 }
+
+/**
+ * Training time estimate response from the backend.
+ */
+export interface TrainingTimeEstimateResponse {
+  /** Estimated training time in minutes */
+  estimated_minutes: number;
+  /** Whether the estimate is advisory (may differ from actual time) */
+  is_advisory: boolean;
+  /** Number of models that will be trained */
+  model_count: number;
+  /** Dataset row count used for estimation */
+  row_count: number;
+  /** Dataset column count used for estimation */
+  col_count: number;
+}
+
+/**
+ * Request parameters for training time estimation.
+ */
+export interface TrainingTimeEstimateRequest {
+  /** Pipeline ID to use for estimation */
+  pipeline_id: string;
+  /** Selected model keys */
+  candidate_models: string[];
+  /** Maximum number of AutoML trials */
+  max_trials: number;
+  /** Number of cross-validation folds */
+  cv_folds: number;
+}
+
+/**
+ * Fetch training time estimate for the given configuration.
+ *
+ * POST /api/v1/experiments/estimate
+ *
+ * @param request - The configuration to estimate training time for
+ * @returns Training time estimate with metadata
+ * @throws Error if the request fails
+ */
+export async function fetchTrainingTimeEstimate(
+  request: TrainingTimeEstimateRequest
+): Promise<TrainingTimeEstimateResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/experiments/estimate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch time estimate: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as TrainingTimeEstimateResponse;
+}
+
+/**
+ * Experiment creation response from the backend.
+ */
+export interface CreateExperimentResponse {
+  /** Unique identifier for the experiment */
+  id: string;
+  /** Human-readable experiment ID */
+  experiment_id_human: string;
+  /** Current status */
+  status: "created";
+  /** Creation timestamp */
+  created_at: string;
+}
+
+/**
+ * Request body for creating a new experiment.
+ */
+export interface CreateExperimentRequest {
+  /** Pipeline ID to use */
+  pipeline_id: string;
+  /** Whether AutoML is enabled */
+  automl_enabled: boolean;
+  /** Optimization metric */
+  optimize_metric: string;
+  /** AutoML configuration */
+  automl_config: {
+    max_trials: number;
+    cv_folds: number;
+    time_budget_minutes: number;
+  };
+  /** Candidate model keys */
+  candidate_models: string[];
+}
+
+/**
+ * Create a new experiment for a project.
+ *
+ * POST /api/v1/projects/{projectId}/experiments
+ *
+ * @param projectId - The ID of the project
+ * @param request - The experiment configuration
+ * @returns The created experiment
+ * @throws Error if the request fails
+ */
+export async function createExperiment(
+  projectId: string,
+  request: CreateExperimentRequest
+): Promise<CreateExperimentResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/experiments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create experiment: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as CreateExperimentResponse;
+}
+
+/**
+ * Start experiment training response.
+ */
+export interface StartExperimentResponse {
+  /** Current status */
+  status: "running";
+  /** Start timestamp */
+  started_at: string;
+}
+
+/**
+ * Start training for an experiment.
+ *
+ * POST /api/v1/experiments/{experimentId}/start
+ *
+ * @param experimentId - The ID of the experiment
+ * @returns The started experiment status
+ * @throws Error if the request fails
+ */
+export async function startExperiment(
+  experimentId: string
+): Promise<StartExperimentResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/experiments/${experimentId}/start`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to start experiment: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as StartExperimentResponse;
+}

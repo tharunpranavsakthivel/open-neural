@@ -15,8 +15,9 @@
  * @module screens/ModelSelection
  */
 import { useState, useEffect, useCallback } from "react";
-import { fetchProjects } from "../utils/api";
+import { fetchProjects, fetchTrainingTimeEstimate, createExperiment, startExperiment } from "../utils/api";
 import type { Project } from "../stores/appStore";
+import type { TrainingTimeEstimateResponse } from "../utils/api";
 
 /**
  * Model registry entry mapping a model key to its display label.
@@ -52,6 +53,10 @@ const REGRESSION_MODELS: ModelRegistryEntry[] = [
 interface ModelSelectionProps {
   /** Currently selected project ID */
   projectId: string;
+  /** Currently selected pipeline ID (needed for time estimation and training) */
+  pipelineId?: string;
+  /** Callback to navigate to training step */
+  onStartTraining?: () => void;
 }
 
 /**
@@ -63,7 +68,11 @@ interface ModelSelectionProps {
  * @param props - Component props
  * @returns The model selection screen
  */
-export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element {
+export function ModelSelection({
+  projectId,
+  pipelineId,
+  onStartTraining,
+}: ModelSelectionProps): JSX.Element {
   /** AutoML mode state - defaults to enabled */
   const [isAutoMLEnabled, setIsAutoMLEnabled] = useState(true);
 
@@ -94,6 +103,22 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
    * Tooltip state for showing/hiding tooltips.
    */
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+
+  /** Training time estimate */
+  const [timeEstimate, setTimeEstimate] =
+    useState<TrainingTimeEstimateResponse | null>(null);
+
+  /** Loading state for time estimate */
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  /** Time estimate error */
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+
+  /** Training submission state */
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** Training submission error */
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   /**
    * Classification metrics with F1 as default.
@@ -153,6 +178,48 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
 
     loadProject();
   }, [projectId]);
+
+  /**
+   * Fetch training time estimate when configuration changes.
+   */
+  useEffect(() => {
+    const fetchEstimate = async (): Promise<void> => {
+      // Only fetch if we have a pipeline ID and models are selected
+      if (!pipelineId || selectedModels.size === 0) {
+        setTimeEstimate(null);
+        return;
+      }
+
+      try {
+        setIsEstimating(true);
+        setEstimateError(null);
+
+        const estimate = await fetchTrainingTimeEstimate({
+          pipeline_id: pipelineId,
+          candidate_models: Array.from(selectedModels),
+          max_trials: maxTrials,
+          cv_folds: cvFolds,
+        });
+
+        setTimeEstimate(estimate);
+      } catch (err) {
+        // Silently fail - time estimate is advisory, not critical
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch time estimate";
+        setEstimateError(errorMessage);
+        console.error("Time estimate fetch failed:", err);
+      } finally {
+        setIsEstimating(false);
+      }
+    };
+
+    // Debounce the estimate fetch to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
+      fetchEstimate();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [pipelineId, selectedModels, maxTrials, cvFolds]);
 
   /**
    * Get available models based on task type.
@@ -243,6 +310,77 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
     if (isAutoMLEnabled) return;
     setSelectedModels(new Set());
   }, [isAutoMLEnabled]);
+
+  /**
+   * Start training handler.
+   */
+  const handleStartTraining = useCallback(async () => {
+    if (!pipelineId) {
+      setSubmitError("No pipeline selected. Please configure a preprocessing pipeline first.");
+      return;
+    }
+
+    if (selectedModels.size === 0) {
+      setSubmitError("Please select at least one model to train.");
+      return;
+    }
+
+    if (!optimizationMetric) {
+      setSubmitError("Please select an optimization metric.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      // Step 1: Create experiment
+      const experiment = await createExperiment(projectId, {
+        pipeline_id: pipelineId,
+        automl_enabled: isAutoMLEnabled,
+        optimize_metric: optimizationMetric,
+        automl_config: {
+          max_trials: maxTrials,
+          cv_folds: cvFolds,
+          time_budget_minutes: timeBudget,
+        },
+        candidate_models: Array.from(selectedModels),
+      });
+
+      // Step 2: Start training
+      await startExperiment(experiment.id);
+
+      // Step 3: Navigate to training step
+      if (onStartTraining) {
+        onStartTraining();
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to start training";
+      setSubmitError(errorMessage);
+      console.error("Training start failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    pipelineId,
+    projectId,
+    selectedModels,
+    isAutoMLEnabled,
+    optimizationMetric,
+    maxTrials,
+    cvFolds,
+    timeBudget,
+    onStartTraining,
+  ]);
+
+  /**
+   * Check if training can be started.
+   */
+  const canStartTraining =
+    pipelineId &&
+    selectedModels.size > 0 &&
+    optimizationMetric &&
+    !isSubmitting;
 
   if (isLoading) {
     return (
@@ -349,6 +487,27 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
           <p style={styles.warningText}>
             Please select at least one model to train.
           </p>
+        )}
+
+        {/* Estimated Training Time */}
+        {timeEstimate && !estimateError && (
+          <div style={styles.estimateContainer}>
+            <span style={styles.estimateIcon}>⏱</span>
+            <span style={styles.estimateText}>
+              Estimated training time: ~{timeEstimate.estimated_minutes} minutes
+            </span>
+            {timeEstimate.is_advisory && (
+              <span style={styles.estimateNote}>(advisory)</span>
+            )}
+          </div>
+        )}
+        {isEstimating && (
+          <div style={styles.estimateContainer}>
+            <span style={styles.estimateIcon}>⏳</span>
+            <span style={styles.estimateTextLoading}>
+              Calculating estimate...
+            </span>
+          </div>
         )}
       </div>
 
@@ -510,6 +669,40 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
             </div>
           </div>
         )}
+
+        {/* Submit Error */}
+        {submitError && (
+          <div style={styles.submitError}>
+            <span style={styles.submitErrorIcon}>⚠</span>
+            <span style={styles.submitErrorText}>{submitError}</span>
+          </div>
+        )}
+
+        {/* Start Training Button */}
+        <div style={styles.startTrainingContainer}>
+          <button
+            onClick={handleStartTraining}
+            disabled={!canStartTraining}
+            style={{
+              ...styles.startTrainingButton,
+              ...(canStartTraining ? {} : styles.startTrainingButtonDisabled),
+            }}
+          >
+            {isSubmitting ? (
+              <>
+                <span style={styles.buttonSpinner} />
+                Starting...
+              </>
+            ) : (
+              <>Start Training</>
+            )}
+          </button>
+          {!pipelineId && (
+            <p style={styles.startTrainingHint}>
+              Configure a preprocessing pipeline first to start training.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -640,6 +833,33 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0.75rem 0 0 0",
     fontSize: "0.75rem",
     color: "#dc2626",
+  },
+  estimateContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    marginTop: "1rem",
+    padding: "0.75rem",
+    backgroundColor: "#f0f9ff",
+    border: "1px solid #bae6fd",
+    borderRadius: "6px",
+  },
+  estimateIcon: {
+    fontSize: "1rem",
+  },
+  estimateText: {
+    fontSize: "0.875rem",
+    color: "#0369a1",
+    fontWeight: 500,
+  },
+  estimateTextLoading: {
+    fontSize: "0.875rem",
+    color: "#6b7280",
+  },
+  estimateNote: {
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    fontStyle: "italic",
   },
   settingsGrid: {
     display: "grid",
@@ -810,5 +1030,64 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     color: "#7f1d1d",
     fontSize: "0.875rem",
+  },
+  submitError: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    marginTop: "1rem",
+    padding: "0.75rem",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: "6px",
+  },
+  submitErrorIcon: {
+    fontSize: "1rem",
+    color: "#dc2626",
+  },
+  submitErrorText: {
+    fontSize: "0.875rem",
+    color: "#dc2626",
+  },
+  startTrainingContainer: {
+    marginTop: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  startTrainingButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    padding: "1rem 2rem",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "1rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    minWidth: "200px",
+  },
+  startTrainingButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    cursor: "not-allowed",
+  },
+  buttonSpinner: {
+    width: "16px",
+    height: "16px",
+    border: "2px solid rgba(255, 255, 255, 0.3)",
+    borderTop: "2px solid #ffffff",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  startTrainingHint: {
+    margin: 0,
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    textAlign: "center",
   },
 };
