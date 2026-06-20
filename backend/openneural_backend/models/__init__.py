@@ -1,9 +1,14 @@
-"""Model registry module for OpenNeural.
+"""Model registry and optimization module for OpenNeural.
 
 Exports the model registry functionality for model registration,
-lookup, and listing.
+lookup, and listing, as well as Optuna adapter functions for
+hyperparameter optimization.
 """
 
+from openneural_backend.models.optuna_adapter import (
+    build_objective_with_timeout,
+    build_optuna_objective,
+)
 from openneural_backend.models.registry import (
     MODEL_REGISTRY,
     ModelSpec,
@@ -20,6 +25,8 @@ __all__ = [
     "MODEL_REGISTRY",
     "ModelSpec",
     "OptunaParamSpec",
+    "build_objective_with_timeout",
+    "build_optuna_objective",
     "clear_registry",
     "get_model",
     "is_registered",
