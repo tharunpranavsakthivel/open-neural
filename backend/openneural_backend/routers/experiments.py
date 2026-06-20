@@ -3,22 +3,157 @@
 Provides endpoints for experiment management: create, start, cancel, get status.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from openneural_backend.db.engine import get_async_session
+from openneural_backend.db.models import Pipeline, Project
+from openneural_backend.models.registry import list_models
+from openneural_backend.orchestrator.experiment_manager import (
+    ExperimentValidationError,
+    create_experiment,
+)
 
 router = APIRouter(prefix="/projects/{project_id}/experiments", tags=["experiments"])
 
 
-@router.post("")
-async def create_experiment(project_id: str) -> dict:
+class AutoMLConfig(BaseModel):
+    """AutoML configuration for experiment."""
+
+    max_trials: int = Field(25, description="Maximum number of AutoML trials", ge=1)
+    cv_folds: int = Field(5, description="Number of cross-validation folds", ge=2)
+    time_budget_minutes: int = Field(8, description="Time budget in minutes", ge=1)
+
+
+class ExperimentCreateRequest(BaseModel):
+    """Request model for creating a new experiment."""
+
+    pipeline_id: str = Field(..., description="ID of the pipeline to use")
+    automl_enabled: bool = Field(True, description="Whether AutoML is enabled")
+    optimize_metric: str = Field("f1", description="Metric to optimize")
+    automl_config: AutoMLConfig = Field(
+        default_factory=AutoMLConfig,
+        description="AutoML configuration",
+    )
+    candidate_models: list[str] = Field(
+        ...,
+        description="List of candidate model types",
+    )
+
+    @field_validator("optimize_metric")
+    @classmethod
+    def validate_optimize_metric(cls, v: str) -> str:
+        """Validate optimization metric is supported."""
+        valid_metrics = ["f1", "auc_roc", "precision", "recall", "rmse", "mae", "r2"]
+        if v not in valid_metrics:
+            raise ValueError(f"Invalid optimize_metric '{v}'. Must be one of: {valid_metrics}")
+        return v
+
+
+class ExperimentCreateResponse(BaseModel):
+    """Response model for experiment creation."""
+
+    id: str
+    experiment_id_human: str
+    status: str
+    created_at: str
+
+
+@router.post("", response_model=ExperimentCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_experiment_endpoint(
+    project_id: str,
+    request: ExperimentCreateRequest,
+    session: AsyncSession = Depends(get_async_session),
+) -> ExperimentCreateResponse:
     """Create a new experiment.
+
+    Validates the pipeline belongs to the project, validates candidate models
+    are registered for the project's task type, creates the experiment record,
+    and returns the created experiment details.
 
     Args:
         project_id: The project ID.
+        request: Experiment creation request containing pipeline_id and config.
+        session: Database session.
 
     Returns:
-        dict: Created experiment details.
+        ExperimentCreateResponse: Created experiment with id, experiment_id_human,
+            status, and created_at.
+
+    Raises:
+        HTTPException 404: If project or pipeline not found.
+        HTTPException 400: If validation fails (e.g., candidate_models invalid).
     """
-    raise HTTPException(status_code=501, detail="Not implemented")
+    # Validate project exists and get task type
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Validate pipeline exists and belongs to this project
+    pipeline_result = await session.execute(
+        select(Pipeline).where(
+            Pipeline.id == request.pipeline_id,
+            Pipeline.project_id == project_id,
+        )
+    )
+    pipeline = pipeline_result.scalar_one_or_none()
+    if pipeline is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Pipeline '{request.pipeline_id}' not found in project '{project_id}'",
+        )
+
+    # Validate candidate_models are all registered for this task type
+    registered_models = list_models(task_type=project.task_type)
+    invalid_models = [
+        model for model in request.candidate_models
+        if model not in registered_models
+    ]
+    if invalid_models:
+        available = list(registered_models.keys())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid candidate models for task type '{project.task_type}': "
+                f"{invalid_models}. Available models: {available}"
+            ),
+        )
+
+    # Prepare config for experiment_manager
+    config = {
+        "automl_enabled": request.automl_enabled,
+        "optimize_metric": request.optimize_metric,
+        "automl_config": request.automl_config.model_dump(),
+        "candidate_models": request.candidate_models,
+    }
+
+    # Create experiment via experiment_manager
+    try:
+        experiment = await create_experiment(
+            project_id=project_id,
+            pipeline_id=request.pipeline_id,
+            config=config,
+        )
+    except ExperimentValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    return ExperimentCreateResponse(
+        id=experiment["id"],
+        experiment_id_human=experiment["experiment_id_human"],
+        status=experiment["status"],
+        created_at=experiment["created_at"],
+    )
 
 
 @router.get("")
