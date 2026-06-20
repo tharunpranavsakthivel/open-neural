@@ -22,6 +22,10 @@ from openneural_backend.pipeline.registry import (
     register_block,
     unregister_block,
 )
+from openneural_backend.pipeline.validator import (
+    validate_block_params,
+    validate_pipeline,
+)
 
 __all__ = [
     "PipelineBlock",
@@ -36,4 +40,6 @@ __all__ = [
     "list_blocks",
     "register_block",
     "unregister_block",
+    "validate_block_params",
+    "validate_pipeline",
 ]
