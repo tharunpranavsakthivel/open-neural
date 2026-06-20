@@ -143,7 +143,15 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && confirmPassword) {
+                  e.preventDefault();
+                  // Focus the confirm password field
+                  document.getElementById("confirm-password")?.focus();
+                }
+              }}
               disabled={isSubmitting}
+              autoFocus
               aria-describedby="password-hint"
               style={styles.input}
             />
@@ -161,6 +169,14 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && password && confirmPassword && !isSubmitting) {
+                  e.preventDefault();
+                  // Trigger form submission
+                  const form = e.currentTarget.closest("form");
+                  form?.requestSubmit();
+                }
+              }}
               disabled={isSubmitting}
               style={styles.input}
             />
