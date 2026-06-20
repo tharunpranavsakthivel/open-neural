@@ -76,11 +76,24 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
   /** Selected optimization metric */
   const [optimizationMetric, setOptimizationMetric] = useState<string>("");
 
+  /** Advanced configuration panel expanded state */
+  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
+
+  /** Advanced configuration values */
+  const [maxTrials, setMaxTrials] = useState(25);
+  const [cvFolds, setCvFolds] = useState(5);
+  const [timeBudget, setTimeBudget] = useState(8);
+
   /** Loading state for fetching project */
   const [isLoading, setIsLoading] = useState(true);
 
   /** Error state */
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Tooltip state for showing/hiding tooltips.
+   */
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   /**
    * Classification metrics with F1 as default.
@@ -158,6 +171,27 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
    */
   const handleMetricChange = useCallback((metric: string) => {
     setOptimizationMetric(metric);
+  }, []);
+
+  /**
+   * Toggle advanced configuration panel.
+   */
+  const handleToggleAdvanced = useCallback(() => {
+    setIsAdvancedExpanded((prev) => !prev);
+  }, []);
+
+  /**
+   * Show tooltip for a setting.
+   */
+  const showTooltip = useCallback((tooltipId: string) => {
+    setActiveTooltip(tooltipId);
+  }, []);
+
+  /**
+   * Hide tooltip.
+   */
+  const hideTooltip = useCallback(() => {
+    setActiveTooltip(null);
   }, []);
 
   /**
@@ -341,37 +375,141 @@ export function ModelSelection({ projectId }: ModelSelectionProps): JSX.Element 
               ))}
             </div>
           </div>
-          <div style={styles.setting}>
-            <label style={styles.settingLabel}>Max Trials</label>
-            <input
-              type="number"
-              defaultValue={25}
-              style={styles.input}
-              min={1}
-              max={100}
-            />
-          </div>
-          <div style={styles.setting}>
-            <label style={styles.settingLabel}>CV Folds</label>
-            <input
-              type="number"
-              defaultValue={5}
-              style={styles.input}
-              min={2}
-              max={10}
-            />
-          </div>
-          <div style={styles.setting}>
-            <label style={styles.settingLabel}>Time Budget (min)</label>
-            <input
-              type="number"
-              defaultValue={8}
-              style={styles.input}
-              min={1}
-              max={60}
-            />
-          </div>
         </div>
+
+        {/* Advanced Configuration Toggle */}
+        <div style={styles.advancedToggleContainer}>
+          <button
+            onClick={handleToggleAdvanced}
+            style={styles.advancedToggle}
+            aria-expanded={isAdvancedExpanded}
+          >
+            <span style={styles.advancedToggleIcon}>
+              {isAdvancedExpanded ? "▼" : "▶"}
+            </span>
+            <span style={styles.advancedToggleText}>
+              Advanced Configuration
+            </span>
+          </button>
+        </div>
+
+        {/* Advanced Configuration Panel */}
+        {isAdvancedExpanded && (
+          <div style={styles.advancedPanel}>
+            <div style={styles.advancedGrid}>
+              {/* Max Trials */}
+              <div style={styles.advancedSetting}>
+                <div style={styles.settingLabelRow}>
+                  <label style={styles.settingLabel}>Max AutoML Trials</label>
+                  <span
+                    style={styles.tooltipIcon}
+                    onMouseEnter={() => showTooltip("maxTrials")}
+                    onMouseLeave={hideTooltip}
+                    onFocus={() => showTooltip("maxTrials")}
+                    onBlur={hideTooltip}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Show tooltip for Max AutoML Trials"
+                  >
+                    ⓘ
+                  </span>
+                  {activeTooltip === "maxTrials" && (
+                    <div style={styles.tooltip}>
+                      Maximum number of hyperparameter combinations to try.
+                      Higher values may find better models but take longer.
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={maxTrials}
+                  onChange={(e) =>
+                    setMaxTrials(
+                      Math.max(1, Math.min(100, parseInt(e.target.value) || 1))
+                    )
+                  }
+                  style={styles.input}
+                  min={1}
+                  max={100}
+                />
+              </div>
+
+              {/* CV Folds */}
+              <div style={styles.advancedSetting}>
+                <div style={styles.settingLabelRow}>
+                  <label style={styles.settingLabel}>CV Folds</label>
+                  <span
+                    style={styles.tooltipIcon}
+                    onMouseEnter={() => showTooltip("cvFolds")}
+                    onMouseLeave={hideTooltip}
+                    onFocus={() => showTooltip("cvFolds")}
+                    onBlur={hideTooltip}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Show tooltip for CV Folds"
+                  >
+                    ⓘ
+                  </span>
+                  {activeTooltip === "cvFolds" && (
+                    <div style={styles.tooltip}>
+                      Number of cross-validation folds. More folds give more
+                      reliable estimates but increase training time.
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={cvFolds}
+                  onChange={(e) =>
+                    setCvFolds(
+                      Math.max(2, Math.min(10, parseInt(e.target.value) || 2))
+                    )
+                  }
+                  style={styles.input}
+                  min={2}
+                  max={10}
+                />
+              </div>
+
+              {/* Time Budget */}
+              <div style={styles.advancedSetting}>
+                <div style={styles.settingLabelRow}>
+                  <label style={styles.settingLabel}>Time Budget (minutes)</label>
+                  <span
+                    style={styles.tooltipIcon}
+                    onMouseEnter={() => showTooltip("timeBudget")}
+                    onMouseLeave={hideTooltip}
+                    onFocus={() => showTooltip("timeBudget")}
+                    onBlur={hideTooltip}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Show tooltip for Time Budget"
+                  >
+                    ⓘ
+                  </span>
+                  {activeTooltip === "timeBudget" && (
+                    <div style={styles.tooltip}>
+                      Maximum time allowed for AutoML search. The search will
+                      stop when this limit is reached.
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={timeBudget}
+                  onChange={(e) =>
+                    setTimeBudget(
+                      Math.max(1, Math.min(60, parseInt(e.target.value) || 1))
+                    )
+                  }
+                  style={styles.input}
+                  min={1}
+                  max={60}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -543,6 +681,82 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.75rem",
     fontWeight: 500,
     color: "#374151",
+  },
+  settingLabelRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.375rem",
+    position: "relative",
+  },
+  tooltipIcon: {
+    width: "16px",
+    height: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "0.75rem",
+    color: "#9ca3af",
+    cursor: "help",
+    borderRadius: "50%",
+    backgroundColor: "#f3f4f6",
+    userSelect: "none",
+  },
+  tooltip: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    marginTop: "0.5rem",
+    padding: "0.75rem",
+    backgroundColor: "#1f2937",
+    color: "#ffffff",
+    fontSize: "0.75rem",
+    borderRadius: "6px",
+    maxWidth: "280px",
+    zIndex: 10,
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+    lineHeight: 1.5,
+  },
+  advancedToggleContainer: {
+    marginTop: "1.5rem",
+    paddingTop: "1rem",
+    borderTop: "1px solid #e5e7eb",
+  },
+  advancedToggle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.5rem 0",
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    color: "#2563eb",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+  },
+  advancedToggleIcon: {
+    fontSize: "0.75rem",
+    transition: "transform 0.15s ease",
+  },
+  advancedToggleText: {
+    textDecoration: "underline",
+  },
+  advancedPanel: {
+    marginTop: "1rem",
+    padding: "1rem",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "6px",
+  },
+  advancedGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gap: "1rem",
+  },
+  advancedSetting: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.25rem",
+    position: "relative",
   },
   select: {
     padding: "0.5rem",
