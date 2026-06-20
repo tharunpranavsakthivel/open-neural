@@ -6,10 +6,16 @@
  * block palette for adding new blocks. Supports drag-and-drop reordering
  * of blocks using @dnd-kit and inline configuration panels.
  *
+ * Features:
+ * - Block validation with error/warning display (Task 158)
+ * - Pipeline save with API integration (Task 159)
+ * - Pipeline reuse with saved pipelines dropdown (Task 160)
+ * - Per-block status indicators (Task 161)
+ *
  * @module screens/PipelineBuilder
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -44,10 +50,20 @@ import {
   TrainValTestSplitConfig,
   type ColumnOption,
 } from "../components/block-configs";
+import {
+  createPipeline,
+  fetchProjectPipelines,
+  validatePipelineConfig,
+  type PipelineValidationResult,
+  type PipelineResponse,
+} from "../utils/api";
+import { useAppStore } from "../stores/appStore";
 
 interface PipelineBuilderProps {
   /** Currently selected project ID */
   projectId: string;
+  /** Callback when pipeline is saved and ready to proceed */
+  onComplete?: () => void;
 }
 
 /**
@@ -66,6 +82,10 @@ interface PipelineBlockData {
   status: BlockStatus;
   /** Block-specific configuration parameters */
   params: Record<string, unknown>;
+  /** Validation error message for this block */
+  errorMessage?: string;
+  /** Validation warning message for this block */
+  warningMessage?: string;
 }
 
 /**
@@ -206,6 +226,16 @@ function getBlockConfigComponent(
 }
 
 /**
+ * Convert pipeline blocks to API format.
+ */
+function blocksToApiFormat(blocks: PipelineBlockData[]): Array<{ type: string; params: Record<string, unknown> }> {
+  return blocks.map((block) => ({
+    type: block.type,
+    params: block.params,
+  }));
+}
+
+/**
  * Props for the SortableBlockWrapper component.
  */
 interface SortableBlockWrapperProps {
@@ -279,6 +309,8 @@ function SortableBlockWrapper({
           status={block.status}
           isSelected={isSelected}
           sequenceNumber={index + 1}
+          errorMessage={block.errorMessage}
+          warningMessage={block.warningMessage}
           onConfigure={onConfigure}
           onRemove={onRemove}
           onSelect={onSelect}
@@ -302,18 +334,39 @@ function SortableBlockWrapper({
  * and a block palette sidebar for adding new blocks. Supports drag-and-drop
  * reordering of blocks and inline configuration panels.
  *
+ * Features:
+ * - Block validation with error/warning display (Task 158)
+ * - Pipeline save with API integration (Task 159)
+ * - Pipeline reuse with saved pipelines dropdown (Task 160)
+ * - Per-block status indicators (Task 161)
+ *
  * @param props - Component props
  * @returns The pipeline builder screen
  */
 export function PipelineBuilder({
-  projectId: _projectId,
+  projectId,
+  onComplete,
 }: PipelineBuilderProps): JSX.Element {
+  const { showSuccessToast, showErrorToast } = useAppStore();
+
   /** Currently configured pipeline blocks */
   const [blocks, setBlocks] = useState<PipelineBlockData[]>([]);
   /** Currently selected block for editing */
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   /** Whether the block palette is visible (for mobile) */
   const [isPaletteOpen, setIsPaletteOpen] = useState(true);
+  /** Loading state for validation */
+  const [isValidating, setIsValidating] = useState(false);
+  /** Loading state for save */
+  const [isSaving, setIsSaving] = useState(false);
+  /** Whether pipeline has been saved */
+  const [isSaved, setIsSaved] = useState(false);
+  /** Saved pipelines for reuse */
+  const [savedPipelines, setSavedPipelines] = useState<PipelineResponse[]>([]);
+  /** Currently selected saved pipeline ID */
+  const [selectedSavedPipelineId, setSelectedSavedPipelineId] = useState<string>("");
+  /** Loading state for fetching saved pipelines */
+  const [isLoadingPipelines, setIsLoadingPipelines] = useState(false);
 
   // TODO: Fetch actual columns from the dataset snapshot
   const availableColumns: ColumnOption[] = [
@@ -323,6 +376,9 @@ export function PipelineBuilder({
     { value: "city", label: "City", type: "categorical" },
     { value: "score", label: "Score", type: "numeric" },
   ];
+
+  // TODO: Get actual snapshot ID from current project state
+  const currentSnapshotId = "snapshot-1";
 
   /** Configure DndKit sensors */
   const sensors = useSensors(
@@ -340,6 +396,25 @@ export function PipelineBuilder({
   const blockIds = useMemo(() => blocks.map((b) => b.id), [blocks]);
 
   /**
+   * Fetch saved pipelines on mount (Task 160).
+   */
+  useEffect(() => {
+    async function loadSavedPipelines() {
+      setIsLoadingPipelines(true);
+      try {
+        const pipelines = await fetchProjectPipelines(projectId);
+        setSavedPipelines(pipelines);
+      } catch (err) {
+        console.error("Failed to load saved pipelines:", err);
+      } finally {
+        setIsLoadingPipelines(false);
+      }
+    }
+
+    void loadSavedPipelines();
+  }, [projectId]);
+
+  /**
    * Handle drag end event to reorder blocks.
    */
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -351,6 +426,8 @@ export function PipelineBuilder({
         const newIndex = items.findIndex((item) => item.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
+      // Reset saved state when blocks are reordered
+      setIsSaved(false);
     }
   }, []);
 
@@ -369,6 +446,8 @@ export function PipelineBuilder({
 
     setBlocks((prevBlocks) => [...prevBlocks, newBlock]);
     setSelectedBlockId(newBlock.id);
+    // Reset saved state when new block is added
+    setIsSaved(false);
   }, []);
 
   /**
@@ -379,6 +458,8 @@ export function PipelineBuilder({
     if (selectedBlockId === blockId) {
       setSelectedBlockId(null);
     }
+    // Reset saved state when block is removed
+    setIsSaved(false);
   }, [selectedBlockId]);
 
   /**
@@ -405,9 +486,170 @@ export function PipelineBuilder({
           b.id === blockId ? { ...b, params, status: "configured" as BlockStatus } : b
         )
       );
+      // Reset saved state when params change
+      setIsSaved(false);
     },
     []
   );
+
+  /**
+   * Validate pipeline configuration (Task 158).
+   * Calls API to validate and displays errors/warnings.
+   */
+  const handleValidate = useCallback(async () => {
+    if (blocks.length === 0) {
+      showErrorToast("Pipeline must have at least one block");
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const result = await validatePipelineConfig(projectId, {
+        snapshot_id: currentSnapshotId,
+        blocks: blocksToApiFormat(blocks),
+      });
+
+      // Update block statuses based on validation result
+      setBlocks((prevBlocks) =>
+        prevBlocks.map((block, index) => {
+          const blockErrors = result.errors.filter((e) => e.block_index === index);
+          const blockWarnings = result.warnings.filter((w) => w.block_index === index);
+
+          let status: BlockStatus = "validated";
+          if (blockErrors.length > 0) {
+            status = "error";
+          } else if (blockWarnings.length > 0) {
+            status = "warning";
+          }
+
+          return {
+            ...block,
+            status,
+            errorMessage: blockErrors.map((e) => e.message).join("; ") || undefined,
+            warningMessage: blockWarnings.map((w) => w.message).join("; ") || undefined,
+          };
+        })
+      );
+
+      if (result.valid) {
+        showSuccessToast("Pipeline validation successful");
+      } else {
+        const errorCount = result.errors.length;
+        const warningCount = result.warnings.length;
+        showErrorToast(
+          `Validation failed: ${errorCount} error(s), ${warningCount} warning(s)`
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Validation failed";
+      showErrorToast(message);
+    } finally {
+      setIsValidating(false);
+    }
+  }, [blocks, projectId, currentSnapshotId, showErrorToast, showSuccessToast]);
+
+  /**
+   * Save pipeline configuration (Task 159).
+   * Calls API to save and shows success toast.
+   */
+  const handleSave = useCallback(async () => {
+    if (blocks.length === 0) {
+      showErrorToast("Pipeline must have at least one block");
+      return;
+    }
+
+    // First validate
+    setIsSaving(true);
+    try {
+      // Validate before saving
+      const validationResult = await validatePipelineConfig(projectId, {
+        snapshot_id: currentSnapshotId,
+        blocks: blocksToApiFormat(blocks),
+      });
+
+      if (!validationResult.valid) {
+        // Update block statuses to show errors
+        setBlocks((prevBlocks) =>
+          prevBlocks.map((block, index) => {
+            const blockErrors = validationResult.errors.filter((e) => e.block_index === index);
+            const blockWarnings = validationResult.warnings.filter((w) => w.block_index === index);
+
+            let status: BlockStatus = block.status;
+            if (blockErrors.length > 0) {
+              status = "error";
+            } else if (blockWarnings.length > 0) {
+              status = "warning";
+            }
+
+            return {
+              ...block,
+              status,
+              errorMessage: blockErrors.map((e) => e.message).join("; ") || undefined,
+              warningMessage: blockWarnings.map((w) => w.message).join("; ") || undefined,
+            };
+          })
+        );
+
+        showErrorToast("Please fix validation errors before saving");
+        return;
+      }
+
+      // Save the pipeline
+      await createPipeline(projectId, {
+        snapshot_id: currentSnapshotId,
+        blocks: blocksToApiFormat(blocks),
+      });
+
+      setIsSaved(true);
+      showSuccessToast("Pipeline saved successfully");
+
+      // Refresh saved pipelines list
+      const pipelines = await fetchProjectPipelines(projectId);
+      setSavedPipelines(pipelines);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save pipeline";
+      showErrorToast(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [blocks, projectId, currentSnapshotId, showErrorToast, showSuccessToast]);
+
+  /**
+   * Load a saved pipeline (Task 160).
+   * Populates the block list from saved config_json.
+   */
+  const handleLoadSavedPipeline = useCallback(async (pipelineId: string) => {
+    if (!pipelineId) return;
+
+    const pipeline = savedPipelines.find((p) => p.id === pipelineId);
+    if (!pipeline) return;
+
+    // Convert saved blocks to PipelineBlockData
+    const savedBlocks = pipeline.config_json.blocks.map((block, index) => ({
+      id: generateBlockId(block.type as BlockType),
+      type: block.type as BlockType,
+      name: BLOCK_PALETTE.find((b) => b.type === block.type)?.name ?? block.type,
+      description: BLOCK_PALETTE.find((b) => b.type === block.type)?.description ?? "",
+      status: "configured" as BlockStatus,
+      params: block.params,
+    }));
+
+    setBlocks(savedBlocks);
+    setSelectedBlockId(null);
+    setIsSaved(false);
+    showSuccessToast("Pipeline loaded successfully");
+  }, [savedPipelines, showSuccessToast]);
+
+  /**
+   * Handle saved pipeline selection change.
+   */
+  const handleSavedPipelineChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+    const pipelineId = e.target.value;
+    setSelectedSavedPipelineId(pipelineId);
+    if (pipelineId) {
+      void handleLoadSavedPipeline(pipelineId);
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -456,6 +698,27 @@ export function PipelineBuilder({
                 <span style={styles.paletteItemAdd} aria-hidden="true">+</span>
               </button>
             ))}
+          </div>
+
+          {/* Saved Pipelines Section (Task 160) */}
+          <div style={styles.savedPipelinesSection}>
+            <h3 style={styles.savedPipelinesTitle}>Load Saved Pipeline</h3>
+            <select
+              value={selectedSavedPipelineId}
+              onChange={handleSavedPipelineChange}
+              style={styles.savedPipelinesSelect}
+              disabled={isLoadingPipelines}
+            >
+              <option value="">Select a saved pipeline...</option>
+              {savedPipelines.map((pipeline) => (
+                <option key={pipeline.id} value={pipeline.id}>
+                  {pipeline.id.slice(0, 8)}... ({pipeline.config_json.blocks.length} blocks)
+                </option>
+              ))}
+            </select>
+            {isLoadingPipelines && (
+              <span style={styles.loadingText}>Loading...</span>
+            )}
           </div>
         </aside>
 
@@ -525,14 +788,43 @@ export function PipelineBuilder({
             <div style={styles.pipelineActions}>
               <button
                 style={styles.secondaryButton}
-                onClick={() => setBlocks([])}
+                onClick={() => {
+                  setBlocks([]);
+                  setIsSaved(false);
+                }}
                 type="button"
+                disabled={isSaving}
               >
                 Clear All
               </button>
-              <button style={styles.primaryButton} type="button">
-                Validate Pipeline
+              <button
+                style={styles.secondaryButton}
+                onClick={handleValidate}
+                type="button"
+                disabled={isValidating || blocks.length === 0}
+              >
+                {isValidating ? "Validating..." : "Validate Pipeline"}
               </button>
+              <button
+                style={{
+                  ...styles.primaryButton,
+                  ...(isSaved ? styles.primaryButtonSaved : {}),
+                }}
+                onClick={handleSave}
+                type="button"
+                disabled={isSaving || blocks.length === 0}
+              >
+                {isSaving ? "Saving..." : isSaved ? "Saved ✓" : "Save Pipeline"}
+              </button>
+              {isSaved && onComplete && (
+                <button
+                  style={styles.nextButton}
+                  onClick={onComplete}
+                  type="button"
+                >
+                  Next →
+                </button>
+              )}
             </div>
           )}
         </main>
@@ -650,6 +942,33 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#2563eb",
     flexShrink: 0,
   },
+  savedPipelinesSection: {
+    padding: "1rem",
+    borderTop: "1px solid #e5e7eb",
+    backgroundColor: "#f9fafb",
+  },
+  savedPipelinesTitle: {
+    margin: "0 0 0.5rem 0",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "#374151",
+    textTransform: "uppercase",
+    letterSpacing: "0.025em",
+  },
+  savedPipelinesSelect: {
+    width: "100%",
+    padding: "0.5rem",
+    border: "1px solid #d1d5db",
+    borderRadius: "6px",
+    fontSize: "0.875rem",
+    backgroundColor: "#ffffff",
+    cursor: "pointer",
+  },
+  loadingText: {
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    marginTop: "0.25rem",
+  },
   pipelineArea: {
     flex: 1,
     display: "flex",
@@ -728,11 +1047,25 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     transition: "background-color 0.15s ease",
   },
+  primaryButtonSaved: {
+    backgroundColor: "#22c55e",
+  },
   secondaryButton: {
     padding: "0.75rem 1.5rem",
     backgroundColor: "#ffffff",
     color: "#374151",
     border: "1px solid #e5e7eb",
+    borderRadius: "6px",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "background-color 0.15s ease",
+  },
+  nextButton: {
+    padding: "0.75rem 1.5rem",
+    backgroundColor: "#7c3aed",
+    color: "#ffffff",
+    border: "none",
     borderRadius: "6px",
     fontSize: "0.875rem",
     fontWeight: 500,

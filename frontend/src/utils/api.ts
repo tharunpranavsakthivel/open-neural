@@ -364,3 +364,176 @@ export async function fetchProjectSnapshots(
 
   return (await response.json()) as SnapshotListItem[];
 }
+
+/**
+ * Pipeline block configuration for API requests.
+ */
+export interface PipelineBlockConfig {
+  /** Block type identifier */
+  type: string;
+  /** Block parameters */
+  params: Record<string, unknown>;
+}
+
+/**
+ * Pipeline configuration request body.
+ */
+export interface CreatePipelineRequest {
+  /** Snapshot ID to associate with this pipeline */
+  snapshot_id: string;
+  /** Ordered array of pipeline blocks */
+  blocks: PipelineBlockConfig[];
+}
+
+/**
+ * Pipeline validation result.
+ */
+export interface PipelineValidationResult {
+  /** Whether the pipeline is valid */
+  valid: boolean;
+  /** Array of validation warnings */
+  warnings: Array<{
+    block_index?: number;
+    message: string;
+  }>;
+  /** Array of validation errors */
+  errors: Array<{
+    block_index?: number;
+    message: string;
+  }>;
+}
+
+/**
+ * Pipeline response from the backend.
+ */
+export interface PipelineResponse {
+  /** Unique identifier for the pipeline */
+  id: string;
+  /** Project ID */
+  project_id: string;
+  /** Associated snapshot ID */
+  snapshot_id: string;
+  /** Pipeline configuration JSON */
+  config_json: {
+    blocks: PipelineBlockConfig[];
+  };
+  /** Whether the pipeline has been validated */
+  validated: boolean;
+  /** Creation timestamp */
+  created_at: string;
+}
+
+/**
+ * Create a new pipeline for a project.
+ *
+ * POST /api/v1/projects/{projectId}/pipelines
+ *
+ * @param projectId - The ID of the project
+ * @param request - The pipeline configuration
+ * @returns The created pipeline
+ * @throws Error if the request fails
+ */
+export async function createPipeline(
+  projectId: string,
+  request: CreatePipelineRequest
+): Promise<PipelineResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/pipelines`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create pipeline: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as PipelineResponse;
+}
+
+/**
+ * Fetch all pipelines for a project.
+ *
+ * GET /api/v1/projects/{projectId}/pipelines
+ *
+ * @param projectId - The ID of the project
+ * @returns Array of pipeline responses
+ * @throws Error if the request fails
+ */
+export async function fetchProjectPipelines(
+  projectId: string
+): Promise<PipelineResponse[]> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/pipelines`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch pipelines: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as PipelineResponse[];
+}
+
+/**
+ * Validate a pipeline configuration.
+ *
+ * GET /api/v1/projects/{projectId}/pipelines/{pipelineId}/validate
+ *
+ * @param projectId - The ID of the project
+ * @param pipelineId - The ID of the pipeline to validate
+ * @returns Validation result
+ * @throws Error if the request fails
+ */
+export async function validatePipeline(
+  projectId: string,
+  pipelineId: string
+): Promise<PipelineValidationResult> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/pipelines/${pipelineId}/validate`
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to validate pipeline: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as PipelineValidationResult;
+}
+
+/**
+ * Validate a pipeline configuration without saving (dry run).
+ *
+ * POST /api/v1/projects/{projectId}/pipelines/validate
+ *
+ * @param projectId - The ID of the project
+ * @param request - The pipeline configuration to validate
+ * @returns Validation result
+ * @throws Error if the request fails
+ */
+export async function validatePipelineConfig(
+  projectId: string,
+  request: CreatePipelineRequest
+): Promise<PipelineValidationResult> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/pipelines/validate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to validate pipeline: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as PipelineValidationResult;
+}

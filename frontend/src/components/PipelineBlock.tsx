@@ -11,7 +11,7 @@
 /**
  * Status indicator for a pipeline block.
  */
-export type BlockStatus = "configured" | "validated" | "warning";
+export type BlockStatus = "configured" | "validated" | "warning" | "error";
 
 /**
  * Pipeline block types available for building preprocessing pipelines.
@@ -49,6 +49,10 @@ interface PipelineBlockProps {
   isSelected?: boolean;
   /** Sequential number for display (e.g., "1", "2") */
   sequenceNumber?: number;
+  /** Validation error message for this block */
+  errorMessage?: string;
+  /** Validation warning message for this block */
+  warningMessage?: string;
   /** Callback when the config button is clicked */
   onConfigure: (blockId: string) => void;
   /** Callback when the remove button is clicked */
@@ -109,27 +113,62 @@ function getStatusColor(status: BlockStatus): string {
       return "#3b82f6"; // blue-500
     case "warning":
       return "#f59e0b"; // yellow-500
+    case "error":
+      return "#ef4444"; // red-500
     default:
       return "#6b7280"; // gray-500
   }
 }
 
 /**
- * Gets the status icon for a given block status.
+ * Gets the status icon SVG for a given block status.
+ * Returns a proper SVG element for better visual quality.
  *
  * @param status - The block status
- * @returns Status icon character
+ * @returns JSX Element for the status icon
  */
-function getStatusIcon(status: BlockStatus): string {
+function StatusIcon({ status }: { status: BlockStatus }): JSX.Element {
+  const color = getStatusColor(status);
+
   switch (status) {
     case "configured":
-      return "✓";
     case "validated":
-      return "✓";
+      // Green checkmark
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="2" fill="none" />
+          <path d="M5 8L7 10L11 6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     case "warning":
-      return "⚠";
+      // Yellow triangle
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path
+            d="M8 2L14 13H2L8 2Z"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <path d="M8 6V9" stroke={color} strokeWidth="2" strokeLinecap="round" />
+          <circle cx="8" cy="11.5" r="0.8" fill={color} />
+        </svg>
+      );
+    case "error":
+      // Red cross
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="2" fill="none" />
+          <path d="M5 5L11 11M11 5L5 11" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
     default:
-      return "○";
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke="#6b7280" strokeWidth="2" fill="none" />
+        </svg>
+      );
   }
 }
 
@@ -147,6 +186,8 @@ function getStatusLabel(status: BlockStatus): string {
       return "Validated";
     case "warning":
       return "Warning";
+    case "error":
+      return "Error";
     default:
       return "Unknown";
   }
@@ -161,6 +202,7 @@ function getStatusLabel(status: BlockStatus): string {
  * - Config and remove action buttons
  * - Optional drag handle for reordering
  * - Sequence number indicator
+ * - Error/warning message display
  *
  * @param props - Component props
  * @returns The pipeline block card component
@@ -174,6 +216,8 @@ export function PipelineBlock({
   status,
   isSelected = false,
   sequenceNumber,
+  errorMessage,
+  warningMessage,
   onConfigure,
   onRemove,
   onSelect,
@@ -181,7 +225,6 @@ export function PipelineBlock({
   isDragging = false,
 }: PipelineBlockProps): JSX.Element {
   const statusColor = getStatusColor(status);
-  const statusIcon = getStatusIcon(status);
   const statusLabel = getStatusLabel(status);
   const blockIcon = BLOCK_TYPE_ICONS[blockType];
   const displayLabel = label || BLOCK_TYPE_LABELS[blockType];
@@ -227,6 +270,7 @@ export function PipelineBlock({
         ...styles.blockCard,
         ...(isSelected ? styles.blockCardSelected : {}),
         ...(isDragging ? styles.blockCardDragging : {}),
+        ...(status === "error" ? styles.blockCardError : {}),
       }}
       role="listitem"
       aria-selected={isSelected}
@@ -288,10 +332,26 @@ export function PipelineBlock({
             aria-label={`Status: ${statusLabel}`}
             title={statusLabel}
           >
-            {statusIcon}
+            <StatusIcon status={status} />
           </span>
         </div>
         <p style={styles.blockDescription}>{description}</p>
+
+        {/* Error message banner */}
+        {errorMessage && (
+          <div style={styles.errorBanner} role="alert">
+            <span style={styles.errorIcon}>❌</span>
+            <span style={styles.errorText}>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Warning message banner */}
+        {warningMessage && (
+          <div style={styles.warningBanner} role="status">
+            <span style={styles.warningIcon}>⚠️</span>
+            <span style={styles.warningText}>{warningMessage}</span>
+          </div>
+        )}
 
         {/* Status border indicator (colored left border) */}
         <div
@@ -374,6 +434,9 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.5,
     zIndex: 1000,
   },
+  blockCardError: {
+    borderColor: "#ef4444",
+  },
   dragHandle: {
     width: "32px",
     display: "flex",
@@ -427,12 +490,15 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: "ellipsis",
   },
   blockStatus: {
-    fontSize: "1rem",
-    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "20px",
+    height: "20px",
     flexShrink: 0,
   },
   blockDescription: {
-    margin: 0,
+    margin: "0 0 0.5rem 0",
     fontSize: "0.75rem",
     color: "#6b7280",
     whiteSpace: "nowrap",
@@ -445,6 +511,44 @@ const styles: Record<string, React.CSSProperties> = {
     top: 0,
     bottom: 0,
     width: "4px",
+  },
+  errorBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: "4px",
+    marginTop: "0.5rem",
+  },
+  errorIcon: {
+    fontSize: "0.875rem",
+    flexShrink: 0,
+  },
+  errorText: {
+    fontSize: "0.75rem",
+    color: "#dc2626",
+    margin: 0,
+  },
+  warningBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    backgroundColor: "#fffbeb",
+    border: "1px solid #fcd34d",
+    borderRadius: "4px",
+    marginTop: "0.5rem",
+  },
+  warningIcon: {
+    fontSize: "0.875rem",
+    flexShrink: 0,
+  },
+  warningText: {
+    fontSize: "0.75rem",
+    color: "#92400e",
+    margin: 0,
   },
   blockActions: {
     display: "flex",
