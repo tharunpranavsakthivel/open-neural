@@ -491,12 +491,28 @@ async def identify_best_run(experiment_id: str) -> dict[str, Any] | None:
         existing_eval = eval_result.scalar_one_or_none()
 
         if existing_eval:
+            # Update existing evaluation with best run info
+            existing_eval.metrics_json = json.dumps(best_metrics)
             if existing_eval.confusion_matrix_json:
                 try:
                     confusion_matrix = json.loads(existing_eval.confusion_matrix_json)
                 except json.JSONDecodeError:
                     pass
             threshold = existing_eval.threshold
+            await session.commit()
+        else:
+            # Create new evaluation record for the best run
+            # Note: Confusion matrix will be computed separately when predictions
+            # are loaded from the Parquet file (see Task 106)
+            new_eval = Evaluation(
+                run_id=best_run.id,
+                split="test",
+                metrics_json=json.dumps(best_metrics),
+                confusion_matrix_json=None,
+                threshold=threshold,
+            )
+            session.add(new_eval)
+            await session.commit()
 
         return {
             "run_id": best_run.id,
