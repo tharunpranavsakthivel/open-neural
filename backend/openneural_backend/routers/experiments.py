@@ -16,6 +16,7 @@ from openneural_backend.orchestrator.experiment_manager import (
     ExperimentNotFoundError,
     ExperimentStateError,
     ExperimentValidationError,
+    cancel_experiment,
     create_experiment,
     start_experiment,
 )
@@ -384,15 +385,91 @@ async def get_experiment_status(
     )
 
 
-@router.delete("/{experiment_id}/cancel")
-async def cancel_experiment(project_id: str, experiment_id: str) -> dict:
+class ExperimentCancelResponse(BaseModel):
+    """Response model for experiment cancellation."""
+
+    id: str
+    status: str
+    completed_at: str
+    runs_failed: int
+
+
+@router.delete("/{experiment_id}/cancel", response_model=ExperimentCancelResponse)
+async def cancel_experiment_endpoint(
+    project_id: str,
+    experiment_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> ExperimentCancelResponse:
     """Cancel a running experiment.
+
+    Cancels the asyncio.Task for the experiment, marks all queued and running
+    runs as failed, marks the experiment as cancelled, and discards partial
+    results.
+
+    Per SRS FR-TRAIN-08: Allow the user to cancel a running training job;
+    partial run results shall be discarded and the experiment status set
+    to "cancelled".
 
     Args:
         project_id: The project ID.
         experiment_id: The experiment ID.
+        session: Database session.
 
     Returns:
-        dict: Cancellation confirmation.
+        ExperimentCancelResponse: Cancellation confirmation with id, status,
+            completed_at, and number of runs marked as failed.
+
+    Raises:
+        HTTPException 404: If project or experiment not found.
+        HTTPException 400: If experiment is not in 'running' status.
     """
-    raise HTTPException(status_code=501, detail="Not implemented")
+    # Validate project exists
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Validate experiment exists and belongs to this project
+    from openneural_backend.db.models import Experiment
+    exp_result = await session.execute(
+        select(Experiment).where(
+            Experiment.id == experiment_id,
+            Experiment.project_id == project_id,
+        )
+    )
+    experiment = exp_result.scalar_one_or_none()
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found in project '{project_id}'",
+        )
+
+    # Cancel the experiment via experiment_manager
+    from openneural_backend.orchestrator.experiment_manager import (
+        cancel_experiment,
+        ExperimentStateError,
+    )
+    try:
+        result = await cancel_experiment(experiment_id)
+    except ExperimentNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment '{experiment_id}' not found",
+        )
+    except ExperimentStateError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    return ExperimentCancelResponse(
+        id=result["id"],
+        status=result["status"],
+        completed_at=result["completed_at"],
+        runs_failed=result["runs_failed"],
+    )

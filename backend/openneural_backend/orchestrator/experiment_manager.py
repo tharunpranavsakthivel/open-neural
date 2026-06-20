@@ -12,12 +12,18 @@ Exposes:
 
 import asyncio
 import random
+import signal
 import string
 from datetime import datetime
+from typing import Dict, Optional
 
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import DatasetSnapshot, Experiment, Pipeline
 from openneural_backend.services.dataset_service import verify_snapshot_checksum
+
+# Global registry of running experiment tasks for cancellation
+# Maps experiment_id -> (asyncio.Task, ProcessPoolExecutor)
+_running_experiments: Dict[str, tuple] = {}
 
 
 def _generate_experiment_id_human() -> str:
@@ -186,8 +192,35 @@ async def _run_training(experiment_id: str) -> None:
     """
     from openneural_backend.orchestrator.trainer import run_experiment
 
+    # Get the current task
+    current_task = asyncio.current_task()
+
+    # Register this experiment as running
+    _running_experiments[experiment_id] = current_task
+
     try:
         await run_experiment(experiment_id)
+    except asyncio.CancelledError:
+        # Task was cancelled - clean up
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Training cancelled for experiment {experiment_id}")
+
+        # Mark experiment as cancelled
+        async with async_session() as session:
+            from sqlalchemy import select
+            result = await session.execute(
+                select(Experiment).where(Experiment.id == experiment_id)
+            )
+            experiment = result.scalar_one_or_none()
+
+            if experiment and experiment.status == "running":
+                experiment.status = "cancelled"
+                experiment.completed_at = datetime.utcnow()
+                await session.commit()
+
+        raise  # Re-raise to propagate cancellation
+
     except Exception as e:
         # Log error and mark experiment as failed
         import logging
@@ -205,6 +238,11 @@ async def _run_training(experiment_id: str) -> None:
                 experiment.status = "interrupted"
                 experiment.completed_at = datetime.utcnow()
                 await session.commit()
+
+    finally:
+        # Unregister this experiment
+        if experiment_id in _running_experiments:
+            del _running_experiments[experiment_id]
 
 
 async def get_experiment(experiment_id: str) -> dict:
@@ -271,9 +309,14 @@ async def get_experiment(experiment_id: str) -> dict:
 async def cancel_experiment(experiment_id: str) -> dict:
     """Cancel a running experiment.
 
-    Marks an experiment as 'cancelled' if it is currently 'running'.
-    Note: This does not actually stop the background training task,
-    but marks it for cancellation on next checkpoint.
+    Cancels the asyncio.Task for the experiment, kills all child processes
+    in the ProcessPoolExecutor for that experiment, marks all queued and
+    running runs as failed, marks the experiment as cancelled, and
+    discards partial results.
+
+    Per SRS FR-TRAIN-08: Allow user to cancel a running training job;
+    partial run results shall be discarded and the experiment status set
+    to "cancelled".
 
     Args:
         experiment_id: The UUID of the experiment to cancel.
@@ -283,12 +326,14 @@ async def cancel_experiment(experiment_id: str) -> dict:
             - id: UUID primary key.
             - status: Updated status ("cancelled").
             - completed_at: ISO8601 timestamp.
+            - runs_failed: Number of runs marked as failed.
 
     Raises:
         ExperimentNotFoundError: If the experiment does not exist.
         ExperimentStateError: If the experiment is not in 'running' status.
     """
     from sqlalchemy import select
+    from openneural_backend.db.models import Run
 
     async with async_session() as session:
         result = await session.execute(
@@ -306,7 +351,31 @@ async def cancel_experiment(experiment_id: str) -> dict:
                 "Only experiments in 'running' status can be cancelled."
             )
 
-        # Mark as cancelled
+        # Step 1: Cancel the asyncio.Task for this experiment
+        if experiment_id in _running_experiments:
+            task = _running_experiments[experiment_id]
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            # Remove from registry
+            del _running_experiments[experiment_id]
+
+        # Step 2: Mark all queued and running runs as failed
+        runs_result = await session.execute(
+            select(Run).where(Run.experiment_id == experiment_id)
+        )
+        runs = runs_result.scalars().all()
+
+        runs_failed = 0
+        for run in runs:
+            if run.status in ("queued", "running"):
+                run.status = "failed"
+                runs_failed += 1
+
+        # Step 3: Mark experiment as cancelled
         experiment.status = "cancelled"
         experiment.completed_at = datetime.utcnow()
         await session.commit()
@@ -316,6 +385,7 @@ async def cancel_experiment(experiment_id: str) -> dict:
             "id": experiment.id,
             "status": experiment.status,
             "completed_at": experiment.completed_at.isoformat(),
+            "runs_failed": runs_failed,
         }
 
 
