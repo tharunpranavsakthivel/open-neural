@@ -15,14 +15,14 @@ import {
   fetchDashboardStats,
   renameProject,
   deleteProject,
+  createProject,
 } from "../utils/api";
 import { ProjectCard } from "../components/ProjectCard";
+import { CreateProjectModal } from "../components/CreateProjectModal";
 
 interface ProjectsDashboardProps {
   /** Callback when a project is selected */
   onSelectProject: (projectId: string) => void;
-  /** Callback to open project creation modal */
-  onCreateProject: () => void;
 }
 
 /**
@@ -37,7 +37,6 @@ interface ProjectsDashboardProps {
  */
 export function ProjectsDashboard({
   onSelectProject,
-  onCreateProject,
 }: ProjectsDashboardProps): JSX.Element {
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -47,39 +46,40 @@ export function ProjectsDashboard({
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /**
+   * Fetch projects and dashboard stats.
+   */
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch both projects and stats in parallel
+      const [projectsData, statsData] = await Promise.all([
+        fetchProjects(),
+        fetchDashboardStats(),
+      ]);
+
+      setProjects(projectsData);
+      setStats(statsData);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load dashboard data";
+      setError(errorMessage);
+      console.error("Dashboard data fetch failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   /**
    * Fetch projects and dashboard stats on component mount.
    */
   useEffect(() => {
-    /**
-     * Load data from the backend APIs.
-     */
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Fetch both projects and stats in parallel
-        const [projectsData, statsData] = await Promise.all([
-          fetchProjects(),
-          fetchDashboardStats(),
-        ]);
-
-        setProjects(projectsData);
-        setStats(statsData);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load dashboard data";
-        setError(errorMessage);
-        console.error("Dashboard data fetch failed:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     loadData();
-  }, []);
+  }, [loadData]);
 
   /**
    * Handle opening a project.
@@ -114,22 +114,52 @@ export function ProjectsDashboard({
   /**
    * Handle deleting a project.
    */
-  const handleDeleteProject = useCallback(async (projectId: string) => {
-    try {
-      const deleted = await deleteProject(projectId);
-      if (deleted) {
-        setProjects((prev) => prev.filter((p) => p.id !== projectId));
-        // Also update stats after deletion
-        const statsData = await fetchDashboardStats();
-        setStats(statsData);
+  const handleDeleteProject = useCallback(
+    async (projectId: string) => {
+      try {
+        const deleted = await deleteProject(projectId);
+        if (deleted) {
+          setProjects((prev) => prev.filter((p) => p.id !== projectId));
+          // Also update stats after deletion
+          const statsData = await fetchDashboardStats();
+          setStats(statsData);
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to delete project";
+        console.error("Project delete failed:", err);
+        alert(errorMessage);
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete project";
-      console.error("Project delete failed:", err);
-      alert(errorMessage);
-    }
+    },
+    []
+  );
+
+  /**
+   * Handle opening the create project modal.
+   */
+  const handleOpenModal = useCallback(() => {
+    setIsModalOpen(true);
   }, []);
+
+  /**
+   * Handle closing the create project modal.
+   */
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
+  /**
+   * Handle successful project creation.
+   */
+  const handleCreateSuccess = useCallback(
+    async (_newProject: Project) => {
+      // Refresh the project list and stats
+      await loadData();
+      // Optionally auto-select the new project
+      // onSelectProject(newProject.id);
+    },
+    [loadData]
+  );
 
   const hasProjects = projects.length > 0;
 
@@ -170,7 +200,7 @@ export function ProjectsDashboard({
             Manage your machine learning experiments and datasets
           </p>
         </div>
-        <button onClick={onCreateProject} style={styles.createButton}>
+        <button onClick={handleOpenModal} style={styles.createButton}>
           + New Project
         </button>
       </header>
@@ -198,7 +228,7 @@ export function ProjectsDashboard({
           <p style={styles.emptyDescription}>
             Create your first project to start building machine learning models.
           </p>
-          <button onClick={onCreateProject} style={styles.emptyButton}>
+          <button onClick={handleOpenModal} style={styles.emptyButton}>
             Create Project
           </button>
         </div>
@@ -228,6 +258,14 @@ export function ProjectsDashboard({
           </table>
         </div>
       )}
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleCreateSuccess}
+        onCreateProject={createProject}
+      />
     </div>
   );
 }

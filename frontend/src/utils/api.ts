@@ -46,6 +46,24 @@ export interface DeleteProjectResponse {
 }
 
 /**
+ * Request body for creating a new project.
+ */
+export interface CreateProjectRequest {
+  /** Name of the project */
+  name: string;
+  /** Type of ML task */
+  task_type: "binary_classification" | "multiclass_classification" | "regression";
+}
+
+/**
+ * API response for project create operation.
+ */
+export interface CreateProjectResponse {
+  /** The created project */
+  project: Project;
+}
+
+/**
  * Get the base API URL using the backend port from the Electron API.
  *
  * @returns The base URL for API requests (e.g., "http://127.0.0.1:52841")
@@ -154,4 +172,36 @@ export async function deleteProject(projectId: string): Promise<boolean> {
 
   const data = (await response.json()) as DeleteProjectResponse;
   return data.deleted;
+}
+
+/**
+ * Create a new project.
+ *
+ * POST /api/v1/projects
+ *
+ * @param name - The name of the project
+ * @param taskType - The type of ML task
+ * @returns The created project
+ * @throws Error if the request fails
+ */
+export async function createProject(
+  name: string,
+  taskType: "binary_classification" | "multiclass_classification" | "regression"
+): Promise<Project> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/projects`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, task_type: taskType }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create project: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as CreateProjectResponse;
+  return data.project;
 }

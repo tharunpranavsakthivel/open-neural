@@ -36,7 +36,6 @@ export function AppShell(): JSX.Element {
     setCurrentStep,
     selectProject,
     goToProjects,
-    openProjectModal,
   } = useAppStore();
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
@@ -51,7 +50,6 @@ export function AppShell(): JSX.Element {
       return (
         <ProjectsDashboard
           onSelectProject={selectProject}
-          onCreateProject={openProjectModal}
         />
       );
     }
