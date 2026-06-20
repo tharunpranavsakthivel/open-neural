@@ -11,6 +11,7 @@ Exposes:
 import asyncio
 import json
 import logging
+import os
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -348,8 +349,14 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
     best_test_score = float("-inf")
 
     # Submit studies to ProcessPoolExecutor
+    # Use cpu_count() to bypass Python GIL and enable true parallel training
+    # Per TDD Section 4.3: Each model candidate is trained in a separate OS process
+    # This bypasses the Python GIL and enables true parallelism
+    max_workers = min(len(candidate_models), os.cpu_count() or 4)
+    logger.info(f"Starting training with ProcessPoolExecutor(max_workers={max_workers}) for {len(candidate_models)} candidate models")
+
     loop = asyncio.get_event_loop()
-    with ProcessPoolExecutor(max_workers=min(len(candidate_models), 4)) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for model_key in candidate_models:
             future = loop.run_in_executor(
