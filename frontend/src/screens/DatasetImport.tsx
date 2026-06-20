@@ -335,6 +335,30 @@ export function DatasetImport({
       {/* Schema Table */}
       {snapshot && <SchemaTable schema={snapshot.schema} />}
 
+      {/* Memory Warning Banner */}
+      {snapshot?.memory_warning && (
+        <div style={styles.memoryWarningBanner} role="alert">
+          <div style={styles.memoryWarningHeader}>
+            <span style={styles.memoryWarningIcon}>⚠️</span>
+            <span style={styles.memoryWarningTitle}>Memory Advisory</span>
+          </div>
+          <p style={styles.memoryWarningMessage}>
+            {snapshot.memory_warning_message ?? "This dataset may consume significant memory during training. Consider dataset sampling for large datasets."}
+          </p>
+          <a
+            href="#"
+            style={styles.memoryWarningLink}
+            onClick={(e) => {
+              e.preventDefault();
+              // TODO: Link to Dataset Sampling documentation (Phase 2)
+              console.log("Dataset Sampling documentation link clicked");
+            }}
+          >
+            Learn about Dataset Sampling →
+          </a>
+        </div>
+      )}
+
       <div style={styles.infoBox}>
         <h3 style={styles.infoTitle}>Supported Formats</h3>
         <ul style={styles.infoList}>
@@ -542,5 +566,43 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.75rem",
     color: "#6b7280",
     fontStyle: "italic",
+  },
+  memoryWarningBanner: {
+    marginTop: "1.5rem",
+    padding: "1rem",
+    backgroundColor: "#fefce8", // yellow-50
+    border: "1px solid #facc15", // yellow-400
+    borderRadius: "8px",
+    borderLeftWidth: "4px",
+    borderLeftColor: "#eab308", // yellow-500
+  },
+  memoryWarningHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    marginBottom: "0.5rem",
+  },
+  memoryWarningIcon: {
+    fontSize: "1.25rem",
+  },
+  memoryWarningTitle: {
+    fontWeight: 600,
+    color: "#854d0e", // yellow-800
+    fontSize: "0.875rem",
+  },
+  memoryWarningMessage: {
+    margin: "0 0 0.75rem 0",
+    fontSize: "0.875rem",
+    color: "#a16207", // yellow-700
+    lineHeight: 1.5,
+  },
+  memoryWarningLink: {
+    display: "inline-block",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#2563eb", // blue-600
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "color 0.15s ease",
   },
 };

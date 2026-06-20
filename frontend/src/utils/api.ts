@@ -265,6 +265,10 @@ export interface DatasetSnapshotResponse {
   checksum_sha256: string;
   /** UTC timestamp */
   created_at: string;
+  /** Whether a memory warning should be displayed (NFR-PERF-06) */
+  memory_warning?: boolean;
+  /** Advisory message for memory warning */
+  memory_warning_message?: string;
 }
 
 /**
