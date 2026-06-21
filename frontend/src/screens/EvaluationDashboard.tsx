@@ -7,15 +7,15 @@
  *
  * @module screens/EvaluationDashboard
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   fetchExperimentEvaluation,
-  updateEvaluationThreshold,
   type EvaluationResponse,
   type UpdateThresholdResponse,
 } from "../utils/api";
 import { MetricCards } from "../components/MetricCards";
 import { ConfusionMatrix } from "../components/ConfusionMatrix";
+import { ThresholdSlider } from "../components/ThresholdSlider";
 
 /**
  * Props for the EvaluationDashboard component.
@@ -51,8 +51,6 @@ export function EvaluationDashboard({
   /** Threshold-adjusted metrics */
   const [thresholdMetrics, setThresholdMetrics] =
     useState<UpdateThresholdResponse | null>(null);
-  /** Whether threshold update is in progress */
-  const [isUpdatingThreshold, setIsUpdatingThreshold] = useState(false);
 
   /**
    * Fetch evaluation data on component mount.
@@ -85,34 +83,7 @@ export function EvaluationDashboard({
     loadEvaluation();
   }, [experimentId]);
 
-  /**
-   * Handle threshold slider change.
-   *
-   * Debounced update to avoid excessive API calls.
-   */
-  const handleThresholdChange = useCallback(
-    async (newThreshold: number) => {
-      setCurrentThreshold(newThreshold);
 
-      // Only update if we have evaluation data (binary classification)
-      if (!evaluation) return;
-
-      try {
-        setIsUpdatingThreshold(true);
-        const updatedMetrics = await updateEvaluationThreshold(
-          experimentId,
-          newThreshold
-        );
-        setThresholdMetrics(updatedMetrics);
-      } catch (err) {
-        console.error("Failed to update threshold:", err);
-        // Don't show error UI for threshold updates, just log
-      } finally {
-        setIsUpdatingThreshold(false);
-      }
-    },
-    [experimentId, evaluation]
-  );
 
   /**
    * Format metric value for display.
@@ -235,58 +206,39 @@ export function EvaluationDashboard({
         {/* Threshold Slider */}
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Decision Threshold</h2>
-          <div style={styles.thresholdContainer}>
-            <div style={styles.thresholdHeader}>
-              <span style={styles.thresholdLabel}>Current Threshold</span>
-              <span style={styles.thresholdValue}>
-                {currentThreshold.toFixed(2)}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0.1}
-              max={0.9}
-              step={0.05}
-              value={currentThreshold}
-              onChange={(e) =>
-                handleThresholdChange(parseFloat(e.target.value))
-              }
-              disabled={isUpdatingThreshold}
-              style={styles.thresholdSlider}
-              aria-label="Decision threshold"
-            />
-            <div style={styles.thresholdLabels}>
-              <span style={styles.thresholdMinLabel}>0.10</span>
-              <span style={styles.thresholdMaxLabel}>0.90</span>
-            </div>
-            {thresholdMetrics && (
-              <div style={styles.thresholdMetrics}>
-                <p style={styles.thresholdMetricsTitle}>
-                  Metrics at threshold {currentThreshold.toFixed(2)}:
-                </p>
-                <div style={styles.thresholdMetricsGrid}>
-                  <div>
-                    <span style={styles.thresholdMetricLabel}>Precision:</span>{" "}
-                    <span style={styles.thresholdMetricValue}>
-                      {formatMetric(thresholdMetrics.precision)}
-                    </span>
-                  </div>
-                  <div>
-                    <span style={styles.thresholdMetricLabel}>Recall:</span>{" "}
-                    <span style={styles.thresholdMetricValue}>
-                      {formatMetric(thresholdMetrics.recall)}
-                    </span>
-                  </div>
-                  <div>
-                    <span style={styles.thresholdMetricLabel}>F1:</span>{" "}
-                    <span style={styles.thresholdMetricValue}>
-                      {formatMetric(thresholdMetrics.f1)}
-                    </span>
-                  </div>
+          <ThresholdSlider
+            experimentId={experimentId}
+            initialThreshold={evaluation.threshold}
+            onThresholdChange={(newThreshold) => setCurrentThreshold(newThreshold)}
+            onMetricsUpdate={(metrics) => setThresholdMetrics(metrics)}
+          />
+          {thresholdMetrics && (
+            <div style={styles.thresholdMetricsPreview}>
+              <p style={styles.thresholdMetricsTitle}>
+                Metrics at threshold {currentThreshold.toFixed(2)}:
+              </p>
+              <div style={styles.thresholdMetricsGrid}>
+                <div>
+                  <span style={styles.thresholdMetricLabel}>Precision:</span>{" "}
+                  <span style={styles.thresholdMetricValue}>
+                    {formatMetric(thresholdMetrics.precision)}
+                  </span>
+                </div>
+                <div>
+                  <span style={styles.thresholdMetricLabel}>Recall:</span>{" "}
+                  <span style={styles.thresholdMetricValue}>
+                    {formatMetric(thresholdMetrics.recall)}
+                  </span>
+                </div>
+                <div>
+                  <span style={styles.thresholdMetricLabel}>F1:</span>{" "}
+                  <span style={styles.thresholdMetricValue}>
+                    {formatMetric(thresholdMetrics.f1)}
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -488,46 +440,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#111827",
   },
 
-  thresholdContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  thresholdHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  thresholdLabel: {
-    fontSize: "0.875rem",
-    color: "#374151",
-    fontWeight: 500,
-  },
-  thresholdValue: {
-    fontSize: "1rem",
-    fontWeight: 600,
-    color: "#111827",
-    fontFamily: "monospace",
-  },
-  thresholdSlider: {
-    width: "100%",
-    height: "6px",
-    WebkitAppearance: "none",
-    appearance: "none",
-    backgroundColor: "#e5e7eb",
-    borderRadius: "3px",
-    outline: "none",
-    cursor: "pointer",
-  } as React.CSSProperties,
-  thresholdLabels: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "0.75rem",
-    color: "#9ca3af",
-  },
-  thresholdMinLabel: {},
-  thresholdMaxLabel: {},
-  thresholdMetrics: {
+  thresholdMetricsPreview: {
     marginTop: "0.5rem",
     padding: "1rem",
     backgroundColor: "#f9fafb",
