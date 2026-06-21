@@ -15,6 +15,7 @@ import {
   type UpdateThresholdResponse,
 } from "../utils/api";
 import { MetricCards } from "../components/MetricCards";
+import { ConfusionMatrix } from "../components/ConfusionMatrix";
 
 /**
  * Props for the EvaluationDashboard component.
@@ -138,14 +139,7 @@ export function EvaluationDashboard({
 
   const effectiveMetrics = getEffectiveMetrics();
 
-  /**
-   * Calculate total samples from confusion matrix.
-   */
-  const getTotalSamples = (): number => {
-    if (!evaluation?.confusion_matrix) return 0;
-    const { tn, fp, fn, tp } = evaluation.confusion_matrix;
-    return tn + fp + fn + tp;
-  };
+
 
   /**
    * Check if a subgroup has a warning flag (F1 more than 0.15 below overall).
@@ -227,39 +221,15 @@ export function EvaluationDashboard({
         {/* Confusion Matrix */}
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Confusion Matrix</h2>
-          <div style={styles.confusionMatrixContainer}>
-            <div style={styles.confusionMatrixGrid}>
-              <div style={styles.confusionCell}>
-                <span style={styles.confusionLabel}>True Negative</span>
-                <span style={styles.confusionValue}>
-                  {evaluation.confusion_matrix.tn.toLocaleString()}
-                </span>
-              </div>
-              <div style={styles.confusionCell}>
-                <span style={styles.confusionLabel}>False Positive</span>
-                <span style={styles.confusionValue}>
-                  {evaluation.confusion_matrix.fp.toLocaleString()}
-                </span>
-              </div>
-              <div style={styles.confusionCell}>
-                <span style={styles.confusionLabel}>False Negative</span>
-                <span style={styles.confusionValue}>
-                  {evaluation.confusion_matrix.fn.toLocaleString()}
-                </span>
-              </div>
-              <div style={styles.confusionCell}>
-                <span style={styles.confusionLabel}>True Positive</span>
-                <span style={styles.confusionValue}>
-                  {evaluation.confusion_matrix.tp.toLocaleString()}
-                </span>
-              </div>
-            </div>
-            <div style={styles.confusionSummary}>
-              <p style={styles.confusionTotal}>
-                Total samples: {getTotalSamples().toLocaleString()}
-              </p>
-            </div>
-          </div>
+          <ConfusionMatrix
+            taskType="binary"
+            binaryMatrix={{
+              tn: evaluation.confusion_matrix.tn,
+              fp: evaluation.confusion_matrix.fp,
+              fn: evaluation.confusion_matrix.fn,
+              tp: evaluation.confusion_matrix.tp,
+            }}
+          />
         </div>
 
         {/* Threshold Slider */}
@@ -517,47 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: "#111827",
   },
-  confusionMatrixContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  confusionMatrixGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "0.5rem",
-  },
-  confusionCell: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "1.5rem",
-    backgroundColor: "#f9fafb",
-    borderRadius: "6px",
-    gap: "0.5rem",
-  },
-  confusionLabel: {
-    fontSize: "0.75rem",
-    color: "#6b7280",
-    textTransform: "uppercase",
-    letterSpacing: "0.025em",
-  },
-  confusionValue: {
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    color: "#111827",
-  },
-  confusionSummary: {
-    textAlign: "center",
-    padding: "0.75rem",
-    backgroundColor: "#f3f4f6",
-    borderRadius: "6px",
-  },
-  confusionTotal: {
-    margin: 0,
-    fontSize: "0.875rem",
-    color: "#374151",
-  },
+
   thresholdContainer: {
     display: "flex",
     flexDirection: "column",
