@@ -14,6 +14,7 @@ import {
   type EvaluationResponse,
   type UpdateThresholdResponse,
 } from "../utils/api";
+import { MetricCards } from "../components/MetricCards";
 
 /**
  * Props for the EvaluationDashboard component.
@@ -211,33 +212,16 @@ export function EvaluationDashboard({
         <p style={styles.bestModelId}>Run ID: {evaluation.best_run_id}</p>
       </div>
 
-      {/* Metrics Grid */}
-      <div style={styles.metricsGrid}>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>F1 Score</span>
-          <span style={styles.metricValue}>
-            {formatMetric(effectiveMetrics?.f1)}
-          </span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>AUC-ROC</span>
-          <span style={styles.metricValue}>
-            {formatMetric(effectiveMetrics?.auc_roc)}
-          </span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>Precision</span>
-          <span style={styles.metricValue}>
-            {formatMetric(effectiveMetrics?.precision)}
-          </span>
-        </div>
-        <div style={styles.metricCard}>
-          <span style={styles.metricLabel}>Recall</span>
-          <span style={styles.metricValue}>
-            {formatMetric(effectiveMetrics?.recall)}
-          </span>
-        </div>
-      </div>
+      {/* Metric Cards Component */}
+      <MetricCards
+        taskType="classification"
+        classificationMetrics={{
+          f1: effectiveMetrics?.f1 ?? 0,
+          auc_roc: effectiveMetrics?.auc_roc ?? 0,
+          precision: effectiveMetrics?.precision ?? 0,
+          recall: effectiveMetrics?.recall ?? 0,
+        }}
+      />
 
       <div style={styles.contentGrid}>
         {/* Confusion Matrix */}
