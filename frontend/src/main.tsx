@@ -3,10 +3,14 @@
  *
  * Mounts the top-level App component into the document root. Depends on React
  * 18's createRoot API and the Vite module runtime.
+ *
+ * Wrapped with ErrorBoundary to catch unexpected renderer exceptions and
+ * display a user-friendly error screen with recovery options.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const rootElement = document.getElementById("root");
 
@@ -16,6 +20,8 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
