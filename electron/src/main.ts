@@ -14,7 +14,7 @@
  */
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { app, BrowserWindow, session, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, session, ipcMain, dialog, shell } from "electron";
 import {
   checkAuthState,
   validatePassword,
@@ -372,6 +372,51 @@ function registerIpcHandlers(): void {
     }
 
     return filePaths[0];
+  });
+
+  // Shell handlers (Task 196)
+
+  /**
+   * Handler: shell:open-path
+   * Opens a file or directory in the OS-native file manager.
+   *
+   * Uses Electron's shell.openPath to reveal the path in:
+   * - Finder on macOS
+   * - Explorer on Windows
+   * - Default file manager on Linux
+   *
+   * @param _event - Electron IPC event
+   * @param filePath - Absolute path to the file or directory to reveal
+   * @returns Promise that resolves when the operation completes
+   * @throws Error if the path cannot be opened
+   */
+  ipcMain.handle("shell:open-path", async (_event, filePath: string) => {
+    if (typeof filePath !== "string" || filePath.length === 0) {
+      throw new Error("Invalid path: path must be a non-empty string");
+    }
+
+    // Validate path exists before attempting to open
+    const fs = await import("node:fs");
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      throw new Error(`Path does not exist: ${filePath}`);
+    }
+
+    // Use Electron's shell.openPath to open in OS-native file manager
+    // This returns a string indicating the result:
+   // - "" (empty string) on success
+    // - "failed" if the item couldn't be opened but no error message available
+    // - An error message string on failure
+    const result = await shell.openPath(filePath);
+
+    if (result !== "") {
+      // Result is either "failed" or an error message
+      throw new Error(result === "failed" ? "Failed to open path" : result);
+    }
+
+    // Success - path was opened
+    return;
   });
 }
 

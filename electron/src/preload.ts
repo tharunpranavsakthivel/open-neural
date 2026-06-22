@@ -117,6 +117,19 @@ export interface OpenNeuralElectronApi {
    */
   openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
 
+  // Shell APIs (Task 196)
+
+  /**
+   * Open a file or directory in the OS-native file manager.
+   *
+   * Uses Electron's shell.openPath to reveal the path in Finder (macOS),
+   * Explorer (Windows), or the default file manager (Linux).
+   *
+   * @param path - Absolute path to the file or directory to reveal
+   * @returns Promise that resolves when the operation completes
+   */
+  openPath(path: string): Promise<void>;
+
   // Crash Recovery APIs (Task 26)
 
   /**
@@ -175,6 +188,9 @@ const electronApi: OpenNeuralElectronApi = {
     ipcRenderer.invoke("dialog:open-file", options),
   openDirectoryDialog: (options?: { title?: string }) =>
     ipcRenderer.invoke("dialog:open-directory", options),
+
+  // Shell APIs (Task 196)
+  openPath: (path: string) => ipcRenderer.invoke("shell:open-path", path),
 
   // Crash Recovery APIs (Task 26)
   checkInterruptedExperiments: () =>
