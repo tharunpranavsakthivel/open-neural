@@ -473,7 +473,9 @@ async def import_file(
 
         if file_ext not in (".csv", ".parquet"):
             raise DatasetImportError(
-                f"Unsupported file format: {file_ext}. Supported formats: .csv, .parquet"
+                f"Only CSV and Parquet files are supported. "
+                f"Received file with extension '{file_ext}'. "
+                f"Please convert your data to CSV or Parquet format before uploading."
             )
 
         # Create temporary file to store uploaded content
@@ -500,8 +502,9 @@ async def import_file(
                     # Check size limit while reading
                     if file_size > MAX_FILE_SIZE_BYTES:
                         raise DatasetImportError(
-                            f"File size ({file_size} bytes) exceeds maximum allowed size "
-                            f"({MAX_FILE_SIZE_BYTES} bytes = 2 GB)"
+                            f"File exceeds 2 GB maximum. "
+                            f"Your file is {file_size / (1024**3):.2f} GB. "
+                            f"Please use a smaller dataset or split the file into chunks."
                         )
 
                     temp_file.write(chunk)
@@ -624,10 +627,10 @@ async def import_file(
                 ),
                 "memory_warning": memory_warning,
                 "memory_warning_message": (
-                    "Dataset is projected to consume more than 75% of available system RAM during training. "
-                    f"Consider using a smaller dataset or sampling. "
-                    f"(Projected: {projected_ram_bytes / (1024**3):.1f} GB, "
-                    f"Available: {available_ram_bytes / (1024**3):.1f} GB)"
+                    "Available RAM may be insufficient — consider reducing dataset size. "
+                    f"Projected memory usage ({projected_ram_bytes / (1024**3):.1f} GB) "
+                    f"exceeds 75% of available RAM ({available_ram_bytes / (1024**3):.1f} GB). "
+                    f"Consider using a smaller dataset or enabling sampling."
                     if memory_warning
                     else None
                 ),

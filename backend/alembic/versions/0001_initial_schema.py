@@ -133,6 +133,7 @@ def upgrade() -> None:
         sa.Column("artifact_model_onnx", sa.Text, nullable=True),
         sa.Column("artifact_model_jlib", sa.Text, nullable=True),
         sa.Column("status", sa.Text, nullable=False, server_default="queued"),
+        sa.Column("error_message", sa.Text, nullable=True),
         sa.Column("started_at", sa.DateTime, nullable=True),
         sa.Column("completed_at", sa.DateTime, nullable=True),
         sa.ForeignKeyConstraint(["experiment_id"], ["experiments.id"], ondelete="CASCADE"),

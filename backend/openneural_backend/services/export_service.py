@@ -1226,30 +1226,30 @@ async def export_all(
                 if fmt == "onnx":
                     errors.append(f"ONNX model not available for {best_run.model_type}")
                 else:
-                    errors.append(f"Failed to export {fmt} model")
+                    errors.append(f"Export failed: could not write {fmt} model to {dest_path}")
             except Exception as e:
-                errors.append(f"Failed to export {fmt} model: {e}")
+                errors.append(f"Export failed: could not write {fmt} model to {dest_path} - {e}")
 
         # Export pipeline
         try:
             result = await export_pipeline_joblib(best_run.id, dest_path)
             exports.append(result)
         except Exception as e:
-            errors.append(f"Failed to export pipeline: {e}")
+            errors.append(f"Export failed: could not write pipeline to {dest_path}/pipeline.joblib - {e}")
 
         # Export report
         try:
             result = await export_report_pdf(experiment_id, dest_path)
             exports.append(result)
         except Exception as e:
-            errors.append(f"Failed to export report: {e}")
+            errors.append(f"Export failed: could not write report to {dest_path}/report.pdf - {e}")
 
         # Export predictions
         try:
             result = await export_predictions_csv(best_run.id, dest_path)
             exports.append(result)
         except Exception as e:
-            errors.append(f"Failed to export predictions: {e}")
+            errors.append(f"Export failed: could not write predictions to {dest_path}/predictions.csv - {e}")
 
         # Generate manifest
         manifest_path = await generate_manifest(dest_path, experiment_id, exports)

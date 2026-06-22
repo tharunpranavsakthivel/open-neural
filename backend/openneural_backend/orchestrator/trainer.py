@@ -475,6 +475,8 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                     run.training_time_sec = study_data["training_time_sec"]
                 else:
                     run.status = "failed"
+                    # Store error message for display
+                    run.error_message = study_data.get("error", "Training failed: unknown error")
 
                 await session.commit()
                 completed_count += 1
@@ -620,9 +622,13 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 await _publish_status_event()
 
             except Exception as e:
-                logger.error(f"Study failed for {model_key}: {e}")
+                error_msg = str(e)
+                logger.error(f"Study failed for {model_key}: {error_msg}")
                 async with persistence_lock:
-                    completed_studies[model_key] = {"status": "failed"}
+                    completed_studies[model_key] = {
+                        "status": "failed",
+                        "error": f"Training failed: {error_msg}"
+                    }
 
                 # Publish status update after study failure
                 await _publish_status_event()

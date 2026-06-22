@@ -521,6 +521,10 @@ class Run(Base):
         nullable=False,
         default="queued",
     )
+    error_message: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         nullable=True,
