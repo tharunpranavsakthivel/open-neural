@@ -993,3 +993,76 @@ export async function updateEvaluationThreshold(
 
   return (await response.json()) as UpdateThresholdResponse;
 }
+
+/**
+ * Single experiment entry in the leaderboard response.
+ */
+export interface LeaderboardEntry {
+  /** UUID of the experiment */
+  experiment_id: string;
+  /** Human-readable experiment ID (e.g., "exp_cxp8_1015") */
+  experiment_id_human: string;
+  /** Type of the best model for this experiment */
+  best_model_type: string;
+  /** Dict of metrics (f1, auc_roc, precision, recall, training_time) */
+  metrics: {
+    f1?: number;
+    auc_roc?: number;
+    precision?: number;
+    recall?: number;
+    rmse?: number;
+    mae?: number;
+    r2?: number;
+    accuracy?: number;
+  };
+  /** Training duration in seconds */
+  training_time_seconds: number;
+  /** Flag indicating if this is the globally best experiment */
+  is_best: boolean;
+  /** ISO8601 timestamp when experiment was created */
+  created_at: string;
+}
+
+/**
+ * Sort column options for the leaderboard.
+ */
+export type LeaderboardSortBy = "f1" | "auc_roc" | "precision" | "recall" | "training_time";
+
+/**
+ * Sort order options for the leaderboard.
+ */
+export type LeaderboardOrder = "asc" | "desc";
+
+/**
+ * Fetch the experiment leaderboard for a project.
+ *
+ * GET /api/v1/projects/{projectId}/leaderboard?sort_by={sortBy}&order={order}
+ *
+ * Per SRS FR-COMP-01: Returns all experiments within a project with sortable columns.
+ * Per SRS FR-COMP-03: Includes an `is_best` flag on the top experiment.
+ *
+ * @param projectId - The ID of the project
+ * @param sortBy - Column to sort by (default: "f1")
+ * @param order - Sort order, "asc" or "desc" (default: "desc")
+ * @returns Array of leaderboard entries, sorted by the requested column
+ * @throws Error if the request fails
+ */
+export async function fetchLeaderboard(
+  projectId: string,
+  sortBy: LeaderboardSortBy = "f1",
+  order: LeaderboardOrder = "desc"
+): Promise<LeaderboardEntry[]> {
+  const baseUrl = await getBaseUrl();
+  const url = new URL(`${baseUrl}/api/v1/projects/${projectId}/leaderboard`);
+  url.searchParams.append("sort_by", sortBy);
+  url.searchParams.append("order", order);
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch leaderboard: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as LeaderboardEntry[];
+}
