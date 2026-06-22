@@ -16,6 +16,7 @@ import {
 import { MetricCards } from "../components/MetricCards";
 import { ConfusionMatrix } from "../components/ConfusionMatrix";
 import { ThresholdSlider } from "../components/ThresholdSlider";
+import { SubgroupAnalysis } from "../components/SubgroupAnalysis";
 
 /**
  * Props for the EvaluationDashboard component.
@@ -244,51 +245,20 @@ export function EvaluationDashboard({
 
       {/* Subgroup Analysis */}
       {evaluation.subgroup_analyses.length > 0 && (
-        <div style={styles.subgroupCard}>
-          <h2 style={styles.cardTitle}>Subgroup Analysis</h2>
-          <p style={styles.subgroupDescription}>
-            Performance breakdown by feature segments. Subgroups with F1 more
-            than 0.15 below overall are flagged.
-          </p>
-          <div style={styles.subgroupTable}>
-            <div style={styles.subgroupHeader}>
-              <span style={styles.subgroupColName}>Slice</span>
-              <span style={styles.subgroupColCount}>Samples</span>
-              <span style={styles.subgroupColMetric}>F1 Score</span>
-              <span style={styles.subgroupColMetric}>Recall</span>
-            </div>
-            {evaluation.subgroup_analyses.map((subgroup, index) => {
-              const hasWarning = hasSubgroupWarning(subgroup.metrics.f1 ?? 0);
-              return (
-                <div
-                  key={index}
-                  style={{
-                    ...styles.subgroupRow,
-                    ...(hasWarning ? styles.subgroupRowWarning : {}),
-                  }}
-                >
-                  <span style={styles.subgroupColName}>
-                    {subgroup.slice_name}
-                    {hasWarning && (
-                      <span style={styles.warningBadge} title="Low F1 warning">
-                        ⚠
-                      </span>
-                    )}
-                  </span>
-                  <span style={styles.subgroupColCount}>
-                    {subgroup.n.toLocaleString()}
-                  </span>
-                  <span style={styles.subgroupColMetric}>
-                    {formatMetric(subgroup.metrics.f1)}
-                  </span>
-                  <span style={styles.subgroupColMetric}>
-                    {formatMetric(subgroup.metrics.recall)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SubgroupAnalysis
+          subgroups={evaluation.subgroup_analyses.map((sg) => ({
+            slice_name: sg.slice_name,
+            n: sg.n,
+            metrics: {
+              f1: sg.metrics.f1,
+              recall: sg.metrics.recall,
+              precision: sg.metrics.precision,
+            },
+            fairness_warning: hasSubgroupWarning(sg.metrics.f1 ?? 0),
+          }))}
+          overallF1={evaluation.metrics.f1}
+          warningThreshold={0.15}
+        />
       )}
     </div>
   );
@@ -467,64 +437,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#111827",
     fontFamily: "monospace",
   },
-  subgroupCard: {
-    backgroundColor: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    padding: "1.5rem",
-  },
-  subgroupDescription: {
-    margin: "0 0 1rem 0",
-    fontSize: "0.875rem",
-    color: "#6b7280",
-  },
-  subgroupTable: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5rem",
-  },
-  subgroupHeader: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr",
-    gap: "1rem",
-    padding: "0.75rem",
-    backgroundColor: "#f3f4f6",
-    borderRadius: "6px",
-    fontSize: "0.75rem",
-    fontWeight: 600,
-    color: "#374151",
-    textTransform: "uppercase",
-    letterSpacing: "0.025em",
-  },
-  subgroupRow: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr",
-    gap: "1rem",
-    padding: "0.75rem",
-    backgroundColor: "#f9fafb",
-    borderRadius: "6px",
-    fontSize: "0.875rem",
-    color: "#374151",
-    alignItems: "center",
-  },
-  subgroupRowWarning: {
-    backgroundColor: "#fef2f2",
-    border: "1px solid #fecaca",
-  },
-  subgroupColName: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-  },
-  subgroupColCount: {
-    textAlign: "right",
-  },
-  subgroupColMetric: {
-    textAlign: "right",
-    fontFamily: "monospace",
-  },
-  warningBadge: {
-    color: "#dc2626",
-    fontSize: "0.875rem",
-  },
+
 };
