@@ -184,7 +184,7 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
   }, [hasSelectedArtifacts, destinationDir, isExporting]);
 
   /**
-   * Execute export operation.
+   * Execute export operation with selected artifacts.
    */
   const handleExport = useCallback(async () => {
     if (!canExport()) {
@@ -247,6 +247,80 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
     hasSelectedArtifacts,
     artifacts.model.selectedFormats,
   ]);
+
+  /**
+   * Export All: select all artifacts programmatically and proceed to export.
+   * Per Task 191: calls POST /api/v1/experiments/{id}/export with
+   * artifacts: ["model", "pipeline", "report", "predictions"].
+   */
+  const handleExportAll = useCallback(async () => {
+    // Validate destination directory first
+    if (!destinationDir) {
+      setExportError("Please select a destination directory");
+      return;
+    }
+
+    if (isExporting) {
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      setExportError(null);
+      setIsExportComplete(false);
+
+      // Select all artifacts programmatically
+      const allArtifacts: ArtifactType[] = ["model", "pipeline", "report", "predictions"];
+
+      // Update UI state to reflect all selected
+      setArtifacts((prev) =>
+        Object.fromEntries(
+          Object.entries(prev).map(([key, value]) => [
+            key,
+            { ...value, selected: true },
+          ])
+        ) as Record<ArtifactType, ArtifactSelection>
+      );
+
+      // Get model formats (both ONNX and joblib)
+      const modelFormats: ModelFormat[] = ["onnx", "joblib"];
+
+      // Build formats configuration
+      const formats: { model: ModelFormat[] } = {
+        model: modelFormats,
+      };
+
+      // Call export API with all artifacts
+      const baseUrl = await getBaseUrl();
+      const response = await fetch(
+        `${baseUrl}/api/v1/experiments/${experimentId}/export`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            artifacts: allArtifacts,
+            destination_dir: destinationDir,
+            formats,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${response.status} ${errorText}`);
+      }
+
+      setIsExportComplete(true);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Export failed";
+      setExportError(errorMessage);
+      console.error("Export error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [destinationDir, experimentId, isExporting]);
 
   /**
    * Get base API URL.
@@ -500,11 +574,11 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
       {/* Export Button */}
       <div style={styles.exportButtonContainer}>
         <button
-          onClick={handleExport}
-          disabled={!canExport()}
+          onClick={handleExportAll}
+          disabled={!destinationDir || isExporting}
           style={{
             ...styles.exportButton,
-            ...(canExport() ? {} : styles.exportButtonDisabled),
+            ...(destinationDir && !isExporting ? {} : styles.exportButtonDisabled),
           }}
         >
           {isExporting ? (
