@@ -175,6 +175,11 @@ export function EvaluationDashboard({
             {evaluation.best_model_type}
           </span>
         </div>
+        <p style={styles.bestModelSummary}>
+          Best result: {evaluation.best_model_type} | F1{" "}
+          {formatMetric(effectiveMetrics?.f1)} | AUC-ROC{" "}
+          {formatMetric(effectiveMetrics?.auc_roc)}
+        </p>
         <p style={styles.bestModelId}>Run ID: {evaluation.best_run_id}</p>
       </div>
 
@@ -357,6 +362,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: "#166534",
     textTransform: "capitalize",
+  },
+  bestModelSummary: {
+    margin: "0 0 0.5rem 0",
+    fontSize: "0.875rem",
+    color: "#166534",
+    fontWeight: 500,
   },
   bestModelId: {
     margin: 0,
