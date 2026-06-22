@@ -353,7 +353,66 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
   }, [destinationDir, experimentId, isExporting]);
 
   /**
-   * Get base API URL.
+   * Export a single artifact independently.
+   * Per Task 193: allow exporting a single artifact independently.
+   */
+  const handleExportSingle = useCallback(async (artifactType: ArtifactType) => {
+    // Validate destination directory first
+    if (!destinationDir) {
+      setExportError("Please select a destination directory");
+      return;
+    }
+
+    if (isExporting) {
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      setExportError(null);
+      setIsExportComplete(false);
+
+      // Build formats configuration based on artifact type
+      const formats: { model?: ModelFormat[] } = {};
+      if (artifactType === "model") {
+        // For single model export, use currently selected formats
+        formats.model = artifacts.model.selectedFormats ?? ["onnx", "joblib"];
+      }
+
+      // Call export API with single artifact
+      const baseUrl = await getBaseUrl();
+      const response = await fetch(
+        `${baseUrl}/api/v1/experiments/${experimentId}/export`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            artifacts: [artifactType],
+            destination_dir: destinationDir,
+            formats,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${response.status} ${errorText}`);
+      }
+
+      setIsExportComplete(true);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Export failed";
+      setExportError(errorMessage);
+      console.error("Export error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [destinationDir, experimentId, isExporting, artifacts.model.selectedFormats]);
+
+  /**
+   * Artifact metadata for display.
    */
   async function getBaseUrl(): Promise<string> {
     const port = await window.electronAPI.getBackendPort();
@@ -435,21 +494,33 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
               ...(artifacts.model.selected ? styles.artifactCardSelected : {}),
             }}
           >
-            <label style={styles.artifactLabel}>
-              <input
-                type="checkbox"
-                checked={artifacts.model.selected}
-                onChange={() => handleArtifactToggle("model")}
-                style={styles.checkbox}
-              />
-              <span style={styles.artifactIcon}>{artifactMeta.model.icon}</span>
-              <div style={styles.artifactInfo}>
-                <span style={styles.artifactName}>{artifactMeta.model.label}</span>
-                <span style={styles.artifactDescription}>
-                  {artifactMeta.model.description}
-                </span>
-              </div>
-            </label>
+            <div style={styles.artifactRow}>
+              <label style={styles.artifactLabel}>
+                <input
+                  type="checkbox"
+                  checked={artifacts.model.selected}
+                  onChange={() => handleArtifactToggle("model")}
+                  style={styles.checkbox}
+                />
+                <span style={styles.artifactIcon}>{artifactMeta.model.icon}</span>
+                <div style={styles.artifactInfo}>
+                  <span style={styles.artifactName}>{artifactMeta.model.label}</span>
+                  <span style={styles.artifactDescription}>
+                    {artifactMeta.model.description}
+                  </span>
+                </div>
+              </label>
+              <button
+                onClick={() => handleExportSingle("model")}
+                disabled={!destinationDir || isExporting}
+                style={{
+                  ...styles.exportSingleButton,
+                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                }}
+              >
+                Export
+              </button>
+            </div>
 
             {/* Model Format Options */}
             {artifacts.model.selected && (
@@ -486,73 +557,115 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
           </div>
 
           {/* Pipeline Artifact */}
-          <label
+          <div
             style={{
               ...styles.artifactCard,
               ...(artifacts.pipeline.selected ? styles.artifactCardSelected : {}),
             }}
           >
-            <input
-              type="checkbox"
-              checked={artifacts.pipeline.selected}
-              onChange={() => handleArtifactToggle("pipeline")}
-              style={styles.checkbox}
-            />
-            <span style={styles.artifactIcon}>{artifactMeta.pipeline.icon}</span>
-            <div style={styles.artifactInfo}>
-              <span style={styles.artifactName}>{artifactMeta.pipeline.label}</span>
-              <span style={styles.artifactDescription}>
-                {artifactMeta.pipeline.description}
-                <span style={styles.formatTag}>joblib</span>
-              </span>
+            <div style={styles.artifactRow}>
+              <label style={styles.artifactLabel}>
+                <input
+                  type="checkbox"
+                  checked={artifacts.pipeline.selected}
+                  onChange={() => handleArtifactToggle("pipeline")}
+                  style={styles.checkbox}
+                />
+                <span style={styles.artifactIcon}>{artifactMeta.pipeline.icon}</span>
+                <div style={styles.artifactInfo}>
+                  <span style={styles.artifactName}>{artifactMeta.pipeline.label}</span>
+                  <span style={styles.artifactDescription}>
+                    {artifactMeta.pipeline.description}
+                    <span style={styles.formatTag}>joblib</span>
+                  </span>
+                </div>
+              </label>
+              <button
+                onClick={() => handleExportSingle("pipeline")}
+                disabled={!destinationDir || isExporting}
+                style={{
+                  ...styles.exportSingleButton,
+                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                }}
+              >
+                Export
+              </button>
             </div>
-          </label>
+          </div>
 
           {/* Report Artifact */}
-          <label
+          <div
             style={{
               ...styles.artifactCard,
               ...(artifacts.report.selected ? styles.artifactCardSelected : {}),
             }}
           >
-            <input
-              type="checkbox"
-              checked={artifacts.report.selected}
-              onChange={() => handleArtifactToggle("report")}
-              style={styles.checkbox}
-            />
-            <span style={styles.artifactIcon}>{artifactMeta.report.icon}</span>
-            <div style={styles.artifactInfo}>
-              <span style={styles.artifactName}>{artifactMeta.report.label}</span>
-              <span style={styles.artifactDescription}>
-                {artifactMeta.report.description}
-                <span style={styles.formatTag}>PDF</span>
-              </span>
+            <div style={styles.artifactRow}>
+              <label style={styles.artifactLabel}>
+                <input
+                  type="checkbox"
+                  checked={artifacts.report.selected}
+                  onChange={() => handleArtifactToggle("report")}
+                  style={styles.checkbox}
+                />
+                <span style={styles.artifactIcon}>{artifactMeta.report.icon}</span>
+                <div style={styles.artifactInfo}>
+                  <span style={styles.artifactName}>{artifactMeta.report.label}</span>
+                  <span style={styles.artifactDescription}>
+                    {artifactMeta.report.description}
+                    <span style={styles.formatTag}>PDF</span>
+                  </span>
+                </div>
+              </label>
+              <button
+                onClick={() => handleExportSingle("report")}
+                disabled={!destinationDir || isExporting}
+                style={{
+                  ...styles.exportSingleButton,
+                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                }}
+              >
+                Export
+              </button>
             </div>
-          </label>
+          </div>
 
           {/* Predictions Artifact */}
-          <label
+          <div
             style={{
               ...styles.artifactCard,
               ...(artifacts.predictions.selected ? styles.artifactCardSelected : {}),
             }}
           >
-            <input
-              type="checkbox"
-              checked={artifacts.predictions.selected}
-              onChange={() => handleArtifactToggle("predictions")}
-              style={styles.checkbox}
-            />
-            <span style={styles.artifactIcon}>{artifactMeta.predictions.icon}</span>
-            <div style={styles.artifactInfo}>
-              <span style={styles.artifactName}>{artifactMeta.predictions.label}</span>
-              <span style={styles.artifactDescription}>
-                {artifactMeta.predictions.description}
-                <span style={styles.formatTag}>CSV</span>
-              </span>
+            <div style={styles.artifactRow}>
+              <label style={styles.artifactLabel}>
+                <input
+                  type="checkbox"
+                  checked={artifacts.predictions.selected}
+                  onChange={() => handleArtifactToggle("predictions")}
+                  style={styles.checkbox}
+                />
+                <span style={styles.artifactIcon}>{artifactMeta.predictions.icon}</span>
+                <div style={styles.artifactInfo}>
+                  <span style={styles.artifactName}>{artifactMeta.predictions.label}</span>
+                  <span style={styles.artifactDescription}>
+                    {artifactMeta.predictions.description}
+                    <span style={styles.formatTag}>CSV</span>
+                  </span>
+                </div>
+              </label>
+              <button
+                onClick={() => handleExportSingle("predictions")}
+                disabled={!destinationDir || isExporting}
+                style={{
+                  ...styles.exportSingleButton,
+                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                }}
+              >
+                Export
+              </button>
             </div>
-          </label>
+          </div>
         </div>
 
         {!hasSelectedArtifacts() && (
@@ -704,11 +817,18 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#eff6ff",
     borderColor: "#2563eb",
   },
+  artifactRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.75rem",
+  },
   artifactLabel: {
     display: "flex",
     alignItems: "flex-start",
     gap: "0.75rem",
     cursor: "pointer",
+    flex: 1,
   },
   checkbox: {
     width: "1.125rem",
@@ -792,6 +912,22 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0.75rem 0 0 0",
     fontSize: "0.75rem",
     color: "#dc2626",
+  },
+  exportSingleButton: {
+    padding: "0.375rem 0.75rem",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    flexShrink: 0,
+  },
+  exportSingleButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    cursor: "not-allowed",
   },
   destinationInput: {
     display: "flex",
