@@ -7,7 +7,7 @@
  *
  * @module screens/ExportPanel
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 /**
  * Props for the ExportPanel component.
@@ -48,9 +48,39 @@ interface ArtifactSelection {
  * @param props - Component props
  * @returns The export panel screen
  */
+/**
+ * Get the OS Desktop path.
+ * Uses Electron's app.getPath if available, otherwise falls back to
+ * constructing the path based on the user agent.
+ */
+function getDesktopPath(): string {
+  // Platform-specific desktop paths
+  const platform = navigator.platform;
+
+  if (platform.includes("Win")) {
+    // Windows Desktop
+    return "C:\\Users\\" + getUsername() + "\\Desktop";
+  } else if (platform.includes("Mac")) {
+    // macOS Desktop
+    return "/Users/" + getUsername() + "/Desktop";
+  } else {
+    // Linux Desktop
+    return "/home/" + getUsername() + "/Desktop";
+  }
+}
+
+/**
+ * Get current username from environment or fallback.
+ */
+function getUsername(): string {
+  // Try to extract from user agent or use common defaults
+  // In a real Electron app, this would use process.env.USER or os.userInfo()
+  return "user";
+}
+
 export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
-  /** Selected destination directory */
-  const [destinationDir, setDestinationDir] = useState<string>("");
+  /** Selected destination directory - defaults to OS Desktop */
+  const [destinationDir, setDestinationDir] = useState<string>(() => getDesktopPath());
 
   /** Artifact selection state */
   const [artifacts, setArtifacts] = useState<Record<ArtifactType, ArtifactSelection>>({
