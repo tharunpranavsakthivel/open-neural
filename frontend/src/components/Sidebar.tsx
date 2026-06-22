@@ -36,6 +36,13 @@ const NAVIGATION_STEPS: { id: WizardStep; label: string; number: number }[] = [
   { id: "export", label: "Export", number: 7 },
 ];
 
+/** Settings is always accessible and displayed at the bottom */
+const SETTINGS_STEP: { id: WizardStep; label: string; number: number } = {
+  id: "settings",
+  label: "Settings",
+  number: 8,
+};
+
 /**
  * Sidebar navigation component.
  *
@@ -301,6 +308,45 @@ export function Sidebar({
         </div>
       )}
 
+      {/* Settings Navigation */}
+      <nav
+        aria-label="Settings navigation"
+        style={styles.settingsNav}
+        role="menubar"
+      >
+        <ol style={styles.stepList} role="menu">
+          <li style={styles.stepItem} role="none">
+            <button
+              onClick={() => onStepClick("settings", -1)}
+              aria-current={currentStep === "settings" ? "page" : undefined}
+              aria-disabled={false}
+              role="menuitem"
+              tabIndex={currentStep === "settings" ? 0 : -1}
+              style={{
+                ...styles.stepButton,
+                ...(currentStep === "settings" ? styles.stepButtonActive : {}),
+                ...(currentStep !== "settings" ? styles.stepButtonHover : {}),
+                ...styles.settingsButton,
+              }}
+            >
+              <span
+                style={{
+                  ...styles.stepNumber,
+                  ...(currentStep === "settings" ? styles.stepNumberActive : {}),
+                }}
+                aria-hidden="true"
+              >
+                ⚙️
+              </span>
+              <span style={styles.stepLabel}>Settings</span>
+              {currentStep === "settings" && (
+                <span style={styles.activeIndicator} aria-hidden="true" />
+              )}
+            </button>
+          </li>
+        </ol>
+      </nav>
+
       {/* Footer */}
       <footer style={styles.footer}>
         <p style={styles.footerText}>Local ML Experimentation</p>
@@ -445,12 +491,19 @@ const styles: Record<string, React.CSSProperties> = {
   footer: {
     padding: "1rem 1.5rem",
     borderTop: "1px solid #e5e7eb",
-    marginTop: "auto",
   },
   footerText: {
     margin: 0,
     fontSize: "0.75rem",
     color: "#9ca3af",
     textAlign: "center",
+  },
+  settingsNav: {
+    padding: "0.5rem 0",
+    borderTop: "1px solid #e5e7eb",
+  },
+  settingsButton: {
+    borderTop: "1px solid #e5e7eb",
+    marginTop: "0.5rem",
   },
 };

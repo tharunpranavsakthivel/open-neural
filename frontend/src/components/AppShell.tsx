@@ -18,6 +18,7 @@ import { TrainingProgress } from "../screens/TrainingProgress";
 import { Evaluation } from "../screens/Evaluation";
 import { Leaderboard } from "../screens/Leaderboard";
 import { Export } from "../screens/Export";
+import { Settings } from "../screens/Settings";
 
 /**
  * Main application shell component.
@@ -116,6 +117,7 @@ export function AppShell(): JSX.Element {
       evaluation: <Evaluation projectId={currentProjectId} />,
       leaderboard: <Leaderboard projectId={currentProjectId} />,
       export: <Export projectId={currentProjectId} />,
+      settings: <Settings />,
     };
 
     return stepComponents[currentStep] || <div>Unknown step</div>;

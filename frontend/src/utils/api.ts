@@ -1066,3 +1066,63 @@ export async function fetchLeaderboard(
 
   return (await response.json()) as LeaderboardEntry[];
 }
+
+/**
+ * Response for clearing all application data.
+ */
+export interface ClearDataResponse {
+  /** Whether the operation was successful */
+  success: boolean;
+  /** Human-readable message about the operation result */
+  message: string;
+}
+
+/**
+ * Clear all application data (projects, snapshots, experiments, etc.).
+ *
+ * DELETE /api/v1/system/clear-data
+ *
+ * This is a destructive operation that removes all user data while preserving
+ * the auth record. Requires explicit user confirmation via ConfirmDialog.
+ *
+ * Per SRS §21: Destructive Operation Protocol - requires dry run, explicit
+ * confirmation, documented rollback strategy, and logging.
+ *
+ * @returns Response indicating success and details of what was cleared
+ * @throws Error if the request fails
+ */
+export async function clearAllData(): Promise<ClearDataResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/system/clear-data`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to clear data: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as ClearDataResponse;
+}
+
+/**
+ * Change password using the Electron main process API.
+ *
+ * This function calls the Electron IPC method which validates the current
+ * password against the bcrypt hash stored in SQLite and updates it with
+ * the new password.
+ *
+ * Per FR-APP-03: Password must be hashed with bcrypt cost factor 12.
+ *
+ * @param currentPassword - The current password for validation
+ * @param newPassword - The new password to set (min 8 characters)
+ * @returns AuthResult indicating success or failure with error message
+ * @throws Error if the IPC call fails unexpectedly
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  // This calls the Electron main process via IPC, not the backend API
+  return window.electronAPI.changePassword(currentPassword, newPassword);
+}
