@@ -1,0 +1,135 @@
+/**
+ * Global CSS styles for OpenNeural frontend.
+ *
+ * Provides focus styles for keyboard navigation accessibility.
+ * All interactive elements must have visible focus rings for keyboard users.
+ *
+ * Per Task 202: Implement keyboard navigation with visible focus rings.
+ */
+
+/* ==========================================================================
+   Focus Styles for Keyboard Navigation
+   ========================================================================== */
+
+/* Default focus style for all interactive elements */
+*:focus {
+  outline: none;
+}
+
+/* Visible focus ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Button focus styles */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Input focus styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 0;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Link focus styles */
+a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Table row focus styles for keyboard navigation */
+tr:focus-visible,
+[role="row"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  background-color: #eff6ff;
+}
+
+/* Modal/Dialog focus styles */
+[role="dialog"] *:focus-visible,
+[role="alertdialog"] *:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Custom focus styles for specific components */
+
+/* Sidebar navigation buttons */
+.sidebar-nav-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  background-color: #eff6ff;
+}
+
+/* Card/table row focus for interactive lists */
+.interactive-row:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  background-color: #f0f9ff;
+}
+
+/* Step buttons in pipeline builder */
+.step-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+/* Checkbox and radio focus */
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Select dropdown focus */
+select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 0;
+}
+
+/* Slider/Range input focus */
+input[type="range"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Ensure focus is visible on all clickable elements */
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Reduced Motion Support
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   High Contrast Mode Support
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+}
