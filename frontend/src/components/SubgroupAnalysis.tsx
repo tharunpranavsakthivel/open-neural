@@ -154,7 +154,7 @@ export function SubgroupAnalysis({
     if (overallF1 !== undefined && subgroup.metrics.f1 !== undefined) {
       const diff = overallF1 - subgroup.metrics.f1;
       if (diff > warningThreshold) {
-        return `F1 score is ${diff.toFixed(3)} points below overall model performance (${overallF1.toFixed(3)}). Consider investigating this subgroup for potential bias or data quality issues.`;
+        return `This subgroup has lower F1 (${subgroup.metrics.f1.toFixed(3)}) than the model average (${overallF1.toFixed(3)}). Consider collecting more data or reviewing labeling for this segment.`;
       }
     }
     return "Performance within acceptable range.";
@@ -261,14 +261,26 @@ export function SubgroupAnalysis({
                     }}
                   >
                     <div style={styles.expandedContent}>
-                      {/* Additional Metrics */}
+                      {/* Full Metric Breakdown */}
                       <div style={styles.metricsSection}>
-                        <h4 style={styles.sectionTitle}>Additional Metrics</h4>
+                        <h4 style={styles.sectionTitle}>Metric Breakdown</h4>
                         <div style={styles.metricsGrid}>
+                          <div style={styles.metricItem}>
+                            <span style={styles.metricLabel}>F1 Score:</span>
+                            <span style={styles.metricValue}>
+                              {formatMetric(subgroup.metrics.f1)}
+                            </span>
+                          </div>
                           <div style={styles.metricItem}>
                             <span style={styles.metricLabel}>Precision:</span>
                             <span style={styles.metricValue}>
                               {formatMetric(subgroup.metrics.precision)}
+                            </span>
+                          </div>
+                          <div style={styles.metricItem}>
+                            <span style={styles.metricLabel}>Recall:</span>
+                            <span style={styles.metricValue}>
+                              {formatMetric(subgroup.metrics.recall)}
                             </span>
                           </div>
                           <div style={styles.metricItem}>
