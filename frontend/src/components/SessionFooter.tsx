@@ -127,6 +127,25 @@ export function SessionFooter(): JSX.Element {
         </div>
       ) : systemInfo ? (
         <div style={styles.infoContainer}>
+          {/* App Version */}
+          <div style={styles.infoItem}>
+            <span
+              aria-label="Application version"
+              style={styles.icon}
+              title="App version"
+            >
+              📦
+            </span>
+            <span style={styles.value} title={`OpenNeural v${systemInfo.app_version}`}>
+              v{systemInfo.app_version}
+            </span>
+          </div>
+
+          {/* Separator */}
+          <span aria-hidden="true" style={styles.separator}>
+            |
+          </span>
+
           {/* Hostname */}
           <div style={styles.infoItem}>
             <span
