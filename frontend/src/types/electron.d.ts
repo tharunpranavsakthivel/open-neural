@@ -105,6 +105,17 @@ export interface OpenNeuralElectronApi {
   openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
 
   /**
+   * Open a file or directory in the OS-native file manager.
+   *
+   * Uses Electron's shell.openPath to reveal the path in Finder (macOS),
+   * Explorer (Windows), or the default file manager (Linux).
+   *
+   * @param path - Absolute path to the file or directory to reveal
+   * @returns Promise that resolves when the operation completes
+   */
+  openPath(path: string): Promise<void>;
+
+  /**
    * Check for interrupted experiments that need recovery action.
    *
    * Called after successful authentication to detect experiments

@@ -78,6 +78,23 @@ function getUsername(): string {
   return "user";
 }
 
+/**
+ * Get the appropriate label for the reveal button based on OS.
+ * Returns "Reveal in Finder" for macOS, "Reveal in Explorer" for Windows,
+ * or "Open in File Manager" for Linux/other platforms.
+ */
+function getRevealButtonLabel(): string {
+  const platform = navigator.platform;
+
+  if (platform.includes("Mac")) {
+    return "Reveal in Finder";
+  } else if (platform.includes("Win")) {
+    return "Reveal in Explorer";
+  } else {
+    return "Open in File Manager";
+  }
+}
+
 export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
   /** Selected destination directory - defaults to OS Desktop */
   const [destinationDir, setDestinationDir] = useState<string>(() => getDesktopPath());
@@ -424,14 +441,17 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
 
   /**
    * Open export directory in OS file manager.
+   * Per Task 195: Uses ipcRenderer.invoke('open-path', dest_dir) via Electron API.
    */
   const handleRevealInFinder = useCallback(async () => {
     if (destinationDir) {
       try {
-        // Use Electron shell to open path
-        await window.electronAPI.openDirectoryDialog({ title: "Open Export Directory" });
+        // Use Electron shell.openPath to reveal directory in OS-native file manager
+        // This opens Finder on macOS, Explorer on Windows, or default file manager on Linux
+        await window.electronAPI.openPath(destinationDir);
       } catch (err) {
         console.error("Failed to open directory:", err);
+        setExportError("Failed to open directory in file manager");
       }
     }
   }, [destinationDir]);
@@ -708,8 +728,12 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
         <div style={styles.successBanner}>
           <span style={styles.successIcon}>✓</span>
           <span style={styles.successText}>All artifacts exported successfully!</span>
-          <button onClick={handleRevealInFinder} style={styles.revealButton}>
-            Reveal in Finder
+          <button
+            onClick={handleRevealInFinder}
+            style={styles.revealButton}
+            title="Open export directory in file manager"
+          >
+            {getRevealButtonLabel()}
           </button>
         </div>
       )}
