@@ -7,7 +7,6 @@ dynamic block instantiation from configuration. The registry supports
 a decorator pattern for registering custom blocks.
 """
 
-
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 # Type alias for block classes

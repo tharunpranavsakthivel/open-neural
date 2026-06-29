@@ -7,6 +7,9 @@ and formats specification.
 
 from pathlib import Path
 from typing import Literal
+import logging
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator

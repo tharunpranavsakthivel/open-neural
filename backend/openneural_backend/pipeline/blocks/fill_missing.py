@@ -7,7 +7,6 @@ column selection via ColumnTransformer for applying different imputation
 strategies to different columns.
 """
 
-
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer

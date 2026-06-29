@@ -6,7 +6,6 @@ from specified columns. It provides a custom scikit-learn compatible transformer
 and the corresponding PipelineBlock implementation.
 """
 
-
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 

@@ -7,7 +7,6 @@ transformer but a pipeline stage that partitions the dataset and returns
 the split data directly.
 """
 
-
 import pandas as pd
 from sklearn.model_selection import train_test_split
 

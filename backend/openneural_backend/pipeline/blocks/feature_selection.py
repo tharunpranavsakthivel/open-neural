@@ -6,7 +6,6 @@ specified columns from the dataset. This is useful for removing features
 that are not relevant for the model or may cause data leakage.
 """
 
-
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 

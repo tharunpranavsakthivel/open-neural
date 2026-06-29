@@ -7,7 +7,6 @@ Supports standard scaling (z-score: mean=0, std=1) and min-max scaling
 selection via ColumnTransformer.
 """
 
-
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler, StandardScaler

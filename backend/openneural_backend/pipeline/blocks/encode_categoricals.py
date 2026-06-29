@@ -7,7 +7,6 @@ ordinal encoding (maps categories to integers). Uses scikit-learn encoders
 with appropriate configurations for production use.
 """
 
-
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
