@@ -18,6 +18,7 @@
  */
 import { spawn, ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { getPythonExecutable } from "./backend-resolver";
 
 /**
  * Current Python subprocess instance.
@@ -153,12 +154,16 @@ export async function startBackend(
 
   return new Promise((resolve) => {
     try {
+      const pythonExe = getPythonExecutable();
+      const isDev = process.env.NODE_ENV === "development";
+      const spawnArgs = isDev
+        ? ["-m", "openneural_backend", "--port", "0", "--data-dir", dataDir]
+        : ["--port", "0", "--data-dir", dataDir];
+
+      console.log(`Spawning backend: ${pythonExe} ${spawnArgs.join(" ")}`);
+
       // Spawn Python backend with dynamic port (0 = OS assigns ephemeral port)
-      pythonProcess = spawn("python", [
-        "-m", "openneural_backend",
-        "--port", "0",
-        "--data-dir", dataDir
-      ], {
+      pythonProcess = spawn(pythonExe, spawnArgs, {
         // Inherit stdio for debugging, but we'll capture stdout for port
         stdio: ["pipe", "pipe", "pipe"],
         env: {
