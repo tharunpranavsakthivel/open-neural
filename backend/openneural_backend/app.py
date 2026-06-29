@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from openneural_backend import __version__
 from openneural_backend.db.init import initialize_database
+from openneural_backend.logging_config import configure_logging
 from openneural_backend.middleware import RequestLoggingMiddleware, SecretAuthMiddleware
 from openneural_backend.routers import (
     auth_router,
@@ -73,6 +74,9 @@ def create_app() -> FastAPI:
     Raises:
         RuntimeError: Propagated from FastAPI if application construction fails.
     """
+    # Configure logging globally on startup
+    configure_logging()
+
     app = FastAPI(
         title="OpenNeural API",
         version=__version__,
@@ -121,6 +125,10 @@ def create_app() -> FastAPI:
     app.include_router(stream_router, prefix=API_V1_PREFIX)
     app.include_router(dashboard_router, prefix=API_V1_PREFIX)
     app.include_router(system_router, prefix=API_V1_PREFIX)
+
+    @app.get("/openapi.json", include_in_schema=False)
+    def get_openapi_root() -> dict:
+        return app.openapi()
 
     @app.get(f"{API_V1_PREFIX}/health", tags=["system"])
     def health_check() -> dict[str, str]:

@@ -21,6 +21,7 @@ from openneural_backend.orchestrator.experiment_manager import (
     start_experiment,
 )
 from openneural_backend.orchestrator.estimator import estimate_training_time
+from openneural_backend.services.dataset_service import ChecksumMismatchError
 
 router = APIRouter(prefix="/projects/{project_id}/experiments", tags=["experiments"])
 
@@ -263,6 +264,11 @@ async def start_experiment_endpoint(
     except ExperimentValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except ChecksumMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
 

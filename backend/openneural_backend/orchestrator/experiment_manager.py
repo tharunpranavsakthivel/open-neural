@@ -225,7 +225,7 @@ async def _run_training(experiment_id: str) -> None:
         # Log error and mark experiment as failed
         import logging
         logger = logging.getLogger(__name__)
-        logger.error(f"Training failed for experiment {experiment_id}: {e}")
+        logger.error(f"Training process crash: Training failed for experiment {experiment_id}: {e}", exc_info=True)
 
         async with async_session() as session:
             from sqlalchemy import select
@@ -361,7 +361,7 @@ async def cancel_experiment(experiment_id: str) -> dict:
                 except asyncio.CancelledError:
                     pass
             # Remove from registry
-            del _running_experiments[experiment_id]
+            _running_experiments.pop(experiment_id, None)
 
         # Step 2: Mark all queued and running runs as failed
         runs_result = await session.execute(

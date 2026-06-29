@@ -14,7 +14,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Real,
+    Float,
     Text,
     func,
     event,
@@ -505,7 +505,7 @@ class Run(Base):
         nullable=True,
     )
     training_time_sec: Mapped[Optional[float]] = mapped_column(
-        Real,
+        Float,
         nullable=True,
     )
     artifact_model_onnx: Mapped[Optional[str]] = mapped_column(
@@ -595,7 +595,7 @@ class Evaluation(Base):
         nullable=True,
     )
     threshold: Mapped[float] = mapped_column(
-        Real,
+        Float,
         nullable=False,
         default=0.5,
     )

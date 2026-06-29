@@ -31,6 +31,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from openneural_backend.config import Settings
 from openneural_backend.db.engine import async_session
@@ -178,6 +179,12 @@ async def _create_export_record(
         session.add(export)
         await session.commit()
         await session.refresh(export)
+
+        logger.info(
+            f"Export completed: artifact_type={artifact_type}, "
+            f"experiment_id={experiment_id}, file_path={file_path}, "
+            f"size_bytes={file_size}"
+        )
 
         return export
 
@@ -340,6 +347,9 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
     except ExportError:
         raise
     except Exception as e:
+        import errno
+        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+            logger.error(f"File permission failure: Failed to export ONNX model: {e}", exc_info=True)
         raise ExportError(f"Failed to export ONNX model: {e}")
 
 
@@ -398,6 +408,9 @@ async def export_model_joblib(run_id: str, dest_dir: str | Path) -> dict[str, An
     except (RunNotFoundError, ArtifactNotFoundError):
         raise
     except Exception as e:
+        import errno
+        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+            logger.error(f"File permission failure: Failed to export joblib model: {e}", exc_info=True)
         raise ExportError(f"Failed to export joblib model: {e}")
 
 
@@ -456,6 +469,9 @@ async def export_pipeline_joblib(run_id: str, dest_dir: str | Path) -> dict[str,
     except (RunNotFoundError, ArtifactNotFoundError):
         raise
     except Exception as e:
+        import errno
+        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+            logger.error(f"File permission failure: Failed to export pipeline: {e}", exc_info=True)
         raise ExportError(f"Failed to export pipeline: {e}")
 
 
@@ -505,6 +521,7 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # Fetch experiment with related data
             exp_stmt = (
                 select(Experiment)
+                .options(joinedload(Experiment.project))
                 .where(Experiment.id == experiment_id)
             )
             exp_result = await session.execute(exp_stmt)
@@ -1000,6 +1017,9 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
     except ExperimentNotFoundError:
         raise
     except Exception as e:
+        import errno
+        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+            logger.error(f"File permission failure: Failed to export report: {e}", exc_info=True)
         raise ExportError(f"Failed to export report: {e}")
 
 
@@ -1133,6 +1153,9 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
     except ExportError:
         raise
     except Exception as e:
+        import errno
+        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+            logger.error(f"File permission failure: Failed to export predictions: {e}", exc_info=True)
         raise ExportError(f"Failed to export predictions: {e}")
 
 
@@ -1228,6 +1251,9 @@ async def export_all(
                 else:
                     errors.append(f"Export failed: could not write {fmt} model to {dest_path}")
             except Exception as e:
+                import errno
+                if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+                    logger.error(f"File permission failure: Failed to export {fmt} model: {e}", exc_info=True)
                 errors.append(f"Export failed: could not write {fmt} model to {dest_path} - {e}")
 
         # Export pipeline
@@ -1235,6 +1261,9 @@ async def export_all(
             result = await export_pipeline_joblib(best_run.id, dest_path)
             exports.append(result)
         except Exception as e:
+            import errno
+            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+                logger.error(f"File permission failure: Failed to export pipeline: {e}", exc_info=True)
             errors.append(f"Export failed: could not write pipeline to {dest_path}/pipeline.joblib - {e}")
 
         # Export report
@@ -1242,6 +1271,9 @@ async def export_all(
             result = await export_report_pdf(experiment_id, dest_path)
             exports.append(result)
         except Exception as e:
+            import errno
+            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+                logger.error(f"File permission failure: Failed to export report: {e}", exc_info=True)
             errors.append(f"Export failed: could not write report to {dest_path}/report.pdf - {e}")
 
         # Export predictions
@@ -1249,6 +1281,9 @@ async def export_all(
             result = await export_predictions_csv(best_run.id, dest_path)
             exports.append(result)
         except Exception as e:
+            import errno
+            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+                logger.error(f"File permission failure: Failed to export predictions: {e}", exc_info=True)
             errors.append(f"Export failed: could not write predictions to {dest_path}/predictions.csv - {e}")
 
         # Generate manifest

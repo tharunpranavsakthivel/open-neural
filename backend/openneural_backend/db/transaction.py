@@ -10,6 +10,7 @@ partial writes are rolled back on exception, maintaining database integrity.
 
 from contextlib import asynccontextmanager
 from functools import wraps
+import logging
 from typing import Any, AsyncGenerator, Callable, Coroutine, ParamSpec, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,8 @@ from openneural_backend.db.engine import async_session
 
 T = TypeVar("T")
 P = ParamSpec("P")
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -64,8 +67,12 @@ async def atomic_transaction() -> AsyncGenerator[AsyncSession, None]:
         ...         return project
     """
     async with async_session() as session:
-        async with session.begin():
-            yield session
+        try:
+            async with session.begin():
+                yield session
+        except Exception as e:
+            logger.error(f"Database transaction rollback: {str(e)}", exc_info=True)
+            raise
 
 
 @asynccontextmanager
@@ -86,8 +93,12 @@ async def atomic_transaction_with_result() -> AsyncGenerator[AsyncSession, None]
         AsyncSession: A SQLAlchemy async session with an active transaction.
     """
     async with async_session() as session:
-        async with session.begin():
-            yield session
+        try:
+            async with session.begin():
+                yield session
+        except Exception as e:
+            logger.error(f"Database transaction rollback: {str(e)}", exc_info=True)
+            raise
         # Session remains open for lazy loading, but transaction is committed
 
 

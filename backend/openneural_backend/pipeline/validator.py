@@ -271,8 +271,12 @@ def _validate_column_references(
     removed_columns: Set[str] = set()
 
     for idx, block_config in enumerate(blocks):
+        if not isinstance(block_config, dict):
+            continue
         block_type = block_config.get("type", "")
         params = block_config.get("params", {})
+        if not isinstance(params, dict):
+            continue
 
         # Get columns referenced by this block
         referenced_cols = _get_referenced_columns(block_type, params)

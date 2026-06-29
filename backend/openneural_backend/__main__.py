@@ -7,6 +7,7 @@ Importing this module has no side effects until main() is called.
 """
 
 import argparse
+import logging
 import os
 import secrets
 import socket
@@ -14,7 +15,10 @@ import sys
 
 import uvicorn
 
+from openneural_backend.logging_config import configure_logging
 from openneural_backend.shutdown import register_shutdown_handlers
+
+logger = logging.getLogger(__name__)
 
 
 def generate_secret() -> str:
@@ -104,10 +108,15 @@ def main() -> None:
     data_dir = os.path.expanduser(args.data_dir)
     os.environ["OPENNEURAL_DATA_DIR"] = data_dir
 
+    # Configure logging globally on startup
+    configure_logging()
+
     # Determine the port to use
     port = args.port
     if port == 0:
         port = find_free_port()
+
+    logger.info(f"OpenNeural backend starting up. Port: {port}, Data Directory: {data_dir}")
 
     # Generate and set the ephemeral secret for authentication
     # This is passed via environment variable so the middleware can validate requests

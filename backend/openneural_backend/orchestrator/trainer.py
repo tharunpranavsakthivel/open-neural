@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import optuna
 import pandas as pd
+import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -623,7 +624,7 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
 
             except Exception as e:
                 error_msg = str(e)
-                logger.error(f"Study failed for {model_key}: {error_msg}")
+                logger.error(f"Training process crash: Study failed for {model_key}: {error_msg}", exc_info=True)
                 async with persistence_lock:
                     completed_studies[model_key] = {
                         "status": "failed",

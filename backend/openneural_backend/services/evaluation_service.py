@@ -18,7 +18,10 @@ Exposes:
 """
 
 import json
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import pandas as pd
@@ -200,8 +203,7 @@ def compute_regression_metrics(
         )
 
     # Compute metrics
-    # Use squared=False for RMSE as per scikit-learn best practice
-    rmse = float(mean_squared_error(y_true_arr, y_pred_arr, squared=False))
+    rmse = float(np.sqrt(mean_squared_error(y_true_arr, y_pred_arr)))
     mae = float(mean_absolute_error(y_true_arr, y_pred_arr))
     r2 = float(r2_score(y_true_arr, y_pred_arr))
 

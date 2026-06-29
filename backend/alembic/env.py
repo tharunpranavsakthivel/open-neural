@@ -121,8 +121,8 @@ async def run_async_migrations() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
-    # Get database URL
-    url = get_database_url()
+    # Get database URL and convert to async driver version
+    url = get_database_url().replace("sqlite:///", "sqlite+aiosqlite:///")
     
     # Create async engine
     async_engine = async_engine_from_config(
@@ -143,7 +143,18 @@ def run_migrations_online() -> None:
     For OpenNeural, we use the async migration path to match
     the application's async database setup.
     """
-    asyncio.run(run_async_migrations())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, run_async_migrations())
+            future.result()
+    else:
+        asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():

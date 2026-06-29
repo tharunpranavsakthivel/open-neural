@@ -22,6 +22,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # after the backend is spawned.
 EXCLUDED_PATHS = [
     "/api/v1/auth/setup",
+    "/openapi.json",
+    "/api/v1/openapi.json",
 ]
 
 

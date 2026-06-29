@@ -10,6 +10,7 @@ Exports:
     - setup_auth: Configure initial authentication with a password.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
@@ -21,6 +22,8 @@ from openneural_backend.services.auth_service import (
     hash_password,
     verify_password,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -191,6 +194,8 @@ async def setup_auth(password: str) -> None:
         session.add(auth_record)
         await session.commit()
 
+    logger.info("Authentication configured successfully (initial setup)")
+
 
 @router.post(
     "/setup",
@@ -313,6 +318,7 @@ async def auth_verify(request: AuthVerifyRequest) -> AuthVerifyResponse:
 
         if not stored_hash:
             # No auth record exists
+            logger.info("Authentication failed - authentication not configured")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication not configured",
@@ -321,8 +327,10 @@ async def auth_verify(request: AuthVerifyRequest) -> AuthVerifyResponse:
         # Verify the password
         verify_password(request.password, stored_hash)
 
+        logger.info("Authentication successful - password verified")
         return AuthVerifyResponse(valid=True)
     except AuthenticationError:
+        logger.info("Authentication failed - invalid password")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid password",

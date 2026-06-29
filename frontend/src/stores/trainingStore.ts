@@ -1,5 +1,5 @@
 /**
- * Training state store using Zustand-style implementation.
+ * Training state store using Zustand.
  *
  * Manages real-time training progress state including SSE updates,
  * experiment status, progress percentage, CPU/RAM usage, and per-model
@@ -7,6 +7,7 @@
  *
  * @module stores/trainingStore
  */
+import { create } from "zustand";
 
 /**
  * Run status for individual model training.
@@ -76,7 +77,7 @@ export interface SSEStatusUpdate {
 }
 
 /**
- * Training state interface.
+ * Training store state interface.
  */
 interface TrainingState {
   /** Current experiment ID */
@@ -100,109 +101,115 @@ interface TrainingState {
 }
 
 /**
- * Training store interface including state and actions.
+ * Training store actions interface.
  */
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-interface TrainingStore extends TrainingState {
+interface TrainingActions {
   /** Set the current experiment ID */
   setExperimentId: (id: string | null) => void;
   /** Update status from SSE payload */
+  updateFromSSEPayload: (payload: SSEStatusUpdate) => void;
+  /** Legacy/Compatibility alias for updateFromSSEPayload */
   updateFromSSE: (payload: SSEStatusUpdate) => void;
   /** Set SSE connection status */
   setIsConnected: (connected: boolean) => void;
   /** Set error message */
   setError: (error: string | null) => void;
   /** Reset store to initial state */
+  resetTraining: () => void;
+  /** Legacy/Compatibility alias for resetTraining */
   reset: () => void;
 }
 
-// Store instance
-let storeInstance: TrainingStore | null = null;
+/**
+ * Combined training store type.
+ */
+export type TrainingStore = TrainingState & TrainingActions;
 
 /**
- * Initial state factory.
+ * Initial training state.
  */
-function getInitialState(): TrainingState {
-  return {
-    experimentId: null,
-    status: "created",
-    progressPct: 0,
-    cpuPct: 0,
-    ramUsedGb: 0,
-    ramTotalGb: 0,
-    runs: [],
-    isConnected: false,
-    error: null,
-  };
-}
+const initialState: TrainingState = {
+  experimentId: null,
+  status: "created",
+  progressPct: 0,
+  cpuPct: 0,
+  ramUsedGb: 0,
+  ramTotalGb: 0,
+  runs: [],
+  isConnected: false,
+  error: null,
+};
 
 /**
- * Initialize the training store singleton.
- *
- * @returns The training store instance
+ * Zustand store for managing training state and real-time SSE updates.
  */
-function initializeStore(): TrainingStore {
-  if (storeInstance !== null) {
-    return storeInstance;
-  }
+export const useTrainingStore = create<TrainingStore>((set: any) => ({
+  ...initialState,
 
-  // Initial state
-  let state: TrainingState = getInitialState();
+  setExperimentId: (id: string | null): void => {
+    set(() => ({ experimentId: id }));
+  },
 
-  // Actions
-  const setExperimentId = (id: string | null): void => {
-    state = { ...state, experimentId: id };
-  };
-
-  const updateFromSSE = (payload: SSEStatusUpdate): void => {
-    state = {
-      ...state,
+  updateFromSSEPayload: (payload: SSEStatusUpdate): void => {
+    set(() => ({
       status: payload.status,
       progressPct: payload.progress_pct,
       cpuPct: payload.cpu_pct,
       ramUsedGb: payload.ram_used_gb,
       ramTotalGb: payload.ram_total_gb,
       runs: payload.runs,
-    };
-  };
+    }));
+  },
 
-  const setIsConnected = (connected: boolean): void => {
-    state = { ...state, isConnected: connected };
-  };
+  updateFromSSE: (payload: SSEStatusUpdate): void => {
+    set(() => ({
+      status: payload.status,
+      progressPct: payload.progress_pct,
+      cpuPct: payload.cpu_pct,
+      ramUsedGb: payload.ram_used_gb,
+      ramTotalGb: payload.ram_total_gb,
+      runs: payload.runs,
+    }));
+  },
 
-  const setError = (error: string | null): void => {
-    state = { ...state, error };
-  };
+  setIsConnected: (connected: boolean): void => {
+    set(() => ({ isConnected: connected }));
+  },
 
-  const reset = (): void => {
-    state = getInitialState();
-  };
+  setError: (error: string | null): void => {
+    set(() => ({ error }));
+  },
 
-  storeInstance = {
-    ...state,
-    setExperimentId,
-    updateFromSSE,
-    setIsConnected,
-    setError,
-    reset,
-  };
+  resetTraining: (): void => {
+    set(() => initialState);
+  },
 
-  return storeInstance;
-}
+  reset: (): void => {
+    set(() => initialState);
+  },
+}));
 
 /**
- * Zustand-style hook for training state.
- *
- * @example
- * const { status, progressPct, updateFromSSE } = useTrainingStore();
- * useEffect(() => {
- *   eventSource.onmessage = (event) => {
- *     const payload = JSON.parse(event.data);
- *     updateFromSSE(payload);
- *   };
- * }, []);
- * @returns The training store with state and actions
+ * Hook selector for accessing individual training state values.
+ * Use this when you only need a specific value to minimize re-renders.
  */
-export function useTrainingStore(): TrainingStore {
-  return initializeStore();
+export const useTrainingSelector = useTrainingStore;
+
+/**
+ * Get the current training state.
+ * Useful for non-component contexts.
+ */
+export function getTrainingState(): TrainingState {
+  const state = useTrainingStore.getState();
+  return {
+    experimentId: state.experimentId,
+    status: state.status,
+    progressPct: state.progressPct,
+    cpuPct: state.cpuPct,
+    ramUsedGb: state.ramUsedGb,
+    ramTotalGb: state.ramTotalGb,
+    runs: state.runs,
+    isConnected: state.isConnected,
+    error: state.error,
+  };
 }

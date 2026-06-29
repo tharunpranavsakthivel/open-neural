@@ -22,11 +22,11 @@ class CreateAppTests(unittest.TestCase):
             AssertionError: If metadata or route registration regresses.
         """
         app = create_app()
-        paths = {route.path for route in app.routes}
+        paths = {route.path for route in app.routes if hasattr(route, "path")}
 
         self.assertEqual(app.title, "OpenNeural API")
         self.assertEqual(app.version, "0.1.0")
-        self.assertIn("/health", paths)
+        self.assertIn("/api/v1/health", paths)
 
 
 if __name__ == "__main__":

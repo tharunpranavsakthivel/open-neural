@@ -557,26 +557,32 @@ async def import_file(
             # Generate snapshot ID and create directory structure
             snapshot_id = str(uuid.uuid4())
             snapshots_dir = Settings.get().data_dir / "snapshots" / snapshot_id
-            snapshots_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                snapshots_dir.mkdir(parents=True, exist_ok=True)
 
-            # Define paths for stored files
-            stored_path = snapshots_dir / "data.parquet"
-            schema_path = snapshots_dir / "schema.json"
+                # Define paths for stored files
+                stored_path = snapshots_dir / "data.parquet"
+                schema_path = snapshots_dir / "schema.json"
 
-            # Convert DataFrame to Parquet and write to final location
-            df.to_parquet(stored_path, index=False)
+                # Convert DataFrame to Parquet and write to final location
+                df.to_parquet(stored_path, index=False)
 
-            # Set file permissions to 0o600 (owner read/write only, no group/other access)
-            # Per SRS NFR-SEC-03: snapshot files must be stored with restricted permissions
-            # Task 127: On POSIX use os.chmod, on Windows use icacls
-            _set_snapshot_file_permissions(stored_path)
+                # Set file permissions to 0o600 (owner read/write only, no group/other access)
+                # Per SRS NFR-SEC-03: snapshot files must be stored with restricted permissions
+                # Task 127: On POSIX use os.chmod, on Windows use icacls
+                _set_snapshot_file_permissions(stored_path)
 
-            # Write inferred schema to schema.json
-            with open(schema_path, "w", encoding="utf-8") as schema_file:
-                json.dump(schema, schema_file, indent=2)
+                # Write inferred schema to schema.json
+                with open(schema_path, "w", encoding="utf-8") as schema_file:
+                    json.dump(schema, schema_file, indent=2)
 
-            # Set permissions on schema.json as well
-            _set_snapshot_file_permissions(schema_path)
+                # Set permissions on schema.json as well
+                _set_snapshot_file_permissions(schema_path)
+            except (PermissionError, OSError) as e:
+                import errno
+                if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
+                    logger.error(f"File permission failure: Failed to write snapshot files or set permissions: {e}", exc_info=True)
+                raise DatasetImportError(f"Failed to save snapshot due to file system or permission error: {e}")
 
             # Create snapshot record
             snapshot = DatasetSnapshot(
@@ -609,6 +615,18 @@ async def import_file(
             ram_threshold = available_ram_bytes * 0.75
 
             memory_warning = projected_ram_bytes > ram_threshold
+
+            if file_size > WARNING_FILE_SIZE_BYTES:
+                logger.warning(
+                    f"Uploaded file size ({file_size / (1024**2):.1f} MB) "
+                    "exceeds 500 MB limit warning."
+                )
+
+            if memory_warning:
+                logger.warning(
+                    f"Projected training memory usage ({projected_ram_bytes / (1024**3):.1f} GB) "
+                    f"exceeds 75% of available RAM ({available_ram_bytes / (1024**3):.1f} GB)."
+                )
 
             return {
                 "id": snapshot.id,
@@ -853,6 +871,10 @@ async def verify_snapshot_checksum(snapshot_id: str) -> dict[str, Any]:
 
         # Compare checksums and raise error if mismatch
         if computed_checksum != stored_checksum:
+            logger.warning(
+                f"Checksum mismatch attempt detected for snapshot {snapshot_id}! "
+                f"Stored: {stored_checksum}, Computed: {computed_checksum}"
+            )
             raise ChecksumMismatchError(
                 snapshot_id=snapshot_id,
                 stored_checksum=stored_checksum,

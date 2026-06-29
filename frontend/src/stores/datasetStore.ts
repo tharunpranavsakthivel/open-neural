@@ -23,6 +23,8 @@ interface DatasetState {
   currentSnapshot: Snapshot | null;
   /** History of all snapshots for the current project */
   snapshotHistory: SnapshotListItem[];
+  /** File upload progress percentage (0-100) */
+  uploadProgress: number;
 }
 
 /**
@@ -44,6 +46,13 @@ interface DatasetActions {
    * @param history - Array of snapshot list items
    */
   setSnapshotHistory: (history: SnapshotListItem[]) => void;
+
+  /**
+   * Set the current upload progress percentage.
+   *
+   * @param progress - Upload progress percentage (0-100)
+   */
+  setUploadProgress: (progress: number) => void;
 
   /**
    * Add a new snapshot to the history.
@@ -90,6 +99,7 @@ type DatasetStore = DatasetState & DatasetActions;
 const initialState: DatasetState = {
   currentSnapshot: null,
   snapshotHistory: [],
+  uploadProgress: 0,
 };
 
 /**
@@ -119,6 +129,12 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
   setSnapshotHistory: (history: SnapshotListItem[]): void => {
     set(() => ({
       snapshotHistory: history,
+    }));
+  },
+
+  setUploadProgress: (progress: number): void => {
+    set(() => ({
+      uploadProgress: progress,
     }));
   },
 

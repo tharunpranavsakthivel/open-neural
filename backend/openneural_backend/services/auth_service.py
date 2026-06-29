@@ -10,7 +10,10 @@ Exports:
     - verify_password: Verify a plain-text password against a stored bcrypt hash.
 """
 
+import logging
 import bcrypt
+
+logger = logging.getLogger(__name__)
 
 
 class AuthenticationError(Exception):

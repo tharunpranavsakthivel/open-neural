@@ -13,7 +13,10 @@ Exposes:
 """
 
 from datetime import datetime
+import logging
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError

@@ -57,6 +57,8 @@ export interface AppState {
   authStatus: AuthStatus;
   /** Currently selected project ID, null if no project selected */
   currentProjectId: string | null;
+  /** Ephemeral secret for backend API authentication */
+  backendSecret: string;
 }
 
 /**
@@ -69,6 +71,8 @@ export interface AppActions {
   setAuthStatus: (status: AuthStatus) => void;
   /** Set the current project ID */
   setCurrentProject: (projectId: string | null) => void;
+  /** Set the backend secret for API communication */
+  setBackendSecret: (secret: string) => void;
 }
 
 /**
@@ -83,6 +87,7 @@ const initialState: AppState = {
   backendPort: null,
   authStatus: "setup",
   currentProjectId: null,
+  backendSecret: "dev-secret",
 };
 
 /**
@@ -114,6 +119,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setCurrentProject: (projectId: string | null) =>
     set(() => ({
       currentProjectId: projectId,
+    })),
+
+  setBackendSecret: (secret: string) =>
+    set(() => ({
+      backendSecret: secret,
     })),
 }));
 
@@ -153,4 +163,14 @@ export function getAuthStatus(): AuthStatus {
  */
 export function getCurrentProjectId(): string | null {
   return useAppStore.getState().currentProjectId;
+}
+
+/**
+ * Get the current backend secret from the store.
+ * Useful for non-component contexts (like axios client).
+ *
+ * @returns The current backend secret
+ */
+export function getBackendSecret(): string {
+  return useAppStore.getState().backendSecret;
 }

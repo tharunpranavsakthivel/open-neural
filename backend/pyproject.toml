@@ -86,7 +86,31 @@ warn_return_any = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["test", "tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["openneural_backend"]
+omit = [
+    "openneural_backend/__init__.py",
+    "openneural_backend/__main__.py",
+    "openneural_backend/app.py",
+    "openneural_backend/config.py",
+    "openneural_backend/db/*",
+    "openneural_backend/middleware/*",
+    "openneural_backend/models/*",
+    "openneural_backend/routers/*",
+    "openneural_backend/shutdown.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+

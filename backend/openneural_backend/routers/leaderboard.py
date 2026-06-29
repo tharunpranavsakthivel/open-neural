@@ -119,12 +119,15 @@ async def get_leaderboard(
                 detail=f"Project not found: {project_id}",
             )
 
+        from sqlalchemy.orm import selectinload
+
         # Query all done experiments for this project with their runs
-        # Using efficient joins to minimize database round-trips
+        # Using efficient eager loading to minimize database round-trips
         experiments_stmt = (
             select(Experiment)
             .where(Experiment.project_id == project_id)
             .where(Experiment.status.in_(["done", "cancelled", "interrupted"]))
+            .options(selectinload(Experiment.runs))
         )
         experiments_result = await session.execute(experiments_stmt)
         experiments = experiments_result.scalars().all()
@@ -132,15 +135,11 @@ async def get_leaderboard(
         # Build leaderboard entries by extracting best run per experiment
         entries = []
         for experiment in experiments:
-            # Get all done runs for this experiment
-            runs_stmt = (
-                select(Run)
-                .where(Run.experiment_id == experiment.id)
-                .where(Run.status == "done")
-                .where(Run.test_metrics_json.isnot(None))
-            )
-            runs_result = await session.execute(runs_stmt)
-            runs = runs_result.scalars().all()
+            # Filter runs in memory to avoid N+1 database queries
+            runs = [
+                run for run in experiment.runs
+                if run.status == "done" and run.test_metrics_json is not None
+            ]
 
             if not runs:
                 # Skip experiments with no completed runs

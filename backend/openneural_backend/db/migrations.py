@@ -9,8 +9,23 @@ import os
 import sys
 from pathlib import Path
 
+# Remove any path from sys.path that contains our local alembic migration folder to prevent import collision
+_removed_paths = []
+for p in list(sys.path):
+    if p:
+        try:
+            if (Path(p) / "alembic" / "env.py").exists():
+                _removed_paths.append(p)
+                sys.path.remove(p)
+        except Exception:
+            pass
+
 from alembic import command
 from alembic.config import Config
+
+# Restore sys.path
+for p in reversed(_removed_paths):
+    sys.path.insert(0, p)
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +47,7 @@ def run_migrations() -> None:
         RuntimeError: If migrations fail to run.
     """
     # Get the backend directory path
-    backend_dir = Path(__file__).parent.parent
+    backend_dir = Path(__file__).parent.parent.parent
     alembic_ini = backend_dir / "alembic.ini"
     
     if not alembic_ini.exists():
@@ -51,6 +66,7 @@ def run_migrations() -> None:
     
     # Create Alembic configuration
     alembic_cfg = Config(str(alembic_ini))
+    alembic_cfg.set_main_option("script_location", str(backend_dir / "alembic"))
     
     # Log migration start
     logger.info("Running database migrations...")
