@@ -6,7 +6,7 @@
  * set to 0 to allow dynamic port allocation, preventing conflicts when running
  * alongside other development services.
  */
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -26,5 +26,11 @@ export default defineConfig({
     sourcemap: true,
     // Ensure assets use relative paths for file:// protocol
     assetsDir: "assets"
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    globals: true
   }
 });
+
