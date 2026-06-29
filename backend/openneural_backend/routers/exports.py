@@ -80,7 +80,17 @@ class ExportRequest(BaseModel):
         return v
 
 
-@router.post("")
+@router.post(
+    "",
+    summary="Export artifacts from an experiment",
+    description="Executes requested exports (model, pipeline, report, predictions) sequentially, generates a manifest, inserts records into the exports table, and returns the export result.",
+    responses={
+        200: {"description": "Export executed, returning status of each requested artifact."},
+        400: {"description": "Destination directory is not writable or no completed runs found."},
+        404: {"description": "Experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def export_artifacts(experiment_id: str, request: ExportRequest) -> dict:
     """Export artifacts from an experiment.
 

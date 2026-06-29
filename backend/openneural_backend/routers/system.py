@@ -21,7 +21,15 @@ from openneural_backend.db.engine import async_session
 router = APIRouter(prefix="/system", tags=["system"])
 
 
-@router.get("/info")
+@router.get(
+    "/info",
+    summary="Get host system information",
+    description="Returns detailed host machine system information including hostname, total RAM, CPU model, and OpenNeural app version.",
+    responses={
+        200: {"description": "Successfully retrieved system info."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_system_info() -> dict:
     """Get host machine system information.
 
@@ -83,7 +91,10 @@ class ClearDataResponse(BaseModel):
     "/clear-data",
     response_model=ClearDataResponse,
     status_code=status.HTTP_200_OK,
+    summary="Clear all application data",
+    description="Removes all projects, snapshots, pipelines, experiments, runs, evaluations, subgroup analyses, and exports, while preserving the auth password.",
     responses={
+        200: {"description": "All data cleared successfully."},
         500: {"description": "Internal server error during clear operation"},
     },
 )

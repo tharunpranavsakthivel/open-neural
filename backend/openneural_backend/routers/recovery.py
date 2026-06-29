@@ -36,7 +36,16 @@ class InterruptedExperimentsResponse(BaseModel):
     count: int
 
 
-@router.get("/interrupted", response_model=InterruptedExperimentsResponse)
+@router.get(
+    "/interrupted",
+    response_model=InterruptedExperimentsResponse,
+    summary="Get interrupted experiments",
+    description="Retrieve all experiments with status 'interrupted' across all projects for crash recovery detection.",
+    responses={
+        200: {"description": "Successfully retrieved interrupted experiments."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_interrupted_experiments(
     session: AsyncSession = Depends(get_async_session),
 ) -> InterruptedExperimentsResponse:
@@ -110,7 +119,18 @@ class ExperimentRecoverResponse(BaseModel):
     message: str
 
 
-@router.patch("/{experiment_id}/recover", response_model=ExperimentRecoverResponse)
+@router.patch(
+    "/{experiment_id}/recover",
+    response_model=ExperimentRecoverResponse,
+    summary="Recover an interrupted experiment",
+    description="Accepts an action to either restart (reset status to 'created') or discard (mark as 'cancelled') an interrupted experiment.",
+    responses={
+        200: {"description": "Experiment successfully recovered (restarted or discarded)."},
+        400: {"description": "Validation error or experiment not in 'interrupted' state."},
+        404: {"description": "Experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def recover_experiment(
     experiment_id: str,
     request: ExperimentRecoverRequest,

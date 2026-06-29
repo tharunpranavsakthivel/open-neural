@@ -25,7 +25,17 @@ router = APIRouter(
 )
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="Get evaluation results for an experiment",
+    description="Loads metrics, confusion matrix, and subgroup analyses for the best run of an experiment.",
+    responses={
+        200: {"description": "Successfully retrieved evaluation results."},
+        400: {"description": "No completed runs found for this experiment."},
+        404: {"description": "Experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_evaluation(experiment_id: str) -> dict[str, Any]:
     """Get evaluation results for an experiment.
 
@@ -143,7 +153,17 @@ async def get_evaluation(experiment_id: str) -> dict[str, Any]:
         return response
 
 
-@router.post("/threshold")
+@router.post(
+    "/threshold",
+    summary="Update decision threshold",
+    description="Updates the decision threshold and recalculates metrics (precision, recall, f1) using pre-stored predictions, ensuring low-latency response (< 200ms).",
+    responses={
+        200: {"description": "Successfully updated decision threshold and recalculated metrics."},
+        400: {"description": "Invalid threshold range/step or prediction data not available."},
+        404: {"description": "Experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def update_threshold(experiment_id: str, request: dict) -> dict[str, Any]:
     """Update decision threshold and recalculate metrics.
 

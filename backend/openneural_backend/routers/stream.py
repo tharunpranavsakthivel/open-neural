@@ -31,7 +31,17 @@ router = APIRouter(prefix="/experiments/{experiment_id}/stream", tags=["stream"]
 TERMINAL_STATES = {"done", "cancelled", "interrupted"}
 
 
-@router.get("", response_class=StreamingResponse)
+@router.get(
+    "",
+    response_class=StreamingResponse,
+    summary="Stream real-time experiment updates",
+    description="Opens a persistent SSE connection that streams status updates (progress, CPU/RAM, model status) for the specified experiment using an event-driven pub/sub mechanism.",
+    responses={
+        200: {"description": "Persistent SSE connection established successfully."},
+        404: {"description": "Experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def stream_experiment_updates(
     experiment_id: str,
     session: AsyncSession = Depends(get_async_session),

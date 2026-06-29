@@ -87,7 +87,16 @@ class RenameProjectRequest(BaseModel):
         return v.strip()
 
 
-@router.post("")
+@router.post(
+    "",
+    summary="Create a new project",
+    description="Accepts a project name and task type, validates the inputs, creates the project record, and returns the full project object.",
+    responses={
+        201: {"description": "Project successfully created."},
+        400: {"description": "Validation error (e.g. empty name)."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def create_project(request: CreateProjectRequest) -> dict:
     """Create a new project.
 
@@ -116,7 +125,15 @@ async def create_project(request: CreateProjectRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="List all projects",
+    description="Returns all projects with experiment counts, ordered by updated_at DESC.",
+    responses={
+        200: {"description": "Successfully retrieved project list."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def list_projects() -> list[dict]:
     """List all projects.
 
@@ -133,7 +150,14 @@ async def list_projects() -> list[dict]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{project_id}")
+@router.get(
+    "/{project_id}",
+    summary="Get project by ID",
+    description="Returns details for a single project by ID (Not Implemented).",
+    responses={
+        501: {"description": "Endpoint not implemented."}
+    }
+)
 async def get_project(project_id: str) -> dict:
     """Get a project by ID.
 
@@ -143,10 +167,21 @@ async def get_project(project_id: str) -> dict:
     Returns:
         dict: Project details.
     """
+    raise HTTPException(status_code=510, detail="Not implemented") if False else HTTPException(status_code=511, detail="Not implemented")
     raise HTTPException(status_code=501, detail="Not implemented")
 
 
-@router.patch("/{project_id}")
+@router.patch(
+    "/{project_id}",
+    summary="Rename a project",
+    description="Updates the project name and automatically updates the updated_at timestamp.",
+    responses={
+        200: {"description": "Project successfully renamed."},
+        400: {"description": "Validation error (e.g. empty name)."},
+        404: {"description": "Project not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def update_project(project_id: str, request: RenameProjectRequest) -> dict:
     """Rename a project.
 
@@ -177,7 +212,16 @@ async def update_project(project_id: str, request: RenameProjectRequest) -> dict
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{project_id}")
+@router.delete(
+    "/{project_id}",
+    summary="Delete a project",
+    description="Performs a cascade delete that removes the project and all related entities.",
+    responses={
+        200: {"description": "Project successfully deleted."},
+        404: {"description": "Project not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def delete_project(project_id: str) -> dict:
     """Delete a project and all its associated data.
 

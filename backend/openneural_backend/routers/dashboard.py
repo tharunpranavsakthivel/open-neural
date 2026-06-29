@@ -11,7 +11,15 @@ from openneural_backend.services.project_service import get_dashboard_stats
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    summary="Get aggregate dashboard statistics",
+    description="Returns total counts for experiments, exports, and dataset snapshots aggregated across all projects in the system.",
+    responses={
+        200: {"description": "Successfully retrieved aggregate dashboard statistics."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_dashboard_statistics() -> dict:
     """Get aggregate dashboard statistics across all projects.
 

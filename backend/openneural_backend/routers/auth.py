@@ -202,6 +202,8 @@ async def setup_auth(password: str) -> None:
     "/setup",
     response_model=AuthSetupResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Set up initial authentication",
+    description="Sets up the initial application password on first launch. Disabled after configuration.",
     responses={
         400: {"description": "Invalid password or validation error"},
         409: {"description": "Authentication is already configured"},
@@ -255,6 +257,8 @@ async def auth_setup(request: AuthSetupRequest) -> AuthSetupResponse:
 @router.get(
     "/status",
     response_model=AuthStatusResponse,
+    summary="Get authentication status",
+    description="Checks whether initial authentication has been configured.",
     responses={
         500: {"description": "Internal server error"},
     },
@@ -285,6 +289,8 @@ async def auth_status() -> AuthStatusResponse:
 @router.post(
     "/verify",
     response_model=AuthVerifyResponse,
+    summary="Verify password",
+    description="Verifies the password against the stored bcrypt hash.",
     responses={
         400: {"description": "Invalid password"},
         401: {"description": "Authentication failed"},

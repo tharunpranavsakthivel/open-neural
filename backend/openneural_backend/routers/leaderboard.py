@@ -71,7 +71,16 @@ class LeaderboardEntry(BaseModel):
     created_at: str
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="Get the experiment leaderboard for a project",
+    description="Joins experiments, runs, and evaluations to extract per-experiment best run metrics. Returns a sorted list with an `is_best` flag on the top experiment.",
+    responses={
+        200: {"description": "Successfully retrieved leaderboard entries."},
+        404: {"description": "Project not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_leaderboard(
     project_id: str,
     sort_by: Literal["f1", "auc_roc", "precision", "recall", "training_time"] = Query(

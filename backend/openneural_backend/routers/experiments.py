@@ -71,7 +71,17 @@ class ExperimentCreateResponse(BaseModel):
 
 
 @router.post(
-    "", response_model=ExperimentCreateResponse, status_code=status.HTTP_201_CREATED
+    "",
+    response_model=ExperimentCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new experiment",
+    description="Validates the pipeline and candidate models, then creates a new experiment in the database.",
+    responses={
+        201: {"description": "Successfully created experiment."},
+        400: {"description": "Invalid pipeline or candidate models provided."},
+        404: {"description": "Project or pipeline not found."},
+        500: {"description": "Internal server error."}
+    }
 )
 async def create_experiment_endpoint(
     project_id: str,
@@ -166,7 +176,15 @@ async def create_experiment_endpoint(
     )
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="List all experiments",
+    description="Returns a list of all experiments associated with the given project.",
+    responses={
+        200: {"description": "Successfully retrieved experiments list."},
+        501: {"description": "Not implemented."}
+    }
+)
 async def list_experiments(project_id: str) -> list[dict]:
     """List all experiments for a project.
 
@@ -179,7 +197,15 @@ async def list_experiments(project_id: str) -> list[dict]:
     raise HTTPException(status_code=501, detail="Not implemented")
 
 
-@router.get("/{experiment_id}")
+@router.get(
+    "/{experiment_id}",
+    summary="Get experiment by ID",
+    description="Returns details for a specific experiment.",
+    responses={
+        200: {"description": "Successfully retrieved experiment details."},
+        501: {"description": "Not implemented."}
+    }
+)
 async def get_experiment(project_id: str, experiment_id: str) -> dict:
     """Get an experiment by ID.
 
@@ -200,7 +226,18 @@ class ExperimentStartResponse(BaseModel):
     started_at: str
 
 
-@router.post("/{experiment_id}/start", response_model=ExperimentStartResponse)
+@router.post(
+    "/{experiment_id}/start",
+    response_model=ExperimentStartResponse,
+    summary="Start an experiment run",
+    description="Starts training candidate models for the specified experiment, verifying checksums first.",
+    responses={
+        200: {"description": "Successfully started the experiment."},
+        400: {"description": "Experiment is not in 'created' status."},
+        404: {"description": "Project or experiment not found."},
+        500: {"description": "Checksum verification or startup failed."}
+    }
+)
 async def start_experiment_endpoint(
     project_id: str,
     experiment_id: str,
@@ -302,7 +339,17 @@ class ExperimentStatusResponse(BaseModel):
     )
 
 
-@router.get("/{experiment_id}/status", response_model=ExperimentStatusResponse)
+@router.get(
+    "/{experiment_id}/status",
+    response_model=ExperimentStatusResponse,
+    summary="Get real-time experiment status",
+    description="Returns current progress percentage, active system resource usage, and per-run statuses with metrics.",
+    responses={
+        200: {"description": "Successfully retrieved real-time status."},
+        404: {"description": "Project or experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_experiment_status(
     project_id: str,
     experiment_id: str,
@@ -412,7 +459,18 @@ class ExperimentCancelResponse(BaseModel):
     runs_failed: int
 
 
-@router.delete("/{experiment_id}/cancel", response_model=ExperimentCancelResponse)
+@router.delete(
+    "/{experiment_id}/cancel",
+    response_model=ExperimentCancelResponse,
+    summary="Cancel a running experiment",
+    description="Cancels the active training task, marks all runs as failed, and discards partial results.",
+    responses={
+        200: {"description": "Successfully cancelled the experiment."},
+        400: {"description": "Experiment is not running."},
+        404: {"description": "Project or experiment not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def cancel_experiment_endpoint(
     project_id: str,
     experiment_id: str,
@@ -506,7 +564,17 @@ class ExperimentEstimateResponse(BaseModel):
     automl_config: dict
 
 
-@router.get("/{experiment_id}/estimate", response_model=ExperimentEstimateResponse)
+@router.get(
+    "/{experiment_id}/estimate",
+    response_model=ExperimentEstimateResponse,
+    summary="Estimate training time",
+    description="Returns pre-training estimated time to completion based on dataset size, candidate count, and AutoML config.",
+    responses={
+        200: {"description": "Successfully calculated training time estimate."},
+        404: {"description": "Project, experiment, pipeline, or snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def estimate_experiment_time(
     project_id: str,
     experiment_id: str,

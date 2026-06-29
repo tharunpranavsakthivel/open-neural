@@ -85,6 +85,13 @@ class SnapshotListResponse(BaseModel):
     The file is stored internally as Parquet for consistency, and a SHA-256
     checksum is computed for integrity verification.
     """,
+    responses={
+        201: {"description": "Snapshot successfully created and parsed."},
+        400: {"description": "Unsupported format, parsing failure, or validation error."},
+        404: {"description": "Project not found."},
+        413: {"description": "File size exceeds the 2 GB limit."},
+        500: {"description": "Internal server error."}
+    }
 )
 async def create_snapshot(
     project_id: str,
@@ -138,6 +145,11 @@ async def create_snapshot(
     Retrieve a list of all dataset snapshots for the specified project.
     Results are ordered by creation time (oldest first).
     """,
+    responses={
+        200: {"description": "Successfully retrieved snapshots list."},
+        404: {"description": "Project not found."},
+        500: {"description": "Internal server error."}
+    }
 )
 async def list_snapshots(project_id: str) -> list[dict]:
     """List all snapshots for a project.
@@ -178,6 +190,11 @@ async def list_snapshots(project_id: str) -> list[dict]:
     Returns full metadata including schema information, file statistics,
     and integrity checksum.
     """,
+    responses={
+        200: {"description": "Successfully retrieved snapshot details."},
+        404: {"description": "Snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
 )
 async def get_snapshot_by_id(project_id: str, snapshot_id: str) -> dict:
     """Get a snapshot by ID.

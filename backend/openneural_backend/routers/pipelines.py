@@ -72,7 +72,19 @@ class ValidationResult(BaseModel):
     errors: list[str]
 
 
-@router.post("", response_model=PipelineResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PipelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new preprocessing pipeline",
+    description="Accepts pipeline configuration JSON, validates the referenced snapshot exists, runs pipeline validation, and stores the pipeline with a validated flag.",
+    responses={
+        201: {"description": "Pipeline successfully created and validated."},
+        400: {"description": "Validation error or invalid config."},
+        404: {"description": "Project or snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def create_pipeline(
     project_id: str,
     request: PipelineCreateRequest,
@@ -171,7 +183,17 @@ async def create_pipeline(
     )
 
 
-@router.get("", response_model=list[PipelineResponse])
+@router.get(
+    "",
+    response_model=list[PipelineResponse],
+    summary="List all pipelines for a project",
+    description="Returns all preprocessing pipelines created for the specified project.",
+    responses={
+        200: {"description": "Successfully retrieved pipelines list."},
+        404: {"description": "Project not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def list_pipelines(
     project_id: str,
     session: AsyncSession = Depends(get_async_session),
@@ -227,7 +249,17 @@ async def list_pipelines(
     return response_list
 
 
-@router.get("/{pipeline_id}", response_model=PipelineResponse)
+@router.get(
+    "/{pipeline_id}",
+    response_model=PipelineResponse,
+    summary="Get pipeline by ID",
+    description="Retrieves details for a specific preprocessing pipeline within a project.",
+    responses={
+        200: {"description": "Successfully retrieved pipeline details."},
+        404: {"description": "Project or pipeline not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def get_pipeline(
     project_id: str,
     pipeline_id: str,
@@ -287,7 +319,17 @@ async def get_pipeline(
     )
 
 
-@router.get("/{pipeline_id}/validate", response_model=ValidationResult)
+@router.get(
+    "/{pipeline_id}/validate",
+    response_model=ValidationResult,
+    summary="Validate pipeline config",
+    description="Validates a stored preprocessing pipeline config against its dataset snapshot schema, returning lists of warnings and errors.",
+    responses={
+        200: {"description": "Successfully validated pipeline config."},
+        404: {"description": "Project, pipeline, or snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
+)
 async def validate_pipeline_endpoint(
     project_id: str,
     pipeline_id: str,
