@@ -67,8 +67,8 @@ describe("Zustand Stores Unit Tests", () => {
     });
 
     it("should update authStatus when setAuthStatus is called", () => {
-      useAppStore.getState().setAuthStatus("unlocked");
-      expect(useAppStore.getState().authStatus).toBe("unlocked");
+      useAppStore.getState().setAuthStatus("authenticated");
+      expect(useAppStore.getState().authStatus).toBe("authenticated");
     });
 
     it("should update currentProjectId when setCurrentProject is called", () => {
@@ -212,7 +212,7 @@ describe("Zustand Stores Unit Tests", () => {
     it("should update block params when updateBlockParams is called", () => {
       usePipelineStore.getState().addBlock(mockBlock);
       usePipelineStore.getState().updateBlockParams("block-1", { foo: "bar" });
-      expect(usePipelineStore.getState().blocks[0].params).toEqual({ foo: "bar" });
+      expect(usePipelineStore.getState().blocks[0]!.params).toEqual({ foo: "bar" });
     });
   });
 

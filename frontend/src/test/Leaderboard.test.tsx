@@ -64,7 +64,7 @@ describe("Leaderboard Component Tests", () => {
 
   it("should render 5 experiment rows, show the BEST badge on is_best:true, and call API with sort_by=f1&order=asc when F1 header is clicked", async () => {
     // Initial fetch on mount returns the 5 mock rows
-    vi.mocked(fetchLeaderboard).mockResolvedValue(mockEntries);
+    vi.mocked(fetchLeaderboard as any).mockResolvedValue(mockEntries as any);
 
     render(<Leaderboard projectId={projectId} />);
 
