@@ -89,10 +89,16 @@ export function AppShell(): JSX.Element {
           onComplete={() => setCurrentStep("preprocessing")}
         />
       ),
-      preprocessing: <PreprocessingPipeline projectId={currentProjectId} />,
+      preprocessing: (
+        <PreprocessingPipeline
+          projectId={currentProjectId}
+          onComplete={() => setCurrentStep("model")}
+        />
+      ),
       model: (
         <ModelSelection
           projectId={currentProjectId}
+          pipelineId="mock-pipeline-id"
           onStartTraining={handleStartTraining}
         />
       ),

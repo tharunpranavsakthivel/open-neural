@@ -317,7 +317,7 @@ export function Sidebar({
         <ol style={styles.stepList} role="menu">
           <li style={styles.stepItem} role="none">
             <button
-              onClick={() => onStepClick("settings", -1)}
+              onClick={() => onStepClick("settings")}
               aria-current={currentStep === "settings" ? "page" : undefined}
               aria-disabled={false}
               role="menuitem"

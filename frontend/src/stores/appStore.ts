@@ -1,30 +1,17 @@
 /**
  * Global application state store using Zustand.
  *
- * Manages the backend port (received from Electron main process),
- * authentication state, and the currently selected project.
+ * Manages the backend port (received from Electron main process), authentication
+ * state, and other global UI state. Persists auth state across component mounts.
  *
  * @module stores/appStore
  */
 import { create } from "zustand";
+import type { AuthState } from "../types/electron";
 
-/**
- * Authentication status type.
- * - 'setup': First launch, user needs to set a password
- * - 'locked': Password is set, user needs to authenticate
- * - 'unlocked': User is authenticated, app is accessible
- */
-export type AuthStatus = "setup" | "locked" | "unlocked";
+export type AuthStatus = "loading" | "setup" | "login" | "authenticated";
 
-/**
- * Authentication state from Electron.
- * Re-exported from types/electron for convenience.
- */
-export type { AuthState } from "../types/electron";
-
-/**
- * Wizard step identifiers.
- */
+/** Wizard step identifiers */
 export type WizardStep =
   | "projects"
   | "dataset"
@@ -51,42 +38,90 @@ export interface Project {
  * Application state interface.
  */
 export interface AppState {
-  /** Backend port for API communication, null until fetched from Electron */
+  /** Backend port for API communication, null until fetched */
   backendPort: number | null;
+  /** Whether backend port is being fetched */
+  isLoadingPort: boolean;
   /** Current authentication status */
   authStatus: AuthStatus;
-  /** Currently selected project ID, null if no project selected */
+  /** Authentication state from Electron */
+  authState: AuthState | null;
+  /** Error message if initialization failed */
+  error: string | null;
+  /** Currently active wizard step */
+  currentStep: WizardStep;
+  /** Currently selected project ID, null if on projects dashboard */
   currentProjectId: string | null;
+  /** Currently active experiment ID for training/evaluation */
+  currentExperimentId: string | null;
+  /** List of projects for the dashboard */
+  projects: Project[];
+  /** Whether a project is currently being created/edited */
+  isProjectModalOpen: boolean;
+  /** Current toast message */
+  toast: { message: string; type: "success" | "error" } | null;
   /** Ephemeral secret for backend API authentication */
   backendSecret: string;
 }
 
 /**
- * Application store actions interface.
+ * Application store interface including state and actions.
  */
 export interface AppActions {
-  /** Set the backend port for API communication */
+  /** Set the backend port */
   setBackendPort: (port: number) => void;
-  /** Set the authentication status */
+  /** Set loading state for port fetch */
+  setIsLoadingPort: (loading: boolean) => void;
+  /** Set authentication status */
   setAuthStatus: (status: AuthStatus) => void;
-  /** Set the current project ID */
-  setCurrentProject: (projectId: string | null) => void;
+  /** Set authentication state */
+  setAuthState: (state: AuthState) => void;
+  /** Set error message */
+  setError: (error: string | null) => void;
+  /** Complete authentication flow */
+  setAuthenticated: () => void;
+  /** Navigate to a wizard step */
+  setCurrentStep: (step: WizardStep) => void;
+  /** Set the current experiment ID */
+  setCurrentExperimentId: (experimentId: string | null) => void;
+  /** Set the current project ID directly */
+  setCurrentProjectId: (projectId: string | null) => void;
+  /** Select a project and navigate to dataset step */
+  selectProject: (projectId: string) => void;
+  /** Return to projects dashboard */
+  goToProjects: () => void;
+  /** Set projects list */
+  setProjects: (projects: Project[]) => void;
+  /** Open project creation modal */
+  openProjectModal: () => void;
+  /** Close project creation modal */
+  closeProjectModal: () => void;
+  /** Show success toast message */
+  showSuccessToast: (message: string) => void;
+  /** Show error toast message */
+  showErrorToast: (message: string) => void;
+  /** Clear toast message */
+  clearToast: () => void;
   /** Set the backend secret for API communication */
   setBackendSecret: (secret: string) => void;
+  /** Set the current project ID */
+  setCurrentProject: (projectId: string | null) => void;
 }
 
-/**
- * Combined application store type.
- */
 export type AppStore = AppState & AppActions;
 
-/**
- * Initial application state.
- */
 const initialState: AppState = {
   backendPort: null,
-  authStatus: "setup",
+  isLoadingPort: true,
+  authStatus: "loading",
+  authState: null,
+  error: null,
+  currentStep: "projects",
   currentProjectId: null,
+  currentExperimentId: null,
+  projects: [],
+  isProjectModalOpen: false,
+  toast: null,
   backendSecret: "dev-secret",
 };
 
@@ -94,14 +129,6 @@ const initialState: AppState = {
  * Global application store using Zustand.
  *
  * Provides reactive state management for the OpenNeural frontend.
- *
- * @example
- * const { backendPort, setBackendPort } = useAppStore();
- * useEffect(() => {
- *   window.electronAPI.getBackendPort().then(port => {
- *     if (port) setBackendPort(port);
- *   });
- * }, []);
  */
 export const useAppStore = create<AppStore>((set) => ({
   ...initialState,
@@ -111,66 +138,113 @@ export const useAppStore = create<AppStore>((set) => ({
       backendPort: port,
     })),
 
+  setIsLoadingPort: (loading: boolean) =>
+    set(() => ({
+      isLoadingPort: loading,
+    })),
+
   setAuthStatus: (status: AuthStatus) =>
     set(() => ({
       authStatus: status,
     })),
 
-  setCurrentProject: (projectId: string | null) =>
+  setAuthState: (state: AuthState) =>
+    set(() => ({
+      authState: state,
+    })),
+
+  setError: (err: string | null) =>
+    set(() => ({
+      error: err,
+    })),
+
+  setAuthenticated: () =>
+    set(() => ({
+      authStatus: "authenticated",
+    })),
+
+  setCurrentStep: (step: WizardStep) =>
+    set(() => ({
+      currentStep: step,
+    })),
+
+  setCurrentExperimentId: (experimentId: string | null) =>
+    set(() => ({
+      currentExperimentId: experimentId,
+    })),
+
+  setCurrentProjectId: (projectId: string | null) =>
     set(() => ({
       currentProjectId: projectId,
+    })),
+
+  selectProject: (projectId: string) =>
+    set(() => ({
+      currentProjectId: projectId,
+      currentStep: "dataset",
+    })),
+
+  goToProjects: () =>
+    set(() => ({
+      currentStep: "projects",
+      currentProjectId: null,
+    })),
+
+  setProjects: (projectsList: Project[]) =>
+    set(() => ({
+      projects: projectsList,
+    })),
+
+  openProjectModal: () =>
+    set(() => ({
+      isProjectModalOpen: true,
+    })),
+
+  closeProjectModal: () =>
+    set(() => ({
+      isProjectModalOpen: false,
+    })),
+
+  showSuccessToast: (message: string) =>
+    set(() => ({
+      toast: { message, type: "success" },
+    })),
+
+  showErrorToast: (message: string) =>
+    set(() => ({
+      toast: { message, type: "error" },
+    })),
+
+  clearToast: () =>
+    set(() => ({
+      toast: null,
     })),
 
   setBackendSecret: (secret: string) =>
     set(() => ({
       backendSecret: secret,
     })),
+
+  setCurrentProject: (projectId: string | null) =>
+    set(() => ({
+      currentProjectId: projectId,
+    })),
 }));
 
-/**
- * Hook selector for accessing individual state values.
- * Use this when you only need a specific value to minimize re-renders.
- *
- * @example
- * const backendPort = useAppSelector((state) => state.backendPort);
- * const setBackendPort = useAppSelector((state) => state.setBackendPort);
- */
 export const useAppSelector = useAppStore;
 
-/**
- * Get the current backend port from the store.
- * Useful for non-component contexts.
- *
- * @returns The current backend port or null if not set
- */
 export function getBackendPort(): number | null {
   return useAppStore.getState().backendPort;
 }
 
-/**
- * Get the current authentication status from the store.
- *
- * @returns The current auth status
- */
 export function getAuthStatus(): AuthStatus {
   return useAppStore.getState().authStatus;
 }
 
-/**
- * Get the current project ID from the store.
- *
- * @returns The current project ID or null if no project selected
- */
 export function getCurrentProjectId(): string | null {
   return useAppStore.getState().currentProjectId;
 }
 
-/**
- * Get the current backend secret from the store.
- * Useful for non-component contexts (like axios client).
- *
- * @returns The current backend secret
- */
 export function getBackendSecret(): string {
   return useAppStore.getState().backendSecret;
 }
