@@ -62,6 +62,7 @@ class SessionmakerProxy:
 
 # Pre-patch openneural_backend.db.engine with proxies BEFORE other modules import them
 
+import openneural_backend.db.engine
 db_engine_module = sys.modules["openneural_backend.db.engine"]
 
 _default_engine = db_engine_module.engine
