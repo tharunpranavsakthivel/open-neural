@@ -9,7 +9,7 @@
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
-  appId: "ai.openneural.app",
+  appId: "com.openneural.app",
   productName: "OpenNeural",
   copyright: "Copyright © 2024 OpenNeural",
   
@@ -31,26 +31,11 @@ module.exports = {
     "!**/*.spec.*"
   ],
 
-  // Extra resources (Python backend, etc.)
+  // Extra resources (Python backend compiled with PyInstaller)
   extraResources: [
     {
-      from: "../backend",
-      to: "backend",
-      filter: [
-        "**/*",
-        "!**/__pycache__/**/*",
-        "!**/*.pyc",
-        "!**/*.pyo",
-        "!**/test/**/*",
-        "!**/tests/**/*",
-        "!**/.pytest_cache/**/*",
-        "!**/*.egg-info/**/*",
-        "!**/build/**/*",
-        "!**/dist/**/*",
-        "!**/.venv/**/*",
-        "!**/requirements*.txt",
-        "!**/pyproject.toml"
-      ]
+      from: "../backend/dist/openneural_backend",
+      to: "backend"
     }
   ],
 
@@ -61,10 +46,6 @@ module.exports = {
       {
         target: "dmg",
         arch: ["x64", "arm64"]
-      },
-      {
-        target: "zip",
-        arch: ["x64", "arm64"]
       }
     ],
     icon: "build/icon.icns",
@@ -72,7 +53,7 @@ module.exports = {
     gatekeeperAssess: false,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
-    notarize: false // Set to true and configure for production signing
+    notarize: false
   },
 
   // DMG configuration
@@ -101,10 +82,6 @@ module.exports = {
     target: [
       {
         target: "nsis",
-        arch: ["x64"]
-      },
-      {
-        target: "portable",
         arch: ["x64"]
       }
     ],
@@ -135,10 +112,6 @@ module.exports = {
       {
         target: "AppImage",
         arch: ["x64"]
-      },
-      {
-        target: "deb",
-        arch: ["x64"]
       }
     ],
     category: "Development",
@@ -160,20 +133,10 @@ module.exports = {
     category: "Development"
   },
 
-  // Deb configuration
-  deb: {
-    priority: "optional",
-    depends: [
-      "python3.11 | python3.12",
-      "python3-pip"
-    ]
-  },
-
   // ASAR configuration
   asar: true,
   asarUnpack: [
-    "**/*.node",
-    "**/backend/**/*"
+    "**/*.node"
   ],
 
   // Compression
