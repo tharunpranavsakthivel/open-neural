@@ -42,7 +42,10 @@ interface UseEscapeKeyOptions {
  * });
  * ```
  */
-export function useEscapeKey({ enabled = true, onEscape }: UseEscapeKeyOptions): void {
+export function useEscapeKey({
+  enabled = true,
+  onEscape,
+}: UseEscapeKeyOptions): void {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -50,7 +53,7 @@ export function useEscapeKey({ enabled = true, onEscape }: UseEscapeKeyOptions):
         onEscape();
       }
     },
-    [onEscape]
+    [onEscape],
   );
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export function useFocusTrap({
 
       const container = containerRef.current;
       const focusableElements = container.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
 
       if (focusableElements.length === 0) return;
@@ -118,7 +121,7 @@ export function useFocusTrap({
         }
       }
     },
-    [containerRef]
+    [containerRef],
   );
 
   useEffect(() => {
@@ -168,7 +171,7 @@ export function useKeyboardActivation({
         onActivate();
       }
     },
-    [enabled, onActivate]
+    [enabled, onActivate],
   );
 }
 
@@ -244,7 +247,7 @@ export function useArrowKeyNavigation({
           break;
       }
     },
-    [enabled, itemCount, focusedIndex, onFocusChange, onSelect]
+    [enabled, itemCount, focusedIndex, onFocusChange, onSelect],
   );
 
   return { handleKeyDown };
@@ -258,7 +261,7 @@ export function useArrowKeyNavigation({
  */
 export function focusFirstElement(container: HTMLElement): HTMLElement | null {
   const focusableElements = container.querySelectorAll<HTMLElement>(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
   );
 
   if (focusableElements.length > 0) {
@@ -279,8 +282,8 @@ export function focusFirstElement(container: HTMLElement): HTMLElement | null {
 export function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(
     container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    ),
   );
 }
 

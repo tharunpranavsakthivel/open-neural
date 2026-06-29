@@ -149,18 +149,23 @@ function StatusIndicator({ status }: { status: ExportStatus }): JSX.Element {
  * @param props - Component props
  * @returns The export status component
  */
-export function ExportStatus({ artifacts, onRetry }: ExportStatusProps): JSX.Element {
+export function ExportStatus({
+  artifacts,
+  onRetry,
+}: ExportStatusProps): JSX.Element {
   /**
    * Check if all exports are complete.
    */
   const allComplete = artifacts.every(
-    (artifact) => artifact.status === "success" || artifact.status === "error"
+    (artifact) => artifact.status === "success" || artifact.status === "error",
   );
 
   /**
    * Check if all exports succeeded.
    */
-  const allSucceeded = artifacts.every((artifact) => artifact.status === "success");
+  const allSucceeded = artifacts.every(
+    (artifact) => artifact.status === "success",
+  );
 
   /**
    * Count successful exports.
@@ -176,7 +181,9 @@ export function ExportStatus({ artifacts, onRetry }: ExportStatusProps): JSX.Ele
           <span
             style={{
               ...styles.summaryBadge,
-              ...(allSucceeded ? styles.summaryBadgeSuccess : styles.summaryBadgePartial),
+              ...(allSucceeded
+                ? styles.summaryBadgeSuccess
+                : styles.summaryBadgePartial),
             }}
           >
             {successCount}/{artifacts.length} Complete
@@ -196,15 +203,20 @@ export function ExportStatus({ artifacts, onRetry }: ExportStatusProps): JSX.Ele
           >
             {/* Icon and Name */}
             <div style={styles.artifactInfo}>
-              <span style={styles.artifactIcon}>{getArtifactIcon(artifact.artifactType)}</span>
+              <span style={styles.artifactIcon}>
+                {getArtifactIcon(artifact.artifactType)}
+              </span>
               <span style={styles.artifactName}>{artifact.name}</span>
             </div>
 
             {/* Status and File Info */}
             <div style={styles.artifactStatus}>
-              {artifact.status === "success" && artifact.fileSizeBytes !== undefined && (
-                <span style={styles.fileSize}>{formatFileSize(artifact.fileSizeBytes)}</span>
-              )}
+              {artifact.status === "success" &&
+                artifact.fileSizeBytes !== undefined && (
+                  <span style={styles.fileSize}>
+                    {formatFileSize(artifact.fileSizeBytes)}
+                  </span>
+                )}
               <StatusIndicator status={artifact.status} />
               {artifact.status === "error" && onRetry && (
                 <button

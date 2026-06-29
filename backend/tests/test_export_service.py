@@ -4,8 +4,8 @@ Validates ONNX, joblib, PDF, CSV, and manifest exports.
 """
 
 import json
-import os
 from pathlib import Path
+
 import joblib
 import numpy as np
 import onnx
@@ -15,10 +15,8 @@ from sklearn.linear_model import LogisticRegression
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from openneural_backend.db.models import (
-    DatasetSnapshot,
     Evaluation,
     Experiment,
-    Export,
     Pipeline,
     Project,
     Run,
@@ -80,6 +78,7 @@ async def test_export_model_onnx_success(
     # Train a simple LogisticRegression model and save it to the run directory
     # Expected directory: {tmp_data_dir}/experiments/{experiment_id}/runs/{run_id}/model.joblib
     from openneural_backend.config import Settings
+
     data_dir = Settings.get().data_dir
     run_dir = data_dir / "experiments" / experiment.id / "runs" / run.id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -141,6 +140,7 @@ async def test_export_model_joblib_success(
     await db_session.refresh(run)
 
     from openneural_backend.config import Settings
+
     data_dir = Settings.get().data_dir
     run_dir = data_dir / "experiments" / experiment.id / "runs" / run.id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -193,16 +193,19 @@ async def test_export_predictions_csv_success(
 
     # Save mock predictions parquet
     from openneural_backend.config import Settings
+
     data_dir = Settings.get().data_dir
     run_dir = data_dir / "experiments" / experiment.id / "runs" / run.id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    df = pd.DataFrame({
-        "row_index": [0, 1, 2],
-        "y_true": [0, 1, 0],
-        "y_pred": [0, 1, 1],
-        "y_proba": [0.1, 0.9, 0.7],
-    })
+    df = pd.DataFrame(
+        {
+            "row_index": [0, 1, 2],
+            "y_true": [0, 1, 0],
+            "y_pred": [0, 1, 1],
+            "y_proba": [0.1, 0.9, 0.7],
+        }
+    )
     df.to_parquet(run_dir / "predictions.parquet")
 
     dest_dir = tmp_path / "export_dest"
@@ -215,7 +218,11 @@ async def test_export_predictions_csv_success(
     assert "row_index" in exported_df.columns
     assert "predicted_label" in exported_df.columns
     assert "true_label" in exported_df.columns
-    assert "prob_0" in exported_df.columns or "prob_positive" in exported_df.columns or any(c.startswith("prob") for c in exported_df.columns)
+    assert (
+        "prob_0" in exported_df.columns
+        or "prob_positive" in exported_df.columns
+        or any(c.startswith("prob") for c in exported_df.columns)
+    )
 
 
 @pytest.mark.anyio
@@ -247,7 +254,9 @@ async def test_export_report_pdf_success(
         status="done",
         hyperparams_json="{}",
         cv_metrics_json="{}",
-        test_metrics_json=json.dumps({"f1": 0.82, "accuracy": 0.85, "precision": 0.81, "recall": 0.83}),
+        test_metrics_json=json.dumps(
+            {"f1": 0.82, "accuracy": 0.85, "precision": 0.81, "recall": 0.83}
+        ),
     )
     db_session.add(run)
     await db_session.commit()
@@ -256,7 +265,9 @@ async def test_export_report_pdf_success(
     evaluation = Evaluation(
         run_id=run.id,
         split="test",
-        metrics_json=json.dumps({"f1": 0.82, "accuracy": 0.85, "precision": 0.81, "recall": 0.83}),
+        metrics_json=json.dumps(
+            {"f1": 0.82, "accuracy": 0.85, "precision": 0.81, "recall": 0.83}
+        ),
         confusion_matrix_json=json.dumps({"tn": 10, "fp": 2, "fn": 3, "tp": 15}),
         threshold=0.5,
     )
@@ -289,6 +300,7 @@ async def test_generate_manifest_success(tmp_path: Path) -> None:
     file_path.write_bytes(b"some dummy onnx model bytes")
 
     import hashlib
+
     sha256 = hashlib.sha256(b"some dummy onnx model bytes").hexdigest()
 
     exported_files = [
@@ -303,7 +315,7 @@ async def test_generate_manifest_success(tmp_path: Path) -> None:
     manifest_path = await generate_manifest(tmp_path, "exp_onx1_0001", exported_files)
     assert manifest_path.exists()
 
-    with open(manifest_path, "r") as f:
+    with open(manifest_path) as f:
         manifest_data = json.load(f)
 
     assert manifest_data["experiment_id"] == "exp_onx1_0001"
@@ -315,13 +327,14 @@ async def test_generate_manifest_success(tmp_path: Path) -> None:
 @pytest.mark.anyio
 async def test_get_run_and_experiment_failures(db_session: AsyncSession) -> None:
     """Verify that _get_run_and_experiment raises RunNotFoundError / ExperimentNotFoundError correctly."""
-    from openneural_backend.services.export_service import (
-        _get_run_and_experiment,
-        RunNotFoundError,
-        ExperimentNotFoundError,
-    )
-    from unittest.mock import MagicMock, AsyncMock
+    from unittest.mock import AsyncMock, MagicMock
+
     import openneural_backend.services.export_service as es
+    from openneural_backend.services.export_service import (
+        ExperimentNotFoundError,
+        RunNotFoundError,
+        _get_run_and_experiment,
+    )
 
     # Test non-existent run
     with pytest.raises(RunNotFoundError):
@@ -358,6 +371,7 @@ async def test_get_run_and_experiment_failures(db_session: AsyncSession) -> None
     class MockSessionCM:
         async def __aenter__(self):
             return mock_session
+
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
@@ -375,8 +389,8 @@ async def test_get_run_and_experiment_failures(db_session: AsyncSession) -> None
 async def test_get_experiment_failures() -> None:
     """Verify that _get_experiment raises ExperimentNotFoundError correctly."""
     from openneural_backend.services.export_service import (
-        _get_experiment,
         ExperimentNotFoundError,
+        _get_experiment,
     )
 
     with pytest.raises(ExperimentNotFoundError):
@@ -387,12 +401,12 @@ async def test_get_experiment_failures() -> None:
 async def test_export_services_failures(tmp_path: Path) -> None:
     """Verify exported functions fail gracefully on non-existent IDs."""
     from openneural_backend.services.export_service import (
-        export_model_onnx,
+        ExperimentNotFoundError,
+        RunNotFoundError,
         export_model_joblib,
+        export_model_onnx,
         export_predictions_csv,
         export_report_pdf,
-        RunNotFoundError,
-        ExperimentNotFoundError,
     )
 
     with pytest.raises(RunNotFoundError):

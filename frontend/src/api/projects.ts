@@ -1,8 +1,8 @@
 /**
  * Projects API module.
- * 
+ *
  * Provides typed Axios-based wrappers for project and dashboard statistics endpoints.
- * 
+ *
  * @module api/projects
  */
 import { getApiClient } from "./client";
@@ -54,9 +54,9 @@ export interface CreateProjectResponse {
 
 /**
  * Fetch all projects from the backend.
- * 
+ *
  * GET /api/v1/projects
- * 
+ *
  * @returns Array of project metadata objects
  */
 export async function fetchProjects(): Promise<Project[]> {
@@ -67,9 +67,9 @@ export async function fetchProjects(): Promise<Project[]> {
 
 /**
  * Fetch dashboard statistics from the backend.
- * 
+ *
  * GET /api/v1/dashboard/stats
- * 
+ *
  * @returns Dashboard statistics (experiments, exports, snapshots)
  */
 export async function fetchDashboardStats(): Promise<DashboardStats> {
@@ -80,70 +80,79 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 
 /**
  * Rename a project using PUT.
- * 
+ *
  * PUT /api/v1/projects/{projectId}
- * 
+ *
  * @param projectId - The ID of the project to rename
  * @param newName - The new name for the project
  * @returns The updated project
  */
 export async function renameProject(
   projectId: string,
-  newName: string
+  newName: string,
 ): Promise<Project> {
   const client = getApiClient();
-  const response = await client.put<RenameProjectResponse>(`/projects/${projectId}`, {
-    name: newName,
-  });
+  const response = await client.put<RenameProjectResponse>(
+    `/projects/${projectId}`,
+    {
+      name: newName,
+    },
+  );
   return response.data.project;
 }
 
 /**
  * Rename a project using PATCH (partial update).
- * 
+ *
  * PATCH /api/v1/projects/{projectId}
- * 
+ *
  * @param projectId - The ID of the project to rename
  * @param newName - The new name for the project
  * @returns The updated project
  */
 export async function patchProject(
   projectId: string,
-  newName: string
+  newName: string,
 ): Promise<Project> {
   const client = getApiClient();
-  const response = await client.patch<RenameProjectResponse>(`/projects/${projectId}`, {
-    name: newName,
-  });
+  const response = await client.patch<RenameProjectResponse>(
+    `/projects/${projectId}`,
+    {
+      name: newName,
+    },
+  );
   return response.data.project;
 }
 
 /**
  * Delete a project.
- * 
+ *
  * DELETE /api/v1/projects/{projectId}
- * 
+ *
  * @param projectId - The ID of the project to delete
  * @returns Whether the deletion was successful
  */
 export async function deleteProject(projectId: string): Promise<boolean> {
   const client = getApiClient();
-  const response = await client.delete<DeleteProjectResponse>(`/projects/${projectId}`);
+  const response = await client.delete<DeleteProjectResponse>(
+    `/projects/${projectId}`,
+  );
   return response.data.deleted;
 }
 
 /**
  * Create a new project.
- * 
+ *
  * POST /api/v1/projects
- * 
+ *
  * @param name - The name of the project
  * @param taskType - The type of ML task
  * @returns The created project
  */
 export async function createProject(
   name: string,
-  taskType: "binary_classification" | "multiclass_classification" | "regression"
+  taskType:
+    "binary_classification" | "multiclass_classification" | "regression",
 ): Promise<Project> {
   const client = getApiClient();
   const response = await client.post<CreateProjectResponse>("/projects", {

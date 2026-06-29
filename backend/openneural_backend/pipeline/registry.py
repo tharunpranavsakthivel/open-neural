@@ -7,15 +7,14 @@ dynamic block instantiation from configuration. The registry supports
 a decorator pattern for registering custom blocks.
 """
 
-from typing import Callable, Dict, Optional, Type
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 # Type alias for block classes
-BlockClass = Type[PipelineBlock]
+BlockClass = type[PipelineBlock]
 
 # Central registry mapping block_type strings to block classes
-BLOCK_REGISTRY: Dict[str, BlockClass] = {}
+BLOCK_REGISTRY: dict[str, BlockClass] = {}
 
 
 def register_block(cls: BlockClass) -> BlockClass:
@@ -67,7 +66,7 @@ def register_block(cls: BlockClass) -> BlockClass:
     return cls
 
 
-def get_block(block_type: str) -> Optional[BlockClass]:
+def get_block(block_type: str) -> BlockClass | None:
     """Look up a block class by its block_type string.
 
     Args:
@@ -108,7 +107,7 @@ def get_block_or_raise(block_type: str) -> BlockClass:
     return BLOCK_REGISTRY[block_type]
 
 
-def list_blocks() -> Dict[str, str]:
+def list_blocks() -> dict[str, str]:
     """List all registered block types and their class names.
 
     Returns:
@@ -173,13 +172,17 @@ def _register_builtin_blocks() -> None:
         EncodeCategoricalsOneHotBlock,
         EncodeCategoricalsOrdinalBlock,
     )
-    from openneural_backend.pipeline.blocks.feature_selection import FeatureSelectionBlock
+    from openneural_backend.pipeline.blocks.feature_selection import (
+        FeatureSelectionBlock,
+    )
     from openneural_backend.pipeline.blocks.fill_missing import (
         FillMissingMeanBlock,
         FillMissingMedianBlock,
     )
     from openneural_backend.pipeline.blocks.log_transform import LogTransformBlock
-    from openneural_backend.pipeline.blocks.remove_outliers import RemoveOutliersIQRBlock
+    from openneural_backend.pipeline.blocks.remove_outliers import (
+        RemoveOutliersIQRBlock,
+    )
     from openneural_backend.pipeline.blocks.scale_numerics import (
         ScaleNumericMinMaxBlock,
         ScaleNumericStandardBlock,

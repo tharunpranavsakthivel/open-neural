@@ -7,18 +7,16 @@ which is useful for handling zero or near-zero values that would cause
 undefined results with a standard log transform.
 """
 
-from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import FunctionTransformer
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -91,7 +89,7 @@ class LogTransformer(BaseEstimator, TransformerMixin):
         >>> X_transformed = transformer.fit_transform(X)
     """
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the transformer.
 
         Args:
@@ -100,7 +98,7 @@ class LogTransformer(BaseEstimator, TransformerMixin):
         """
         self.columns = columns if columns is not None else []
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "LogTransformer":
+    def fit(self, X: pd.DataFrame, y: pd.Series | None = None) -> "LogTransformer":
         """Fit the transformer to the data.
 
         For LogTransformer, fitting validates that the specified columns exist
@@ -121,9 +119,11 @@ class LogTransformer(BaseEstimator, TransformerMixin):
             raise ValueError(f"Expected pandas DataFrame, got {type(X).__name__}")
 
         # Determine columns to transform
-        columns_to_check = self.columns if self.columns else X.select_dtypes(
-            include=["number"]
-        ).columns.tolist()
+        columns_to_check = (
+            self.columns
+            if self.columns
+            else X.select_dtypes(include=["number"]).columns.tolist()
+        )
 
         if columns_to_check:
             missing_cols = set(columns_to_check) - set(X.columns)
@@ -157,9 +157,11 @@ class LogTransformer(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError(f"Expected pandas DataFrame, got {type(X).__name__}")
 
-        columns_to_transform = self.columns if self.columns else X.select_dtypes(
-            include=["number"]
-        ).columns.tolist()
+        columns_to_transform = (
+            self.columns
+            if self.columns
+            else X.select_dtypes(include=["number"]).columns.tolist()
+        )
 
         if not columns_to_transform:
             return X.copy()
@@ -214,14 +216,14 @@ class LogTransformBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to apply log transformation. "
-                               "If empty or not provided, all numeric columns are transformed. "
-                               "Note: Values must be non-negative (>= 0).",
+                "If empty or not provided, all numeric columns are transformed. "
+                "Note: Values must be non-negative (>= 0).",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the LogTransformBlock.
 
         Args:
@@ -229,10 +231,12 @@ class LogTransformBlock(PipelineBlock):
                 all numeric columns are transformed.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._transformer: Optional[LogTransformer] = None
-        self._function_transformer: Optional[FunctionTransformer] = None
+        self._transformer: LogTransformer | None = None
+        self._function_transformer: FunctionTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "LogTransformBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "LogTransformBlock":
         """Fit the block to the data.
 
         Validates that the specified columns exist and checks for negative values.

@@ -59,7 +59,7 @@ export function ColumnMultiSelect({
         : [...selected, columnValue];
       onChange(newSelected);
     },
-    [selected, onChange]
+    [selected, onChange],
   );
 
   /**
@@ -75,10 +75,12 @@ export function ColumnMultiSelect({
 
   return (
     <div>
-      {label && (
-        <label style={configStyles.label}>{label}</label>
-      )}
-      <div style={configStyles.multiSelect} role="group" aria-label={label ?? "Column selection"}>
+      {label && <label style={configStyles.label}>{label}</label>}
+      <div
+        style={configStyles.multiSelect}
+        role="group"
+        aria-label={label ?? "Column selection"}
+      >
         {showSelectAll && (
           <button
             type="button"
@@ -87,7 +89,9 @@ export function ColumnMultiSelect({
               ...configStyles.selectAll,
               color: someSelected ? "#6b7280" : "#2563eb",
             }}
-            aria-checked={allSelected ? "true" : someSelected ? "mixed" : "false"}
+            aria-checked={
+              allSelected ? "true" : someSelected ? "mixed" : "false"
+            }
             role="checkbox"
           >
             <input
@@ -103,7 +107,11 @@ export function ColumnMultiSelect({
               aria-hidden="true"
             />
             <span>
-              {isEmpty ? "Select All" : allSelected ? "Deselect All" : `${selected.length} selected`}
+              {isEmpty
+                ? "Select All"
+                : allSelected
+                  ? "Deselect All"
+                  : `${selected.length} selected`}
             </span>
           </button>
         )}
@@ -124,14 +132,22 @@ export function ColumnMultiSelect({
         ))}
 
         {columns.length === 0 && (
-          <p style={{ ...configStyles.helpText, textAlign: "center", padding: "1rem 0" }}>
+          <p
+            style={{
+              ...configStyles.helpText,
+              textAlign: "center",
+              padding: "1rem 0",
+            }}
+          >
             No columns available
           </p>
         )}
       </div>
 
       {emptyMeansAll && isEmpty && (
-        <p style={configStyles.helpText}>Leaving empty applies to all columns</p>
+        <p style={configStyles.helpText}>
+          Leaving empty applies to all columns
+        </p>
       )}
     </div>
   );

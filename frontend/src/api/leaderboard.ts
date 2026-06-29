@@ -1,8 +1,8 @@
 /**
  * Leaderboard API module.
- * 
+ *
  * Provides typed Axios-based wrappers for retrieving the project leaderboard.
- * 
+ *
  * @module api/leaderboard
  */
 import { getApiClient } from "./client";
@@ -39,7 +39,8 @@ export interface LeaderboardEntry {
 /**
  * Sort column options for the leaderboard.
  */
-export type LeaderboardSortBy = "f1" | "auc_roc" | "precision" | "recall" | "training_time";
+export type LeaderboardSortBy =
+  "f1" | "auc_roc" | "precision" | "recall" | "training_time";
 
 /**
  * Sort order options for the leaderboard.
@@ -48,9 +49,9 @@ export type LeaderboardOrder = "asc" | "desc";
 
 /**
  * Fetch the experiment leaderboard for a project.
- * 
+ *
  * GET /api/v1/projects/{projectId}/leaderboard?sort_by={sortBy}&order={order}
- * 
+ *
  * @param projectId - The ID of the project
  * @param sortBy - Column to sort by (default: "f1")
  * @param order - Sort order, "asc" or "desc" (default: "desc")
@@ -59,7 +60,7 @@ export type LeaderboardOrder = "asc" | "desc";
 export async function fetchLeaderboard(
   projectId: string,
   sortBy: LeaderboardSortBy = "f1",
-  order: LeaderboardOrder = "desc"
+  order: LeaderboardOrder = "desc",
 ): Promise<LeaderboardEntry[]> {
   const client = getApiClient();
   const response = await client.get<LeaderboardEntry[]>(
@@ -69,7 +70,7 @@ export async function fetchLeaderboard(
         sort_by: sortBy,
         order: order,
       },
-    }
+    },
   );
   return response.data;
 }

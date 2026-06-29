@@ -1,8 +1,8 @@
 /**
  * Snapshots API module.
- * 
+ *
  * Provides typed Axios-based wrappers for dataset snapshot uploading and retrieval.
- * 
+ *
  * @module api/snapshots
  */
 import { getApiClient } from "./client";
@@ -57,9 +57,9 @@ export interface SnapshotListItem {
 
 /**
  * Upload a dataset file to create a snapshot.
- * 
+ *
  * POST /api/v1/projects/{projectId}/snapshots
- * 
+ *
  * @param projectId - The ID of the project
  * @param file - The file to upload
  * @param onProgress - Optional callback for upload progress (0-100)
@@ -68,7 +68,7 @@ export interface SnapshotListItem {
 export async function uploadDatasetSnapshot(
   projectId: string,
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<DatasetSnapshotResponse> {
   const client = getApiClient();
   const formData = new FormData();
@@ -84,7 +84,7 @@ export async function uploadDatasetSnapshot(
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
           const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
+            (progressEvent.loaded * 100) / progressEvent.total,
           );
           useDatasetStore.getState().setUploadProgress(progress);
           if (onProgress) {
@@ -92,7 +92,7 @@ export async function uploadDatasetSnapshot(
           }
         }
       },
-    }
+    },
   );
 
   return response.data;
@@ -100,18 +100,18 @@ export async function uploadDatasetSnapshot(
 
 /**
  * Fetch all snapshots for a project.
- * 
+ *
  * GET /api/v1/projects/{projectId}/snapshots
- * 
+ *
  * @param projectId - The ID of the project
  * @returns Array of snapshot list items
  */
 export async function fetchProjectSnapshots(
-  projectId: string
+  projectId: string,
 ): Promise<SnapshotListItem[]> {
   const client = getApiClient();
   const response = await client.get<SnapshotListItem[]>(
-    `/projects/${projectId}/snapshots`
+    `/projects/${projectId}/snapshots`,
   );
   return response.data;
 }

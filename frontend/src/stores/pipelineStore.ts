@@ -161,10 +161,15 @@ export const usePipelineStore = create<PipelineStore>((set: any) => ({
     }));
   },
 
-  updateBlockParams: (blockId: string, params: Record<string, unknown>): void => {
+  updateBlockParams: (
+    blockId: string,
+    params: Record<string, unknown>,
+  ): void => {
     set((state: PipelineStore) => ({
       blocks: state.blocks.map((b: PipelineBlock) =>
-        b.id === blockId ? { ...b, params, status: "configured" as BlockStatus } : b
+        b.id === blockId
+          ? { ...b, params, status: "configured" as BlockStatus }
+          : b,
       ),
       // Reset saved ID and validation result since parameters have changed
       savedPipelineId: null,

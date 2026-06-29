@@ -23,12 +23,28 @@ describe("DatasetImport Component Tests", () => {
     version_label: "v1",
     row_count: 5000,
     col_count: 3,
-    checksum_sha256: "7a8b9c10d11e12f13a14b15c16d17e18f19a20b21c22d23e24f25a26b27c28d2",
+    checksum_sha256:
+      "7a8b9c10d11e12f13a14b15c16d17e18f19a20b21c22d23e24f25a26b27c28d2",
     file_size_bytes: 450000, // < 500MB, no large file warning
     schema: [
-      { name: "customer_id", inferred_type: "integer", null_pct: 0, unique_count: 5000 },
-      { name: "churn_status", inferred_type: "string", null_pct: 0.2, unique_count: 2 },
-      { name: "monthly_charges", inferred_type: "float", null_pct: 1.5, unique_count: 420 },
+      {
+        name: "customer_id",
+        inferred_type: "integer",
+        null_pct: 0,
+        unique_count: 5000,
+      },
+      {
+        name: "churn_status",
+        inferred_type: "string",
+        null_pct: 0.2,
+        unique_count: 2,
+      },
+      {
+        name: "monthly_charges",
+        inferred_type: "float",
+        null_pct: 1.5,
+        unique_count: 420,
+      },
     ],
     created_at: new Date().toISOString(),
     memory_warning: false,
@@ -43,31 +59,41 @@ describe("DatasetImport Component Tests", () => {
     render(<DatasetImport projectId={projectId} onComplete={mockOnComplete} />);
 
     expect(screen.getByLabelText("File drop zone")).toBeInTheDocument();
-    expect(screen.getByText("No dataset imported yet. Please upload a file to proceed.")).toBeInTheDocument();
-    expect(screen.getByText("Drag and drop a CSV or Parquet file here")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No dataset imported yet. Please upload a file to proceed.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Drag and drop a CSV or Parquet file here"),
+    ).toBeInTheDocument();
   });
 
   it("should handle valid file drop, show progress bar, and display schema table with 3 columns", async () => {
     let progressFn: ((p: number) => void) | undefined;
 
-    vi.mocked(uploadDatasetSnapshot).mockImplementation((_projId, _file, onProgress) => {
-      progressFn = onProgress;
-      return new Promise((resolve) => {
-        // We will manually trigger progress updates and resolve in the test
-        setTimeout(() => {
-          if (progressFn) progressFn(50);
-        }, 10);
-        setTimeout(() => {
-          if (progressFn) progressFn(100);
-          resolve(mockSnapshot);
-        }, 20);
-      });
-    });
+    vi.mocked(uploadDatasetSnapshot).mockImplementation(
+      (_projId, _file, onProgress) => {
+        progressFn = onProgress;
+        return new Promise((resolve) => {
+          // We will manually trigger progress updates and resolve in the test
+          setTimeout(() => {
+            if (progressFn) progressFn(50);
+          }, 10);
+          setTimeout(() => {
+            if (progressFn) progressFn(100);
+            resolve(mockSnapshot);
+          }, 20);
+        });
+      },
+    );
 
     render(<DatasetImport projectId={projectId} onComplete={mockOnComplete} />);
 
     const dropZone = screen.getByLabelText("File drop zone");
-    const file = new File(["col1,col2,col3\n1,2,3"], "customer_churn.csv", { type: "text/csv" });
+    const file = new File(["col1,col2,col3\n1,2,3"], "customer_churn.csv", {
+      type: "text/csv",
+    });
 
     // Trigger file drop
     fireEvent.drop(dropZone, {
@@ -90,7 +116,9 @@ describe("DatasetImport Component Tests", () => {
     });
 
     // Check column count in table. There should be exactly 3 column names listed in the cells
-    const columnCells = screen.getAllByText(/customer_id|churn_status|monthly_charges/);
+    const columnCells = screen.getAllByText(
+      /customer_id|churn_status|monthly_charges/,
+    );
     expect(columnCells).toHaveLength(3);
 
     expect(mockOnComplete).toHaveBeenCalled();
@@ -100,7 +128,9 @@ describe("DatasetImport Component Tests", () => {
     render(<DatasetImport projectId={projectId} onComplete={mockOnComplete} />);
 
     const dropZone = screen.getByLabelText("File drop zone");
-    const invalidFile = new File(["some image data"], "avatar.png", { type: "image/png" });
+    const invalidFile = new File(["some image data"], "avatar.png", {
+      type: "image/png",
+    });
 
     fireEvent.drop(dropZone, {
       dataTransfer: {
@@ -109,7 +139,11 @@ describe("DatasetImport Component Tests", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Invalid file type. Please upload a CSV or Parquet file.")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Invalid file type. Please upload a CSV or Parquet file.",
+        ),
+      ).toBeInTheDocument();
     });
 
     expect(uploadDatasetSnapshot).not.toHaveBeenCalled();

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SubgroupAnalysis, type SubgroupData } from "../components/SubgroupAnalysis";
+import {
+  SubgroupAnalysis,
+  type SubgroupData,
+} from "../components/SubgroupAnalysis";
 
 describe("SubgroupAnalysis Component Tests", () => {
   const mockSubgroups: SubgroupData[] = [
@@ -24,7 +27,8 @@ describe("SubgroupAnalysis Component Tests", () => {
         precision: 0.66,
       },
       fairness_warning: true,
-      diagnostic_note: "Performance in this subgroup is significantly lower. Underrepresented in dataset.",
+      diagnostic_note:
+        "Performance in this subgroup is significantly lower. Underrepresented in dataset.",
     },
   ];
 
@@ -40,7 +44,11 @@ describe("SubgroupAnalysis Component Tests", () => {
 
     // Detail panel / Metric Breakdown should NOT be in the document initially
     expect(screen.queryByText("Metric Breakdown")).not.toBeInTheDocument();
-    expect(screen.queryByText("Performance in this subgroup is significantly lower. Underrepresented in dataset.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Performance in this subgroup is significantly lower. Underrepresented in dataset.",
+      ),
+    ).not.toBeInTheDocument();
 
     // Click the row for "age < 25" to expand it
     const ageRow = screen.getByText("age < 25");
@@ -48,8 +56,12 @@ describe("SubgroupAnalysis Component Tests", () => {
 
     // Expanded detail panel should now be visible
     expect(screen.getByText("Metric Breakdown")).toBeInTheDocument();
-    expect(screen.getByText("Performance in this subgroup is significantly lower. Underrepresented in dataset.")).toBeInTheDocument();
-    
+    expect(
+      screen.getByText(
+        "Performance in this subgroup is significantly lower. Underrepresented in dataset.",
+      ),
+    ).toBeInTheDocument();
+
     // Check that precision of 0.66 is shown inside the breakdown
     expect(screen.getByText("0.660")).toBeInTheDocument();
 

@@ -14,7 +14,11 @@ vi.mock("../utils/api", () => {
   };
 });
 
-import { fetchProjects, fetchDashboardStats, deleteProject } from "../utils/api";
+import {
+  fetchProjects,
+  fetchDashboardStats,
+  deleteProject,
+} from "../utils/api";
 
 describe("ProjectsDashboard Component Tests", () => {
   const mockOnSelectProject = vi.fn();
@@ -80,18 +84,22 @@ describe("ProjectsDashboard Component Tests", () => {
       expect(screen.getByText("Project One")).toBeInTheDocument();
     });
 
-    const deleteBtn = screen.getByRole("button", { name: "Delete project Project One" });
+    const deleteBtn = screen.getByRole("button", {
+      name: "Delete project Project One",
+    });
     await userEvent.click(deleteBtn);
 
     // Confirm dialog should be open
     expect(screen.getByText("Delete Project")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Deleting this project will permanently remove all experiments, snapshots, and exports. This cannot be undone."
-      )
+        "Deleting this project will permanently remove all experiments, snapshots, and exports. This cannot be undone.",
+      ),
     ).toBeInTheDocument();
 
-    const confirmBtn = screen.getByRole("button", { name: "Delete this action" });
+    const confirmBtn = screen.getByRole("button", {
+      name: "Delete this action",
+    });
     await userEvent.click(confirmBtn);
 
     await waitFor(() => {

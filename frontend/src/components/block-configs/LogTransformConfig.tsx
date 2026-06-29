@@ -30,13 +30,19 @@ export function LogTransformConfig({
     <div style={configStyles.container}>
       <h4 style={configStyles.title}>Log Transform Configuration</h4>
       <p style={configStyles.helpText}>
-        Apply natural logarithm transformation to reduce skewness in numeric data.
-        Uses log1p (log(1 + x)) to handle zero and near-zero values safely.
+        Apply natural logarithm transformation to reduce skewness in numeric
+        data. Uses log1p (log(1 + x)) to handle zero and near-zero values
+        safely.
       </p>
 
       <div style={configStyles.section}>
         <ColumnMultiSelect
-          columns={availableColumns.filter((c) => c.type === "numeric" || c.type === "integer" || c.type === "float")}
+          columns={availableColumns.filter(
+            (c) =>
+              c.type === "numeric" ||
+              c.type === "integer" ||
+              c.type === "float",
+          )}
           selected={columns}
           onChange={handleColumnsChange}
           label="Numeric columns to transform"

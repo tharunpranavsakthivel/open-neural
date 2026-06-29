@@ -4,16 +4,16 @@ Defines isolated temporary data directory, database session, ASGI-bound AsyncCli
 and sample database model fixtures for testing.
 """
 
-import os
-import sys
-import shutil
-import tempfile
 import contextvars
+import os
+import shutil
+import sys
+import tempfile
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -31,6 +31,7 @@ _initial_temp_dir = tempfile.mkdtemp()
 os.environ.setdefault("OPENNEURAL_DATA_DIR", _initial_temp_dir)
 os.environ.setdefault("OPENNEURAL_SECRET", "test_secret_for_ipc_auth_42")
 
+
 # Proxy classes to delegate attribute and call access to active context database resources
 class EngineProxy:
     @property
@@ -42,6 +43,7 @@ class EngineProxy:
 
     def __getattr__(self, name):
         return getattr(self._underlying, name)
+
 
 class SessionmakerProxy:
     @property
@@ -57,8 +59,9 @@ class SessionmakerProxy:
     def __getattr__(self, name):
         return getattr(self._underlying, name)
 
+
 # Pre-patch openneural_backend.db.engine with proxies BEFORE other modules import them
-import openneural_backend.db.engine
+
 db_engine_module = sys.modules["openneural_backend.db.engine"]
 
 _default_engine = db_engine_module.engine
@@ -69,7 +72,12 @@ db_engine_module.async_session = SessionmakerProxy()
 
 # Now import Settings and Base models, which will cleanly import our proxies
 from openneural_backend.config import Settings
-from openneural_backend.db.models import Base, DatasetSnapshot, Pipeline, Project, Experiment, Run
+from openneural_backend.db.models import (
+    Base,
+    DatasetSnapshot,
+    Pipeline,
+    Project,
+)
 
 
 def pytest_unconfigure(config):

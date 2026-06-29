@@ -7,7 +7,6 @@ ordinal encoding (maps categories to integers). Uses scikit-learn encoders
 with appropriate configurations for production use.
 """
 
-from typing import List, Optional, Union
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -16,7 +15,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -70,13 +69,13 @@ class EncodeCategoricalsOneHotBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to one-hot encode. "
-                               "If empty or not provided, all categorical columns are encoded.",
+                "If empty or not provided, all categorical columns are encoded.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the EncodeCategoricalsOneHotBlock.
 
         Args:
@@ -84,10 +83,12 @@ class EncodeCategoricalsOneHotBlock(PipelineBlock):
                 all categorical columns are encoded.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._encoder: Optional[OneHotEncoder] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._encoder: OneHotEncoder | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "EncodeCategoricalsOneHotBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "EncodeCategoricalsOneHotBlock":
         """Fit the encoder to the training data.
 
         Learns all unique categories for each specified column.
@@ -124,9 +125,7 @@ class EncodeCategoricalsOneHotBlock(PipelineBlock):
 
         # Wrap in ColumnTransformer to apply only to specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("encoder", self._encoder, columns)
-            ],
+            transformers=[("encoder", self._encoder, columns)],
             remainder="passthrough",
             verbose_feature_names_out=True,  # Generates feature names like "encoder__col_category"
         )
@@ -170,7 +169,7 @@ class EncodeCategoricalsOneHotBlock(PipelineBlock):
 
         return pd.DataFrame(X_transformed, columns=feature_names, index=X.index)
 
-    def to_sklearn(self) -> Union[OneHotEncoder, ColumnTransformer]:
+    def to_sklearn(self) -> OneHotEncoder | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:
@@ -189,9 +188,13 @@ class EncodeCategoricalsOneHotBlock(PipelineBlock):
 
         if self._column_transformer is not None:
             return self._column_transformer
-        return self._encoder if self._encoder is not None else OneHotEncoder(
-            handle_unknown="ignore",
-            sparse_output=False,
+        return (
+            self._encoder
+            if self._encoder is not None
+            else OneHotEncoder(
+                handle_unknown="ignore",
+                sparse_output=False,
+            )
         )
 
 
@@ -230,13 +233,13 @@ class EncodeCategoricalsOrdinalBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to ordinal encode. "
-                               "If empty or not provided, all categorical columns are encoded.",
+                "If empty or not provided, all categorical columns are encoded.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the EncodeCategoricalsOrdinalBlock.
 
         Args:
@@ -244,10 +247,12 @@ class EncodeCategoricalsOrdinalBlock(PipelineBlock):
                 all categorical columns are encoded.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._encoder: Optional[OrdinalEncoder] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._encoder: OrdinalEncoder | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "EncodeCategoricalsOrdinalBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "EncodeCategoricalsOrdinalBlock":
         """Fit the encoder to the training data.
 
         Learns the integer mapping for each unique category in each column.
@@ -283,9 +288,7 @@ class EncodeCategoricalsOrdinalBlock(PipelineBlock):
 
         # Wrap in ColumnTransformer to apply only to specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("encoder", self._encoder, columns)
-            ],
+            transformers=[("encoder", self._encoder, columns)],
             remainder="passthrough",
             verbose_feature_names_out=False,
         )
@@ -331,7 +334,7 @@ class EncodeCategoricalsOrdinalBlock(PipelineBlock):
 
         return pd.DataFrame(X_transformed, columns=output_columns, index=X.index)
 
-    def to_sklearn(self) -> Union[OrdinalEncoder, ColumnTransformer]:
+    def to_sklearn(self) -> OrdinalEncoder | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:
@@ -350,7 +353,11 @@ class EncodeCategoricalsOrdinalBlock(PipelineBlock):
 
         if self._column_transformer is not None:
             return self._column_transformer
-        return self._encoder if self._encoder is not None else OrdinalEncoder(
-            handle_unknown="use_encoded_value",
-            unknown_value=-1,
+        return (
+            self._encoder
+            if self._encoder is not None
+            else OrdinalEncoder(
+                handle_unknown="use_encoded_value",
+                unknown_value=-1,
+            )
         )

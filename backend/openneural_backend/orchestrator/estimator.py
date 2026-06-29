@@ -9,7 +9,7 @@ Exposes:
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def estimate_training_time(
     row_count: int,
     feature_count: int,
     candidate_count: int,
-    automl_config: Dict[str, Any],
+    automl_config: dict[str, Any],
 ) -> float:
     """Estimate training time in seconds based on heuristics.
 
@@ -76,10 +76,10 @@ def estimate_training_time(
     # Larger datasets have higher per-iteration cost
     if dataset_size_factor > 100:
         # Very large datasets: quadratic scaling
-        size_multiplier = dataset_size_factor ** 1.5
+        size_multiplier = dataset_size_factor**1.5
     elif dataset_size_factor > 10:
         # Medium datasets: super-linear scaling
-        size_multiplier = dataset_size_factor ** 1.2
+        size_multiplier = dataset_size_factor**1.2
     else:
         # Small datasets: linear scaling
         size_multiplier = dataset_size_factor
@@ -99,7 +99,9 @@ def estimate_training_time(
     avg_complexity_factor = 1.8
 
     # Calculate total training time per model
-    time_per_model = base_fit_time * cv_multiplier * trials_multiplier * avg_complexity_factor
+    time_per_model = (
+        base_fit_time * cv_multiplier * trials_multiplier * avg_complexity_factor
+    )
 
     # Total time for all candidate models
     total_time = time_per_model * candidate_count
@@ -107,6 +109,7 @@ def estimate_training_time(
     # Parallel execution factor: assume up to cpu_count parallel workers
     # In practice, not all models run perfectly in parallel due to resource contention
     import os
+
     cpu_count = os.cpu_count() or 4
     # Use 70% of CPU count for effective parallelization (accounting for overhead)
     effective_parallel_workers = max(1, int(cpu_count * 0.7))

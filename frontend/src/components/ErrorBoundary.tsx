@@ -168,8 +168,7 @@ export class ErrorBoundary extends Component<
             {/* Error Details */}
             <div style={styles.errorDetails}>
               <p style={styles.errorMessage}>
-                <strong>Error:</strong>{" "}
-                {error?.message || "Unknown error"}
+                <strong>Error:</strong> {error?.message || "Unknown error"}
               </p>
               {error?.name && (
                 <p style={styles.errorType}>

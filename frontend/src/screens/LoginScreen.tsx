@@ -69,7 +69,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps): JSX.Element {
         // Show inline error - specifically "Incorrect password" as per task
         const errorMessage = result.error || "Incorrect password";
         setError(errorMessage);
-        
+
         // Show error toast for additional feedback
         showErrorToast(errorMessage);
       }

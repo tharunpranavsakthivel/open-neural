@@ -27,7 +27,6 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
-    confusion_matrix as sklearn_confusion_matrix,
     f1_score,
     mean_absolute_error,
     mean_squared_error,
@@ -36,10 +35,13 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from sklearn.metrics import (
+    confusion_matrix as sklearn_confusion_matrix,
+)
 from sqlalchemy import select
 
 from openneural_backend.db.engine import async_session
-from openneural_backend.db.models import Evaluation, Experiment, Run, SubgroupAnalysis
+from openneural_backend.db.models import Evaluation, Experiment, Run
 
 
 def compute_classification_metrics(
@@ -124,7 +126,10 @@ def compute_classification_metrics(
                 # One-vs-rest AUC for multiclass
                 auc_roc = float(
                     roc_auc_score(
-                        y_true_arr, np.asarray(y_proba), multi_class="ovr", average="weighted"
+                        y_true_arr,
+                        np.asarray(y_proba),
+                        multi_class="ovr",
+                        average="weighted",
                     )
                 )
         except ValueError:
@@ -149,12 +154,26 @@ def compute_classification_metrics(
             y_pred_binary = y_pred_arr.astype(int)
 
         f1 = float(f1_score(y_true_binary, y_pred_binary, average="binary"))
-        precision = float(precision_score(y_true_binary, y_pred_binary, average="binary", zero_division=0))
-        recall = float(recall_score(y_true_binary, y_pred_binary, average="binary", zero_division=0))
+        precision = float(
+            precision_score(
+                y_true_binary, y_pred_binary, average="binary", zero_division=0
+            )
+        )
+        recall = float(
+            recall_score(
+                y_true_binary, y_pred_binary, average="binary", zero_division=0
+            )
+        )
     else:
-        f1 = float(f1_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0))
-        precision = float(precision_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0))
-        recall = float(recall_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0))
+        f1 = float(
+            f1_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0)
+        )
+        precision = float(
+            precision_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0)
+        )
+        recall = float(
+            recall_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0)
+        )
 
     accuracy = float(accuracy_score(y_true_arr, y_pred_arr))
 
@@ -337,7 +356,9 @@ def compute_subgroup_analysis(
 
     # Compute overall metrics for fairness comparison
     try:
-        overall_f1 = f1_score(y_true_arr, y_pred_arr, average="weighted", zero_division=0)
+        overall_f1 = f1_score(
+            y_true_arr, y_pred_arr, average="weighted", zero_division=0
+        )
     except Exception:
         overall_f1 = 0.0
 
@@ -351,7 +372,7 @@ def compute_subgroup_analysis(
         # Get unique values in this column
         unique_values = df[col].dropna().unique()
 
-        for value in unique_values[:max_subgroups - subgroup_count]:
+        for value in unique_values[: max_subgroups - subgroup_count]:
             if subgroup_count >= max_subgroups:
                 break
 
@@ -370,13 +391,22 @@ def compute_subgroup_analysis(
             # Compute metrics for this subgroup
             try:
                 subgroup_f1 = f1_score(
-                    y_true_subgroup, y_pred_subgroup, average="weighted", zero_division=0
+                    y_true_subgroup,
+                    y_pred_subgroup,
+                    average="weighted",
+                    zero_division=0,
                 )
                 subgroup_recall = recall_score(
-                    y_true_subgroup, y_pred_subgroup, average="weighted", zero_division=0
+                    y_true_subgroup,
+                    y_pred_subgroup,
+                    average="weighted",
+                    zero_division=0,
                 )
                 subgroup_precision = precision_score(
-                    y_true_subgroup, y_pred_subgroup, average="weighted", zero_division=0
+                    y_true_subgroup,
+                    y_pred_subgroup,
+                    average="weighted",
+                    zero_division=0,
                 )
             except Exception:
                 # Skip if metrics can't be computed (e.g., single class)
@@ -392,18 +422,20 @@ def compute_subgroup_analysis(
                     f"reviewing labeling for this segment."
                 )
 
-            results.append({
-                "slice_name": f"{col}={value}",
-                "slice_config": json.dumps({"column": col, "value": str(value)}),
-                "n": n_samples,
-                "metrics": {
-                    "f1": round(subgroup_f1, 4),
-                    "recall": round(subgroup_recall, 4),
-                    "precision": round(subgroup_precision, 4),
-                },
-                "fairness_warning": fairness_warning,
-                "diagnostic_note": diagnostic_note,
-            })
+            results.append(
+                {
+                    "slice_name": f"{col}={value}",
+                    "slice_config": json.dumps({"column": col, "value": str(value)}),
+                    "n": n_samples,
+                    "metrics": {
+                        "f1": round(subgroup_f1, 4),
+                        "recall": round(subgroup_recall, 4),
+                        "precision": round(subgroup_precision, 4),
+                    },
+                    "fairness_warning": fairness_warning,
+                    "diagnostic_note": diagnostic_note,
+                }
+            )
 
             subgroup_count += 1
 
@@ -554,7 +586,9 @@ class EvaluationError(Exception):
         super().__init__(message)
 
 
-def load_predictions(run_id: str, experiment_id: str) -> tuple[np.ndarray, np.ndarray, np.ndarray | None] | None:
+def load_predictions(
+    run_id: str, experiment_id: str
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None] | None:
     """Load test-set predictions from precomputed Parquet file.
 
     Loads y_true, y_pred, and y_proba from the predictions.parquet file
@@ -626,8 +660,12 @@ def compute_metrics_with_threshold(
     y_pred_thresh = (y_proba >= threshold).astype(int)
 
     # Compute metrics using weighted average for compatibility
-    precision = float(precision_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
-    recall = float(recall_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
+    precision = float(
+        precision_score(y_true, y_pred_thresh, average="weighted", zero_division=0)
+    )
+    recall = float(
+        recall_score(y_true, y_pred_thresh, average="weighted", zero_division=0)
+    )
     f1 = float(f1_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
 
     return {

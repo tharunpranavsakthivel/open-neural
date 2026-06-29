@@ -4,12 +4,12 @@ Provides endpoints for crash recovery and system state management.
 This router is not project-scoped and operates across all projects.
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from datetime import datetime
 
 from openneural_backend.db.engine import get_async_session
 from openneural_backend.db.models import Experiment, Project, Run
@@ -71,8 +71,12 @@ async def get_interrupted_experiments(
                 project_id=experiment.project_id,
                 project_name=project.name,
                 status=experiment.status,
-                created_at=experiment.created_at.isoformat() if experiment.created_at else None,
-                started_at=experiment.started_at.isoformat() if experiment.started_at else None,
+                created_at=(
+                    experiment.created_at.isoformat() if experiment.created_at else None
+                ),
+                started_at=(
+                    experiment.started_at.isoformat() if experiment.started_at else None
+                ),
             )
         )
 
@@ -181,7 +185,9 @@ async def recover_experiment(
         await session.commit()
         await session.refresh(experiment)
 
-        message = f"Experiment restarted successfully. Cleared {cleared_runs} partial run(s)."
+        message = (
+            f"Experiment restarted successfully. Cleared {cleared_runs} partial run(s)."
+        )
 
     else:  # discard
         # Discard: mark as cancelled

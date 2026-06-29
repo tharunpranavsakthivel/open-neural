@@ -15,7 +15,12 @@
  * @module screens/ModelSelection
  */
 import { useState, useEffect, useCallback } from "react";
-import { fetchProjects, fetchTrainingTimeEstimate, createExperiment, startExperiment } from "../utils/api";
+import {
+  fetchProjects,
+  fetchTrainingTimeEstimate,
+  createExperiment,
+  startExperiment,
+} from "../utils/api";
 import type { Project } from "../stores/appStore";
 import type { TrainingTimeEstimateResponse } from "../utils/api";
 
@@ -158,7 +163,7 @@ export function ModelSelection({
           setTaskType(project.taskType);
           // Set default optimization metric based on task type
           setOptimizationMetric(
-            project.taskType === "regression" ? "rmse" : "f1"
+            project.taskType === "regression" ? "rmse" : "f1",
           );
           // Pre-select all models for the task type in AutoML mode
           const allModelKeys =
@@ -295,7 +300,7 @@ export function ModelSelection({
         return next;
       });
     },
-    [isAutoMLEnabled]
+    [isAutoMLEnabled],
   );
 
   /**
@@ -319,7 +324,9 @@ export function ModelSelection({
    */
   const handleStartTraining = useCallback(async () => {
     if (!pipelineId) {
-      setSubmitError("No pipeline selected. Please configure a preprocessing pipeline first.");
+      setSubmitError(
+        "No pipeline selected. Please configure a preprocessing pipeline first.",
+      );
       return;
     }
 
@@ -358,7 +365,8 @@ export function ModelSelection({
         onStartTraining(experiment.id);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to start training";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to start training";
       setSubmitError(errorMessage);
       console.error("Training start failed:", err);
     } finally {
@@ -587,7 +595,7 @@ export function ModelSelection({
                   value={maxTrials}
                   onChange={(e) =>
                     setMaxTrials(
-                      Math.max(1, Math.min(100, parseInt(e.target.value) || 1))
+                      Math.max(1, Math.min(100, parseInt(e.target.value) || 1)),
                     )
                   }
                   style={styles.input}
@@ -624,7 +632,7 @@ export function ModelSelection({
                   value={cvFolds}
                   onChange={(e) =>
                     setCvFolds(
-                      Math.max(2, Math.min(10, parseInt(e.target.value) || 2))
+                      Math.max(2, Math.min(10, parseInt(e.target.value) || 2)),
                     )
                   }
                   style={styles.input}
@@ -636,7 +644,9 @@ export function ModelSelection({
               {/* Time Budget */}
               <div style={styles.advancedSetting}>
                 <div style={styles.settingLabelRow}>
-                  <label style={styles.settingLabel}>Time Budget (minutes)</label>
+                  <label style={styles.settingLabel}>
+                    Time Budget (minutes)
+                  </label>
                   <span
                     style={styles.tooltipIcon}
                     onMouseEnter={() => showTooltip("timeBudget")}
@@ -661,7 +671,7 @@ export function ModelSelection({
                   value={timeBudget}
                   onChange={(e) =>
                     setTimeBudget(
-                      Math.max(1, Math.min(60, parseInt(e.target.value) || 1))
+                      Math.max(1, Math.min(60, parseInt(e.target.value) || 1)),
                     )
                   }
                   style={styles.input}

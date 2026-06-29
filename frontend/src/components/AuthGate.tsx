@@ -46,7 +46,11 @@ export function AuthGate(): JSX.Element {
           setAuthStatus("login");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to check authentication state");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to check authentication state",
+        );
         setAuthStatus("login");
       }
     }

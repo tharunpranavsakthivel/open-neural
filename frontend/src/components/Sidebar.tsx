@@ -80,7 +80,7 @@ export function Sidebar({
             headers: {
               "X-OpenNeural-Secret": "dev-secret", // Development mode
             },
-          }
+          },
         );
         if (response.ok) {
           const data = await response.json();
@@ -99,7 +99,7 @@ export function Sidebar({
 
   // Get current step index
   const currentStepIndex = NAVIGATION_STEPS.findIndex(
-    (step) => step.id === currentStep
+    (step) => step.id === currentStep,
   );
 
   // Determine if a step is accessible (current or before current)
@@ -112,14 +112,14 @@ export function Sidebar({
       // Allow navigation to current step and any previous steps
       return stepIndex <= currentStepIndex;
     },
-    [currentProjectId, currentStepIndex]
+    [currentProjectId, currentStepIndex],
   );
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       const accessibleSteps = NAVIGATION_STEPS.map((_, i) => i).filter((i) =>
-        isStepAccessible(i)
+        isStepAccessible(i),
       );
       const currentAccessibleIndex = accessibleSteps.indexOf(focusedIndex);
 
@@ -188,7 +188,7 @@ export function Sidebar({
           break;
       }
     },
-    [focusedIndex, isStepAccessible, onGoToProjects, onStepClick]
+    [focusedIndex, isStepAccessible, onGoToProjects, onStepClick],
   );
 
   // Handle step click
@@ -236,7 +236,10 @@ export function Sidebar({
           </div>
           <div>
             <h1 style={styles.title}>OpenNeural</h1>
-            <p style={styles.version} aria-label={`Application version ${appVersion}`}>
+            <p
+              style={styles.version}
+              aria-label={`Application version ${appVersion}`}
+            >
               {appVersion}
             </p>
           </div>
@@ -272,7 +275,9 @@ export function Sidebar({
                   style={{
                     ...styles.stepButton,
                     ...(isActive ? styles.stepButtonActive : {}),
-                    ...(isAccessible && !isActive ? styles.stepButtonHover : {}),
+                    ...(isAccessible && !isActive
+                      ? styles.stepButtonHover
+                      : {}),
                     ...(!isAccessible ? styles.stepButtonDisabled : {}),
                     ...(isProjects && !isActive ? styles.projectsButton : {}),
                   }}
@@ -332,7 +337,9 @@ export function Sidebar({
               <span
                 style={{
                   ...styles.stepNumber,
-                  ...(currentStep === "settings" ? styles.stepNumberActive : {}),
+                  ...(currentStep === "settings"
+                    ? styles.stepNumberActive
+                    : {}),
                 }}
                 aria-hidden="true"
               >

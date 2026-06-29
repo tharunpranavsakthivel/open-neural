@@ -8,7 +8,11 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { configStyles, type BlockConfigProps, type ColumnOption } from "./types";
+import {
+  configStyles,
+  type BlockConfigProps,
+  type ColumnOption,
+} from "./types";
 
 interface TrainValTestSplitConfigProps extends BlockConfigProps {
   /** Target column name for stratification options */
@@ -27,7 +31,7 @@ export function TrainValTestSplitConfig({
   availableColumns,
   targetColumn,
 }: TrainValTestSplitConfigProps): JSX.Element {
-  const train = (params.train as number) ?? 0.70;
+  const train = (params.train as number) ?? 0.7;
   const val = (params.val as number) ?? 0.15;
   const test = (params.test as number) ?? 0.15;
   const stratifyColumn = (params.stratify_column as string) ?? "";
@@ -40,12 +44,18 @@ export function TrainValTestSplitConfig({
 
   // Get categorical columns for stratification
   const stratifyOptions = useMemo(() => {
-    const options: ColumnOption[] = [{ value: "", label: "None (no stratification)" }];
+    const options: ColumnOption[] = [
+      { value: "", label: "None (no stratification)" },
+    ];
     if (targetColumn) {
-      options.push({ value: targetColumn, label: `${targetColumn} (target)`, type: "target" });
+      options.push({
+        value: targetColumn,
+        label: `${targetColumn} (target)`,
+        type: "target",
+      });
     }
     const categoricalCols = availableColumns.filter(
-      (c) => c.type === "categorical" || c.type === "string"
+      (c) => c.type === "categorical" || c.type === "string",
     );
     options.push(...categoricalCols);
     return options;
@@ -58,7 +68,7 @@ export function TrainValTestSplitConfig({
   const handleSplitChange = useCallback(
     (which: "train" | "val" | "test", value: number) => {
       // Clamp value to reasonable bounds
-      const clampedValue = Math.max(0.05, Math.min(0.90, value));
+      const clampedValue = Math.max(0.05, Math.min(0.9, value));
 
       let newTrain = train;
       let newVal = val;
@@ -96,7 +106,7 @@ export function TrainValTestSplitConfig({
         test: Math.round((newTest / sum) * 100) / 100,
       });
     },
-    [train, val, test, params, onChange]
+    [train, val, test, params, onChange],
   );
 
   const handleStratifyChange = (value: string): void => {
@@ -110,16 +120,24 @@ export function TrainValTestSplitConfig({
     <div style={configStyles.container}>
       <h4 style={configStyles.title}>Train/Val/Test Split Configuration</h4>
       <p style={configStyles.helpText}>
-        Split your data into training, validation, and test sets. The training set
-        is used to train the model, validation for hyperparameter tuning, and test
-        for final evaluation.
+        Split your data into training, validation, and test sets. The training
+        set is used to train the model, validation for hyperparameter tuning,
+        and test for final evaluation.
       </p>
 
       {/* Train slider */}
       <div style={configStyles.section}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <label style={configStyles.label}>Training Set</label>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+          <span
+            style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}
+          >
             {Math.round(normalizedTrain * 100)}%
           </span>
         </div>
@@ -130,7 +148,9 @@ export function TrainValTestSplitConfig({
             max="0.90"
             step="0.05"
             value={normalizedTrain}
-            onChange={(e) => handleSplitChange("train", parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleSplitChange("train", parseFloat(e.target.value))
+            }
             style={configStyles.slider}
             aria-label="Training set percentage"
           />
@@ -143,9 +163,17 @@ export function TrainValTestSplitConfig({
 
       {/* Validation slider */}
       <div style={configStyles.section}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <label style={configStyles.label}>Validation Set</label>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+          <span
+            style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}
+          >
             {Math.round(normalizedVal * 100)}%
           </span>
         </div>
@@ -156,7 +184,9 @@ export function TrainValTestSplitConfig({
             max="0.30"
             step="0.05"
             value={normalizedVal}
-            onChange={(e) => handleSplitChange("val", parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleSplitChange("val", parseFloat(e.target.value))
+            }
             style={configStyles.slider}
             aria-label="Validation set percentage"
           />
@@ -169,9 +199,17 @@ export function TrainValTestSplitConfig({
 
       {/* Test slider */}
       <div style={configStyles.section}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <label style={configStyles.label}>Test Set</label>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+          <span
+            style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}
+          >
             {Math.round(normalizedTest * 100)}%
           </span>
         </div>
@@ -182,7 +220,9 @@ export function TrainValTestSplitConfig({
             max="0.30"
             step="0.05"
             value={normalizedTest}
-            onChange={(e) => handleSplitChange("test", parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleSplitChange("test", parseFloat(e.target.value))
+            }
             style={configStyles.slider}
             aria-label="Test set percentage"
           />
@@ -243,8 +283,8 @@ export function TrainValTestSplitConfig({
           ))}
         </select>
         <p style={configStyles.helpText}>
-          Stratification ensures each split has the same distribution of the selected column.
-          Recommended for classification tasks.
+          Stratification ensures each split has the same distribution of the
+          selected column. Recommended for classification tasks.
         </p>
       </div>
     </div>

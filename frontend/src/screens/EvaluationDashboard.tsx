@@ -72,9 +72,7 @@ export function EvaluationDashboard({
         setCurrentThreshold(data.threshold);
       } catch (err) {
         const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Failed to load evaluation data";
+          err instanceof Error ? err.message : "Failed to load evaluation data";
         setError(errorMessage);
       } finally {
         setIsLoading(false);
@@ -83,8 +81,6 @@ export function EvaluationDashboard({
 
     loadEvaluation();
   }, [experimentId]);
-
-
 
   /**
    * Format metric value for display.
@@ -110,8 +106,6 @@ export function EvaluationDashboard({
   };
 
   const effectiveMetrics = getEffectiveMetrics();
-
-
 
   /**
    * Check if a subgroup has a warning flag (F1 more than 0.15 below overall).
@@ -151,7 +145,8 @@ export function EvaluationDashboard({
           <span style={styles.errorIcon}>⚠</span>
           <h2 style={styles.errorTitle}>Failed to Load Evaluation</h2>
           <p style={styles.errorMessage}>
-            {error || "No evaluation data available. Please complete training first."}
+            {error ||
+              "No evaluation data available. Please complete training first."}
           </p>
         </div>
       </div>
@@ -171,9 +166,7 @@ export function EvaluationDashboard({
       <div style={styles.bestModelCard}>
         <div style={styles.bestModelHeader}>
           <span style={styles.bestModelBadge}>Best Model</span>
-          <span style={styles.bestModelType}>
-            {evaluation.best_model_type}
-          </span>
+          <span style={styles.bestModelType}>{evaluation.best_model_type}</span>
         </div>
         <p style={styles.bestModelSummary}>
           Best result: {evaluation.best_model_type} | F1{" "}
@@ -215,7 +208,9 @@ export function EvaluationDashboard({
           <ThresholdSlider
             experimentId={experimentId}
             initialThreshold={evaluation.threshold}
-            onThresholdChange={(newThreshold) => setCurrentThreshold(newThreshold)}
+            onThresholdChange={(newThreshold) =>
+              setCurrentThreshold(newThreshold)
+            }
             onMetricsUpdate={(metrics) => setThresholdMetrics(metrics)}
           />
           {thresholdMetrics && (
@@ -448,5 +443,4 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#111827",
     fontFamily: "monospace",
   },
-
 };

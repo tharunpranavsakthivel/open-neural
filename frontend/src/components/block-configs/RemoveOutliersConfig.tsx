@@ -58,13 +58,19 @@ export function RemoveOutliersConfig({
           />
         </div>
         <p id="iqr-help" style={configStyles.helpText}>
-          Lower values remove more outliers (1.5 is standard, 3.0 is conservative)
+          Lower values remove more outliers (1.5 is standard, 3.0 is
+          conservative)
         </p>
       </div>
 
       <div style={configStyles.section}>
         <ColumnMultiSelect
-          columns={availableColumns.filter((c) => c.type === "numeric" || c.type === "integer" || c.type === "float")}
+          columns={availableColumns.filter(
+            (c) =>
+              c.type === "numeric" ||
+              c.type === "integer" ||
+              c.type === "float",
+          )}
           selected={columns}
           onChange={handleColumnsChange}
           label="Numeric columns to filter"

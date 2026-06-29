@@ -6,24 +6,20 @@ All models use declarative base and support async operations.
 
 import uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from sqlalchemy import (
-    Column,
+    CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
-    Float,
     Text,
-    func,
-    event,
     UniqueConstraint,
-    CheckConstraint,
+    event,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-from openneural_backend.db.engine import engine
 
 
 class Base(DeclarativeBase):
@@ -278,7 +274,8 @@ class DatasetSnapshot(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "project_id", "version_label",
+            "project_id",
+            "version_label",
             name="uq_snapshot_project_version",
         ),
     )
@@ -320,7 +317,7 @@ class Pipeline(Base):
         ForeignKey("dataset_snapshots.id"),
         nullable=False,
     )
-    name: Mapped[Optional[str]] = mapped_column(
+    name: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -412,7 +409,9 @@ class Experiment(Base):
         Text,
         nullable=False,
     )
-    status: Mapped[Literal["created", "running", "done", "cancelled", "interrupted"]] = mapped_column(
+    status: Mapped[
+        Literal["created", "running", "done", "cancelled", "interrupted"]
+    ] = mapped_column(
         Text,
         nullable=False,
         default="created",
@@ -422,11 +421,11 @@ class Experiment(Base):
         nullable=False,
         default=datetime.utcnow,
     )
-    started_at: Mapped[Optional[datetime]] = mapped_column(
+    started_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
     )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
     )
@@ -496,23 +495,23 @@ class Run(Base):
         Text,
         nullable=False,
     )
-    cv_metrics_json: Mapped[Optional[str]] = mapped_column(
+    cv_metrics_json: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    test_metrics_json: Mapped[Optional[str]] = mapped_column(
+    test_metrics_json: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    training_time_sec: Mapped[Optional[float]] = mapped_column(
+    training_time_sec: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
     )
-    artifact_model_onnx: Mapped[Optional[str]] = mapped_column(
+    artifact_model_onnx: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    artifact_model_jlib: Mapped[Optional[str]] = mapped_column(
+    artifact_model_jlib: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -521,15 +520,15 @@ class Run(Base):
         nullable=False,
         default="queued",
     )
-    error_message: Mapped[Optional[str]] = mapped_column(
+    error_message: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    started_at: Mapped[Optional[datetime]] = mapped_column(
+    started_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
     )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
     )
@@ -590,7 +589,7 @@ class Evaluation(Base):
         Text,
         nullable=False,
     )
-    confusion_matrix_json: Mapped[Optional[str]] = mapped_column(
+    confusion_matrix_json: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )

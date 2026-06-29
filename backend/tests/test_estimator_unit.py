@@ -1,6 +1,5 @@
 """Unit tests for training time estimator."""
 
-import pytest
 from openneural_backend.orchestrator.estimator import estimate_training_time
 
 
@@ -11,7 +10,7 @@ def test_estimate_training_time_validation_guards() -> None:
         row_count=0,
         feature_count=-10,
         candidate_count=0,
-        automl_config={"max_trials": 5, "cv_folds": 2}
+        automl_config={"max_trials": 5, "cv_folds": 2},
     )
     assert time_clamped > 0
 
@@ -20,7 +19,7 @@ def test_estimate_training_time_validation_guards() -> None:
         row_count=2000,
         feature_count=100,
         candidate_count=1,
-        automl_config={"max_trials": 1, "cv_folds": 2}
+        automl_config={"max_trials": 1, "cv_folds": 2},
     )
     assert time_medium > 0
 
@@ -29,6 +28,6 @@ def test_estimate_training_time_validation_guards() -> None:
         row_count=100000,
         feature_count=1000,
         candidate_count=1,
-        automl_config={"max_trials": 1, "cv_folds": 2}
+        automl_config={"max_trials": 1, "cv_folds": 2},
     )
     assert time_large > 0

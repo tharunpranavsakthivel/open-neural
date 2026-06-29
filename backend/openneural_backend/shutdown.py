@@ -45,7 +45,7 @@ class ShutdownManager:
                 "OPENNEURAL_DATA_DIR environment variable must be set. "
                 "This is set by the CLI entry point at startup."
             )
-        
+
         self._data_dir = data_dir
         self._db_path = os.path.join(data_dir, "openneural.db")
         self._engine: sqlalchemy.Engine | None = None
@@ -127,10 +127,10 @@ class ShutdownManager:
         """
         # Mark running experiments as interrupted
         self._mark_running_experiments_as_interrupted()
-        
+
         # Flush SQLAlchemy sessions
         self._flush_sessions()
-        
+
         # Exit cleanly
         sys.exit(0)
 

@@ -26,7 +26,9 @@ describe("PasswordSetup Screen", () => {
     expect(screen.getByText("Welcome to OpenNeural")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create Password" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create Password" }),
+    ).toBeInTheDocument();
   });
 
   it("should simulate entering matching passwords and call POST /api/v1/auth/setup", async () => {
@@ -39,7 +41,9 @@ describe("PasswordSetup Screen", () => {
 
     const passwordInput = screen.getByLabelText("Password");
     const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-    const submitButton = screen.getByRole("button", { name: "Create Password" });
+    const submitButton = screen.getByRole("button", {
+      name: "Create Password",
+    });
 
     await userEvent.type(passwordInput, "securepassword123");
     await userEvent.type(confirmPasswordInput, "securepassword123");
@@ -54,7 +58,7 @@ describe("PasswordSetup Screen", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ password: "securepassword123" }),
-        })
+        }),
       );
       expect(onCompleteMock).toHaveBeenCalled();
     });
@@ -65,7 +69,9 @@ describe("PasswordSetup Screen", () => {
 
     const passwordInput = screen.getByLabelText("Password");
     const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-    const submitButton = screen.getByRole("button", { name: "Create Password" });
+    const submitButton = screen.getByRole("button", {
+      name: "Create Password",
+    });
 
     await userEvent.type(passwordInput, "securepassword123");
     await userEvent.type(confirmPasswordInput, "differentpassword123");
@@ -74,7 +80,9 @@ describe("PasswordSetup Screen", () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Passwords do not match");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Passwords do not match",
+      );
       expect(fetchMock).not.toHaveBeenCalled();
     });
   });
@@ -84,7 +92,9 @@ describe("PasswordSetup Screen", () => {
 
     const passwordInput = screen.getByLabelText("Password");
     const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-    const submitButton = screen.getByRole("button", { name: "Create Password" });
+    const submitButton = screen.getByRole("button", {
+      name: "Create Password",
+    });
 
     await userEvent.type(passwordInput, "short");
     await userEvent.type(confirmPasswordInput, "short");
@@ -93,7 +103,9 @@ describe("PasswordSetup Screen", () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Password must be at least 8 characters long");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Password must be at least 8 characters long",
+      );
       expect(fetchMock).not.toHaveBeenCalled();
     });
   });

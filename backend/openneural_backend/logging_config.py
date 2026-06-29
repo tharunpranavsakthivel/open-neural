@@ -9,7 +9,6 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 
 class ISO8601Formatter(logging.Formatter):
@@ -38,7 +37,9 @@ class OpenNeuralDailyRotatingFileHandler(logging.FileHandler):
     retains a maximum of `backup_count` (default 14) files.
     """
 
-    def __init__(self, logs_dir: Path, backup_count: int = 14, encoding: str = "utf-8") -> None:
+    def __init__(
+        self, logs_dir: Path, backup_count: int = 14, encoding: str = "utf-8"
+    ) -> None:
         """Initialize the handler and clean up older log files.
 
         Args:
@@ -72,12 +73,11 @@ class OpenNeuralDailyRotatingFileHandler(logging.FileHandler):
         """Enforce log retention policy by deleting oldest files beyond the backup limit."""
         try:
             log_files = sorted(
-                self.logs_dir.glob("openneural_*.log"),
-                key=lambda p: p.name
+                self.logs_dir.glob("openneural_*.log"), key=lambda p: p.name
             )
             # Remove oldest files if total log file count exceeds backup count limit
             if len(log_files) > self.backup_count:
-                files_to_delete = log_files[:-self.backup_count]
+                files_to_delete = log_files[: -self.backup_count]
                 for f in files_to_delete:
                     try:
                         f.unlink()
@@ -129,7 +129,9 @@ def configure_logging() -> None:
     formatter = ISO8601Formatter(log_format)
 
     # Configure the daily rotating file handler
-    file_handler = OpenNeuralDailyRotatingFileHandler(logs_dir=logs_dir, backup_count=14)
+    file_handler = OpenNeuralDailyRotatingFileHandler(
+        logs_dir=logs_dir, backup_count=14
+    )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
 

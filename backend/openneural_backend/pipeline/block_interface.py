@@ -23,7 +23,7 @@ Example:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from sklearn.base import TransformerMixin
@@ -63,7 +63,7 @@ class PipelineBlock(ABC):
         self._is_fitted = False
 
     @abstractmethod
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "PipelineBlock":
+    def fit(self, X: pd.DataFrame, y: pd.Series | None = None) -> "PipelineBlock":
         """Fit the block to the data.
 
         This method learns any necessary statistics from the training data
@@ -108,7 +108,9 @@ class PipelineBlock(ABC):
         """
         pass
 
-    def fit_transform(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> pd.DataFrame:
+    def fit_transform(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> pd.DataFrame:
         """Fit the block to the data, then transform it.
 
         This is a convenience method that combines fit() and transform() in

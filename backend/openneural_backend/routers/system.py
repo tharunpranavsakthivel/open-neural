@@ -8,7 +8,6 @@ for system management operations like clearing all data.
 import os
 import platform
 import shutil
-from pathlib import Path
 
 import psutil
 from fastapi import APIRouter, HTTPException, status

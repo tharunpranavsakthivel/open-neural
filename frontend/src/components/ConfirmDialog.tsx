@@ -80,7 +80,7 @@ export function ConfirmDialog({
         onCancel();
       }
     },
-    [onCancel]
+    [onCancel],
   );
 
   // Handle click outside to cancel
@@ -90,40 +90,37 @@ export function ConfirmDialog({
         onCancel();
       }
     },
-    [onCancel]
+    [onCancel],
   );
 
   // Handle Tab key for focus trap
-  const handleTabKey = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key !== "Tab") return;
+  const handleTabKey = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== "Tab") return;
 
-      const dialog = dialogRef.current;
-      if (!dialog) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-      // Get all focusable elements
-      const focusableElements = dialog.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
+    // Get all focusable elements
+    const focusableElements = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
 
-      if (event.shiftKey) {
-        // Shift + Tab
-        if (document.activeElement === firstElement) {
-          event.preventDefault();
-          lastElement?.focus();
-        }
-      } else {
-        // Tab
-        if (document.activeElement === lastElement) {
-          event.preventDefault();
-          firstElement?.focus();
-        }
+    if (event.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement?.focus();
       }
-    },
-    []
-  );
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement?.focus();
+      }
+    }
+  }, []);
 
   if (!isOpen) {
     return null;

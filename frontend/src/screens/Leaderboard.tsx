@@ -47,13 +47,28 @@ interface ColumnDef {
  * Column definitions for the leaderboard table.
  */
 const COLUMNS: ColumnDef[] = [
-  { key: "experiment_id_human", label: "Experiment ID", sortable: false, width: "180px" },
-  { key: "best_model_type", label: "Best Model", sortable: false, width: "140px" },
+  {
+    key: "experiment_id_human",
+    label: "Experiment ID",
+    sortable: false,
+    width: "180px",
+  },
+  {
+    key: "best_model_type",
+    label: "Best Model",
+    sortable: false,
+    width: "140px",
+  },
   { key: "f1", label: "F1", sortable: true, width: "100px" },
   { key: "auc_roc", label: "AUC-ROC", sortable: true, width: "100px" },
   { key: "precision", label: "Precision", sortable: true, width: "100px" },
   { key: "recall", label: "Recall", sortable: true, width: "100px" },
-  { key: "training_time", label: "Training Time", sortable: true, width: "120px" },
+  {
+    key: "training_time",
+    label: "Training Time",
+    sortable: true,
+    width: "120px",
+  },
 ];
 
 /**
@@ -96,7 +111,11 @@ function formatTrainingTime(seconds: number): string {
  * @param props.direction - The sort direction
  * @returns Arrow indicator or null if not active
  */
-function SortArrow({ direction }: { direction: LeaderboardOrder }): JSX.Element {
+function SortArrow({
+  direction,
+}: {
+  direction: LeaderboardOrder;
+}): JSX.Element {
   return (
     <span style={styles.sortArrow}>{direction === "desc" ? "▼" : "▲"}</span>
   );
@@ -135,7 +154,8 @@ export function Leaderboard({ projectId }: LeaderboardProps): JSX.Element {
         const data = await fetchLeaderboard(projectId, sortBy, order);
         setEntries(data);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load leaderboard";
+        const message =
+          err instanceof Error ? err.message : "Failed to load leaderboard";
         setError(message);
       } finally {
         setIsLoading(false);
@@ -247,9 +267,7 @@ export function Leaderboard({ projectId }: LeaderboardProps): JSX.Element {
           <td style={styles.td}>
             <div style={styles.cellContent}>
               {entry.experiment_id_human}
-              {entry.is_best && (
-                <span style={styles.bestBadge}>BEST</span>
-              )}
+              {entry.is_best && <span style={styles.bestBadge}>BEST</span>}
             </div>
           </td>
           <td style={styles.td}>{entry.best_model_type}</td>
@@ -257,7 +275,9 @@ export function Leaderboard({ projectId }: LeaderboardProps): JSX.Element {
           <td style={styles.td}>{formatMetric(entry.metrics.auc_roc)}</td>
           <td style={styles.td}>{formatMetric(entry.metrics.precision)}</td>
           <td style={styles.td}>{formatMetric(entry.metrics.recall)}</td>
-          <td style={styles.td}>{formatTrainingTime(entry.training_time_seconds)}</td>
+          <td style={styles.td}>
+            {formatTrainingTime(entry.training_time_seconds)}
+          </td>
         </tr>
       ))}
     </tbody>
@@ -295,7 +315,8 @@ export function Leaderboard({ projectId }: LeaderboardProps): JSX.Element {
               setIsLoading(false);
             })
             .catch((err) => {
-              const message = err instanceof Error ? err.message : "Failed to load";
+              const message =
+                err instanceof Error ? err.message : "Failed to load";
               setError(message);
               setIsLoading(false);
             });
@@ -336,8 +357,10 @@ export function Leaderboard({ projectId }: LeaderboardProps): JSX.Element {
           <h2 style={styles.tableTitle}>Experiments</h2>
           <div style={styles.sortInfo}>
             <span style={styles.sortLabel}>
-              Sorted by: <strong>{COLUMNS.find((c) => c.key === sortBy)?.label || "F1"}</strong>
-              {" "}
+              Sorted by:{" "}
+              <strong>
+                {COLUMNS.find((c) => c.key === sortBy)?.label || "F1"}
+              </strong>{" "}
               ({order === "desc" ? "descending" : "ascending"})
             </span>
           </div>

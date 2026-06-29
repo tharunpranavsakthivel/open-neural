@@ -1,8 +1,8 @@
 /**
  * Pipelines API module.
- * 
+ *
  * Provides typed Axios-based wrappers for pipeline management and validation.
- * 
+ *
  * @module api/pipelines
  */
 import { getApiClient } from "./client";
@@ -67,80 +67,80 @@ export interface PipelineResponse {
 
 /**
  * Create a new pipeline for a project.
- * 
+ *
  * POST /api/v1/projects/{projectId}/pipelines
- * 
+ *
  * @param projectId - The ID of the project
  * @param request - The pipeline configuration
  * @returns The created pipeline response
  */
 export async function createPipeline(
   projectId: string,
-  request: CreatePipelineRequest
+  request: CreatePipelineRequest,
 ): Promise<PipelineResponse> {
   const client = getApiClient();
   const response = await client.post<PipelineResponse>(
     `/projects/${projectId}/pipelines`,
-    request
+    request,
   );
   return response.data;
 }
 
 /**
  * Fetch all pipelines for a project.
- * 
+ *
  * GET /api/v1/projects/{projectId}/pipelines
- * 
+ *
  * @param projectId - The ID of the project
  * @returns Array of pipeline responses
  */
 export async function fetchProjectPipelines(
-  projectId: string
+  projectId: string,
 ): Promise<PipelineResponse[]> {
   const client = getApiClient();
   const response = await client.get<PipelineResponse[]>(
-    `/projects/${projectId}/pipelines`
+    `/projects/${projectId}/pipelines`,
   );
   return response.data;
 }
 
 /**
  * Validate a saved pipeline configuration.
- * 
+ *
  * GET /api/v1/projects/{projectId}/pipelines/{pipelineId}/validate
- * 
+ *
  * @param projectId - The ID of the project
  * @param pipelineId - The ID of the pipeline to validate
  * @returns Validation result
  */
 export async function validatePipeline(
   projectId: string,
-  pipelineId: string
+  pipelineId: string,
 ): Promise<PipelineValidationResult> {
   const client = getApiClient();
   const response = await client.get<PipelineValidationResult>(
-    `/projects/${projectId}/pipelines/${pipelineId}/validate`
+    `/projects/${projectId}/pipelines/${pipelineId}/validate`,
   );
   return response.data;
 }
 
 /**
  * Validate a pipeline configuration without saving (dry run).
- * 
+ *
  * POST /api/v1/projects/{projectId}/pipelines/validate
- * 
+ *
  * @param projectId - The ID of the project
  * @param request - The pipeline configuration to validate
  * @returns Validation result
  */
 export async function validatePipelineConfig(
   projectId: string,
-  request: CreatePipelineRequest
+  request: CreatePipelineRequest,
 ): Promise<PipelineValidationResult> {
   const client = getApiClient();
   const response = await client.post<PipelineValidationResult>(
     `/projects/${projectId}/pipelines/validate`,
-    request
+    request,
   );
   return response.data;
 }

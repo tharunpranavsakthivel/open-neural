@@ -5,9 +5,8 @@ exists, database schema is migrated, and SQLite is properly configured.
 """
 
 import logging
-import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import aiosqlite
 

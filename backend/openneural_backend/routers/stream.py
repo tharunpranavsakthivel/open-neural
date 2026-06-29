@@ -23,7 +23,6 @@ from openneural_backend.db.models import Experiment
 from openneural_backend.orchestrator.event_bus import (
     consume,
     subscribe,
-    unsubscribe,
 )
 
 router = APIRouter(prefix="/experiments/{experiment_id}/stream", tags=["stream"])

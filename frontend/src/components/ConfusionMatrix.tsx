@@ -243,9 +243,7 @@ export function ConfusionMatrix({
           <div style={styles.summaryItem}>
             <span style={styles.summaryLabel}>Accuracy:</span>
             <span style={styles.summaryValue}>
-              {total > 0
-                ? `${(((tn + tp) / total) * 100).toFixed(1)}%`
-                : "N/A"}
+              {total > 0 ? `${(((tn + tp) / total) * 100).toFixed(1)}%` : "N/A"}
             </span>
           </div>
           <div style={styles.summaryItem}>
@@ -271,12 +269,12 @@ export function ConfusionMatrix({
 
     const numClasses = classLabels.length;
     const maxValue = Math.max(
-      ...multiclassMatrix.flat().filter((v) => typeof v === "number")
+      ...multiclassMatrix.flat().filter((v) => typeof v === "number"),
     );
 
     // Calculate totals for each row (actual class)
     const rowTotals = multiclassMatrix.map((row) =>
-      row.reduce((sum, val) => sum + val, 0)
+      row.reduce((sum, val) => sum + val, 0),
     );
 
     return (
@@ -304,10 +302,7 @@ export function ConfusionMatrix({
               <div style={styles.cornerCell} /> {/* Empty corner cell */}
               {classLabels.map((label, index) => (
                 <div key={`col-${index}`} style={styles.columnHeader}>
-                  <span
-                    style={styles.columnHeaderText}
-                    title={label}
-                  >
+                  <span style={styles.columnHeaderText} title={label}>
                     {label.length > 8 ? `${label.slice(0, 8)}...` : label}
                   </span>
                 </div>
@@ -320,10 +315,13 @@ export function ConfusionMatrix({
               <div key={`row-${rowIndex}`} style={styles.heatmapRow}>
                 {/* Row header (actual class) */}
                 <div style={styles.rowHeader}>
-                  <span style={styles.rowHeaderText} title={classLabels?.[rowIndex]}>
+                  <span
+                    style={styles.rowHeaderText}
+                    title={classLabels?.[rowIndex]}
+                  >
                     {(classLabels?.[rowIndex] ?? "").length > 8
                       ? `${(classLabels?.[rowIndex] ?? "").slice(0, 8)}...`
-                      : classLabels?.[rowIndex] ?? ""}
+                      : (classLabels?.[rowIndex] ?? "")}
                   </span>
                 </div>
 
@@ -559,7 +557,8 @@ const styles: Record<string, React.CSSProperties> = {
   legendGradient: {
     width: "80px",
     height: "12px",
-    background: "linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 1))",
+    background:
+      "linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 1))",
     borderRadius: "2px",
   },
   multiclassWrapper: {

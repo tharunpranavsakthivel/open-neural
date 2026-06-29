@@ -77,7 +77,7 @@ interface DatasetActions {
    */
   updateSnapshotInHistory: (
     snapshotId: string,
-    updates: Partial<SnapshotListItem>
+    updates: Partial<SnapshotListItem>,
   ) => void;
 
   /**
@@ -150,11 +150,11 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
 
   updateSnapshotInHistory: (
     snapshotId: string,
-    updates: Partial<SnapshotListItem>
+    updates: Partial<SnapshotListItem>,
   ): void => {
     set((state) => ({
       snapshotHistory: state.snapshotHistory.map((snapshot) =>
-        snapshot.id === snapshotId ? { ...snapshot, ...updates } : snapshot
+        snapshot.id === snapshotId ? { ...snapshot, ...updates } : snapshot,
       ),
     }));
   },
@@ -162,13 +162,11 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
   removeSnapshotFromHistory: (snapshotId: string): void => {
     set((state) => ({
       snapshotHistory: state.snapshotHistory.filter(
-        (snapshot) => snapshot.id !== snapshotId
+        (snapshot) => snapshot.id !== snapshotId,
       ),
       // Also clear current snapshot if it matches the removed one
       currentSnapshot:
-        state.currentSnapshot?.id === snapshotId
-          ? null
-          : state.currentSnapshot,
+        state.currentSnapshot?.id === snapshotId ? null : state.currentSnapshot,
     }));
   },
 }));

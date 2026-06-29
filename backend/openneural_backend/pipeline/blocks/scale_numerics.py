@@ -7,7 +7,6 @@ Supports standard scaling (z-score: mean=0, std=1) and min-max scaling
 selection via ColumnTransformer.
 """
 
-from typing import List, Optional, Union
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -16,7 +15,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -73,13 +72,13 @@ class ScaleNumericStandardBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to standard scale (z-score). "
-                               "If empty or not provided, all numeric columns are scaled.",
+                "If empty or not provided, all numeric columns are scaled.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the ScaleNumericStandardBlock.
 
         Args:
@@ -87,10 +86,12 @@ class ScaleNumericStandardBlock(PipelineBlock):
                 all numeric columns are scaled.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._scaler: Optional[StandardScaler] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._scaler: StandardScaler | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "ScaleNumericStandardBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "ScaleNumericStandardBlock":
         """Fit the scaler to the training data.
 
         Computes the mean and standard deviation for each specified numeric column.
@@ -122,9 +123,7 @@ class ScaleNumericStandardBlock(PipelineBlock):
 
         # Wrap in ColumnTransformer to apply only to specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("scaler", self._scaler, columns)
-            ],
+            transformers=[("scaler", self._scaler, columns)],
             remainder="passthrough",
             verbose_feature_names_out=False,
         )
@@ -169,7 +168,7 @@ class ScaleNumericStandardBlock(PipelineBlock):
 
         return pd.DataFrame(X_transformed, columns=output_columns, index=X.index)
 
-    def to_sklearn(self) -> Union[StandardScaler, ColumnTransformer]:
+    def to_sklearn(self) -> StandardScaler | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:
@@ -227,13 +226,13 @@ class ScaleNumericMinMaxBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to min-max scale (range 0-1). "
-                               "If empty or not provided, all numeric columns are scaled.",
+                "If empty or not provided, all numeric columns are scaled.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the ScaleNumericMinMaxBlock.
 
         Args:
@@ -241,10 +240,12 @@ class ScaleNumericMinMaxBlock(PipelineBlock):
                 all numeric columns are scaled.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._scaler: Optional[MinMaxScaler] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._scaler: MinMaxScaler | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "ScaleNumericMinMaxBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "ScaleNumericMinMaxBlock":
         """Fit the scaler to the training data.
 
         Computes the minimum and maximum values for each specified numeric column.
@@ -276,9 +277,7 @@ class ScaleNumericMinMaxBlock(PipelineBlock):
 
         # Wrap in ColumnTransformer to apply only to specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("scaler", self._scaler, columns)
-            ],
+            transformers=[("scaler", self._scaler, columns)],
             remainder="passthrough",
             verbose_feature_names_out=False,
         )
@@ -323,7 +322,7 @@ class ScaleNumericMinMaxBlock(PipelineBlock):
 
         return pd.DataFrame(X_transformed, columns=output_columns, index=X.index)
 
-    def to_sklearn(self) -> Union[MinMaxScaler, ColumnTransformer]:
+    def to_sklearn(self) -> MinMaxScaler | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:

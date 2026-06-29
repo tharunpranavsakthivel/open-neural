@@ -53,7 +53,7 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
    */
   function validatePasswordsMatch(
     pwd: string,
-    confirm: string
+    confirm: string,
   ): { success: boolean; error?: string } {
     if (pwd !== confirm) {
       return {
@@ -99,13 +99,13 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ password }),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `HTTP ${response.status}: ${response.statusText}`
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
         );
       }
 
@@ -116,7 +116,7 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
       onComplete();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create password"
+        err instanceof Error ? err.message : "Failed to create password",
       );
     } finally {
       setIsSubmitting(false);
@@ -170,7 +170,12 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && password && confirmPassword && !isSubmitting) {
+                if (
+                  e.key === "Enter" &&
+                  password &&
+                  confirmPassword &&
+                  !isSubmitting
+                ) {
                   e.preventDefault();
                   // Trigger form submission
                   const form = e.currentTarget.closest("form");

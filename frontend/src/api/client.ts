@@ -7,7 +7,11 @@
  *
  * @module api/client
  */
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { getBackendSecret, getBackendPort } from "../stores/appStore";
 
 /**
@@ -65,7 +69,7 @@ export function createApiClient(port: number): AxiosInstance {
     },
     (error) => {
       return Promise.reject(error);
-    }
+    },
   );
 
   // Response interceptor: Map standard HTTP/Axios errors to unified ApiError shape
@@ -99,7 +103,11 @@ export function createApiClient(port: number): AxiosInstance {
                   if (err && typeof err === "object") {
                     const loc = err.loc;
                     const msg = err.msg;
-                    if (Array.isArray(loc) && loc.length > 0 && typeof msg === "string") {
+                    if (
+                      Array.isArray(loc) &&
+                      loc.length > 0 &&
+                      typeof msg === "string"
+                    ) {
                       // Target the actual field name (the last element of loc)
                       const fieldName = String(loc[loc.length - 1]);
                       apiError.field_errors[fieldName] = msg;
@@ -112,19 +120,24 @@ export function createApiClient(port: number): AxiosInstance {
             } else if ("message" in data && typeof data.message === "string") {
               apiError.message = data.message;
             } else {
-              apiError.message = axiosError.message || `HTTP Error ${axiosError.response.status}`;
+              apiError.message =
+                axiosError.message ||
+                `HTTP Error ${axiosError.response.status}`;
             }
           } else {
-            apiError.message = axiosError.message || `HTTP Error ${axiosError.response.status}`;
+            apiError.message =
+              axiosError.message || `HTTP Error ${axiosError.response.status}`;
           }
         } else if (axiosError.request) {
           // The request was made but no response was received (e.g. network timeout or server down)
           apiError.status = 0;
-          apiError.message = "No response received from the backend. Please check that the backend is running.";
+          apiError.message =
+            "No response received from the backend. Please check that the backend is running.";
         } else {
           // Something happened in setting up the request
           apiError.status = 0;
-          apiError.message = axiosError.message || "Request configuration error.";
+          apiError.message =
+            axiosError.message || "Request configuration error.";
         }
       } else if (error instanceof Error) {
         apiError.message = error.message;
@@ -132,7 +145,7 @@ export function createApiClient(port: number): AxiosInstance {
 
       // Reject the promise with the mapped ApiError
       return Promise.reject(apiError);
-    }
+    },
   );
 
   return client;
@@ -151,7 +164,9 @@ let cachedPort: number | null = null;
 export function getApiClient(): AxiosInstance {
   const port = getBackendPort();
   if (port === null) {
-    throw new Error("Backend port not set. Ensure getBackendPort() has resolved.");
+    throw new Error(
+      "Backend port not set. Ensure getBackendPort() has resolved.",
+    );
   }
 
   if (activeClient && cachedPort === port) {

@@ -27,7 +27,8 @@ export function EncodeCategoricalsConfig({
   availableColumns,
   isOneHot = true,
 }: EncodeCategoricalsConfigProps): JSX.Element {
-  const strategy = (params.strategy as string) ?? (isOneHot ? "onehot" : "ordinal");
+  const strategy =
+    (params.strategy as string) ?? (isOneHot ? "onehot" : "ordinal");
   const columns = (params.columns as string[]) ?? [];
 
   const handleStrategyChange = (newStrategy: string): void => {
@@ -51,7 +52,11 @@ export function EncodeCategoricalsConfig({
 
       <div style={configStyles.section}>
         <label style={configStyles.label}>Encoding Strategy</label>
-        <div style={configStyles.radioGroup} role="radiogroup" aria-label="Encoding strategy">
+        <div
+          style={configStyles.radioGroup}
+          role="radiogroup"
+          aria-label="Encoding strategy"
+        >
           <label style={configStyles.radio}>
             <input
               type="radio"
@@ -79,7 +84,9 @@ export function EncodeCategoricalsConfig({
 
       <div style={configStyles.section}>
         <ColumnMultiSelect
-          columns={availableColumns.filter((c) => c.type === "categorical" || c.type === "string")}
+          columns={availableColumns.filter(
+            (c) => c.type === "categorical" || c.type === "string",
+          )}
           selected={columns}
           onChange={handleColumnsChange}
           label="Categorical columns to encode"

@@ -97,10 +97,14 @@ function getRevealButtonLabel(): string {
 
 export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
   /** Selected destination directory - defaults to OS Desktop */
-  const [destinationDir, setDestinationDir] = useState<string>(() => getDesktopPath());
+  const [destinationDir, setDestinationDir] = useState<string>(() =>
+    getDesktopPath(),
+  );
 
   /** Artifact selection state */
-  const [artifacts, setArtifacts] = useState<Record<ArtifactType, ArtifactSelection>>({
+  const [artifacts, setArtifacts] = useState<
+    Record<ArtifactType, ArtifactSelection>
+  >({
     model: {
       selected: true,
       formats: ["onnx", "joblib"],
@@ -149,7 +153,8 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
         : [...currentFormats, format];
 
       // Ensure at least one format is selected if model is selected
-      const updatedFormats = newFormats.length > 0 ? newFormats : currentFormats;
+      const updatedFormats =
+        newFormats.length > 0 ? newFormats : currentFormats;
 
       return {
         ...prev,
@@ -165,13 +170,14 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
    * Select all artifacts.
    */
   const handleSelectAll = useCallback(() => {
-    setArtifacts((prev) =>
-      Object.fromEntries(
-        Object.entries(prev).map(([key, value]) => [
-          key,
-          { ...value, selected: true },
-        ])
-      ) as Record<ArtifactType, ArtifactSelection>
+    setArtifacts(
+      (prev) =>
+        Object.fromEntries(
+          Object.entries(prev).map(([key, value]) => [
+            key,
+            { ...value, selected: true },
+          ]),
+        ) as Record<ArtifactType, ArtifactSelection>,
     );
   }, []);
 
@@ -179,13 +185,14 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
    * Deselect all artifacts.
    */
   const handleDeselectAll = useCallback(() => {
-    setArtifacts((prev) =>
-      Object.fromEntries(
-        Object.entries(prev).map(([key, value]) => [
-          key,
-          { ...value, selected: false },
-        ])
-      ) as Record<ArtifactType, ArtifactSelection>
+    setArtifacts(
+      (prev) =>
+        Object.fromEntries(
+          Object.entries(prev).map(([key, value]) => [
+            key,
+            { ...value, selected: false },
+          ]),
+        ) as Record<ArtifactType, ArtifactSelection>,
     );
   }, []);
 
@@ -211,9 +218,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
    * Get selected artifacts array for API call.
    */
   const getSelectedArtifacts = useCallback((): ArtifactType[] => {
-    return (Object.entries(artifacts)
+    return Object.entries(artifacts)
       .filter(([, value]) => value.selected)
-      .map(([key]) => key) as ArtifactType[]);
+      .map(([key]) => key) as ArtifactType[];
   }, [artifacts]);
 
   /**
@@ -270,7 +277,7 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
             destination_dir: destinationDir,
             formats,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -317,16 +324,22 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
       setIsExportComplete(false);
 
       // Select all artifacts programmatically
-      const allArtifacts: ArtifactType[] = ["model", "pipeline", "report", "predictions"];
+      const allArtifacts: ArtifactType[] = [
+        "model",
+        "pipeline",
+        "report",
+        "predictions",
+      ];
 
       // Update UI state to reflect all selected
-      setArtifacts((prev) =>
-        Object.fromEntries(
-          Object.entries(prev).map(([key, value]) => [
-            key,
-            { ...value, selected: true },
-          ])
-        ) as Record<ArtifactType, ArtifactSelection>
+      setArtifacts(
+        (prev) =>
+          Object.fromEntries(
+            Object.entries(prev).map(([key, value]) => [
+              key,
+              { ...value, selected: true },
+            ]),
+          ) as Record<ArtifactType, ArtifactSelection>,
       );
 
       // Get model formats (both ONNX and joblib)
@@ -351,7 +364,7 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
             destination_dir: destinationDir,
             formats,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -373,60 +386,69 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
    * Export a single artifact independently.
    * Per Task 193: allow exporting a single artifact independently.
    */
-  const handleExportSingle = useCallback(async (artifactType: ArtifactType) => {
-    // Validate destination directory first
-    if (!destinationDir) {
-      setExportError("Please select a destination directory");
-      return;
-    }
-
-    if (isExporting) {
-      return;
-    }
-
-    try {
-      setIsExporting(true);
-      setExportError(null);
-      setIsExportComplete(false);
-
-      // Build formats configuration based on artifact type
-      const formats: { model?: ModelFormat[] } = {};
-      if (artifactType === "model") {
-        // For single model export, use currently selected formats
-        formats.model = artifacts.model.selectedFormats ?? ["onnx", "joblib"];
+  const handleExportSingle = useCallback(
+    async (artifactType: ArtifactType) => {
+      // Validate destination directory first
+      if (!destinationDir) {
+        setExportError("Please select a destination directory");
+        return;
       }
 
-      // Call export API with single artifact
-      const baseUrl = await getBaseUrl();
-      const response = await fetch(
-        `${baseUrl}/api/v1/experiments/${experimentId}/export`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            artifacts: [artifactType],
-            destination_dir: destinationDir,
-            formats,
-          }),
+      if (isExporting) {
+        return;
+      }
+
+      try {
+        setIsExporting(true);
+        setExportError(null);
+        setIsExportComplete(false);
+
+        // Build formats configuration based on artifact type
+        const formats: { model?: ModelFormat[] } = {};
+        if (artifactType === "model") {
+          // For single model export, use currently selected formats
+          formats.model = artifacts.model.selectedFormats ?? ["onnx", "joblib"];
         }
-      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Export failed: ${response.status} ${errorText}`);
+        // Call export API with single artifact
+        const baseUrl = await getBaseUrl();
+        const response = await fetch(
+          `${baseUrl}/api/v1/experiments/${experimentId}/export`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              artifacts: [artifactType],
+              destination_dir: destinationDir,
+              formats,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Export failed: ${response.status} ${errorText}`);
+        }
+
+        setIsExportComplete(true);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Export failed";
+        setExportError(errorMessage);
+        console.error("Export error:", err);
+      } finally {
+        setIsExporting(false);
       }
-
-      setIsExportComplete(true);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Export failed";
-      setExportError(errorMessage);
-      console.error("Export error:", err);
-    } finally {
-      setIsExporting(false);
-    }
-  }, [destinationDir, experimentId, isExporting, artifacts.model.selectedFormats]);
+    },
+    [
+      destinationDir,
+      experimentId,
+      isExporting,
+      artifacts.model.selectedFormats,
+    ],
+  );
 
   /**
    * Artifact metadata for display.
@@ -459,7 +481,10 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
   /**
    * Artifact metadata for display.
    */
-  const artifactMeta: Record<ArtifactType, { label: string; description: string; icon: string }> = {
+  const artifactMeta: Record<
+    ArtifactType,
+    { label: string; description: string; icon: string }
+  > = {
     model: {
       label: "Model",
       description: "Trained model artifact",
@@ -487,7 +512,8 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
       <header style={styles.header}>
         <h1 style={styles.title}>Export</h1>
         <p style={styles.description}>
-          Export your trained model, pipeline, and evaluation report to a local directory.
+          Export your trained model, pipeline, and evaluation report to a local
+          directory.
         </p>
       </header>
 
@@ -522,9 +548,13 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   onChange={() => handleArtifactToggle("model")}
                   style={styles.checkbox}
                 />
-                <span style={styles.artifactIcon}>{artifactMeta.model.icon}</span>
+                <span style={styles.artifactIcon}>
+                  {artifactMeta.model.icon}
+                </span>
                 <div style={styles.artifactInfo}>
-                  <span style={styles.artifactName}>{artifactMeta.model.label}</span>
+                  <span style={styles.artifactName}>
+                    {artifactMeta.model.label}
+                  </span>
                   <span style={styles.artifactDescription}>
                     {artifactMeta.model.description}
                   </span>
@@ -535,7 +565,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                 disabled={!destinationDir || isExporting}
                 style={{
                   ...styles.exportSingleButton,
-                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                  ...(!destinationDir || isExporting
+                    ? styles.exportSingleButtonDisabled
+                    : {}),
                 }}
               >
                 Export
@@ -550,7 +582,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   <label style={styles.formatCheckboxLabel}>
                     <input
                       type="checkbox"
-                      checked={artifacts.model.selectedFormats?.includes("onnx")}
+                      checked={artifacts.model.selectedFormats?.includes(
+                        "onnx",
+                      )}
                       onChange={() => handleFormatToggle("onnx")}
                       style={styles.formatCheckbox}
                     />
@@ -562,7 +596,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   <label style={styles.formatCheckboxLabel}>
                     <input
                       type="checkbox"
-                      checked={artifacts.model.selectedFormats?.includes("joblib")}
+                      checked={artifacts.model.selectedFormats?.includes(
+                        "joblib",
+                      )}
                       onChange={() => handleFormatToggle("joblib")}
                       style={styles.formatCheckbox}
                     />
@@ -580,7 +616,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
           <div
             style={{
               ...styles.artifactCard,
-              ...(artifacts.pipeline.selected ? styles.artifactCardSelected : {}),
+              ...(artifacts.pipeline.selected
+                ? styles.artifactCardSelected
+                : {}),
             }}
           >
             <div style={styles.artifactRow}>
@@ -591,9 +629,13 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   onChange={() => handleArtifactToggle("pipeline")}
                   style={styles.checkbox}
                 />
-                <span style={styles.artifactIcon}>{artifactMeta.pipeline.icon}</span>
+                <span style={styles.artifactIcon}>
+                  {artifactMeta.pipeline.icon}
+                </span>
                 <div style={styles.artifactInfo}>
-                  <span style={styles.artifactName}>{artifactMeta.pipeline.label}</span>
+                  <span style={styles.artifactName}>
+                    {artifactMeta.pipeline.label}
+                  </span>
                   <span style={styles.artifactDescription}>
                     {artifactMeta.pipeline.description}
                     <span style={styles.formatTag}>joblib</span>
@@ -605,7 +647,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                 disabled={!destinationDir || isExporting}
                 style={{
                   ...styles.exportSingleButton,
-                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                  ...(!destinationDir || isExporting
+                    ? styles.exportSingleButtonDisabled
+                    : {}),
                 }}
               >
                 Export
@@ -628,9 +672,13 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   onChange={() => handleArtifactToggle("report")}
                   style={styles.checkbox}
                 />
-                <span style={styles.artifactIcon}>{artifactMeta.report.icon}</span>
+                <span style={styles.artifactIcon}>
+                  {artifactMeta.report.icon}
+                </span>
                 <div style={styles.artifactInfo}>
-                  <span style={styles.artifactName}>{artifactMeta.report.label}</span>
+                  <span style={styles.artifactName}>
+                    {artifactMeta.report.label}
+                  </span>
                   <span style={styles.artifactDescription}>
                     {artifactMeta.report.description}
                     <span style={styles.formatTag}>PDF</span>
@@ -642,7 +690,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                 disabled={!destinationDir || isExporting}
                 style={{
                   ...styles.exportSingleButton,
-                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                  ...(!destinationDir || isExporting
+                    ? styles.exportSingleButtonDisabled
+                    : {}),
                 }}
               >
                 Export
@@ -654,7 +704,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
           <div
             style={{
               ...styles.artifactCard,
-              ...(artifacts.predictions.selected ? styles.artifactCardSelected : {}),
+              ...(artifacts.predictions.selected
+                ? styles.artifactCardSelected
+                : {}),
             }}
           >
             <div style={styles.artifactRow}>
@@ -665,9 +717,13 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                   onChange={() => handleArtifactToggle("predictions")}
                   style={styles.checkbox}
                 />
-                <span style={styles.artifactIcon}>{artifactMeta.predictions.icon}</span>
+                <span style={styles.artifactIcon}>
+                  {artifactMeta.predictions.icon}
+                </span>
                 <div style={styles.artifactInfo}>
-                  <span style={styles.artifactName}>{artifactMeta.predictions.label}</span>
+                  <span style={styles.artifactName}>
+                    {artifactMeta.predictions.label}
+                  </span>
                   <span style={styles.artifactDescription}>
                     {artifactMeta.predictions.description}
                     <span style={styles.formatTag}>CSV</span>
@@ -679,7 +735,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
                 disabled={!destinationDir || isExporting}
                 style={{
                   ...styles.exportSingleButton,
-                  ...(!destinationDir || isExporting ? styles.exportSingleButtonDisabled : {}),
+                  ...(!destinationDir || isExporting
+                    ? styles.exportSingleButtonDisabled
+                    : {}),
                 }}
               >
                 Export
@@ -689,7 +747,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
         </div>
 
         {!hasSelectedArtifacts() && (
-          <p style={styles.warningText}>Please select at least one artifact to export.</p>
+          <p style={styles.warningText}>
+            Please select at least one artifact to export.
+          </p>
         )}
       </div>
 
@@ -727,7 +787,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
       {isExportComplete && (
         <div style={styles.successBanner}>
           <span style={styles.successIcon}>✓</span>
-          <span style={styles.successText}>All artifacts exported successfully!</span>
+          <span style={styles.successText}>
+            All artifacts exported successfully!
+          </span>
           <button
             onClick={handleRevealInFinder}
             style={styles.revealButton}
@@ -745,7 +807,9 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
           disabled={!destinationDir || isExporting}
           style={{
             ...styles.exportButton,
-            ...(destinationDir && !isExporting ? {} : styles.exportButtonDisabled),
+            ...(destinationDir && !isExporting
+              ? {}
+              : styles.exportButtonDisabled),
           }}
         >
           {isExporting ? (

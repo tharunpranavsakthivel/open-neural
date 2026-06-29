@@ -18,11 +18,7 @@ export type RunStatus = "queued" | "running" | "done" | "failed";
  * Experiment status values.
  */
 export type ExperimentStatus =
-  | "created"
-  | "running"
-  | "done"
-  | "cancelled"
-  | "interrupted";
+  "created" | "running" | "done" | "cancelled" | "interrupted";
 
 /**
  * Metrics for a completed run.

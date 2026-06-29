@@ -81,7 +81,7 @@ export function Settings(): JSX.Element {
               // Development mode - secret may not be required
               "X-OpenNeural-Secret": "dev-secret",
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -94,7 +94,7 @@ export function Settings(): JSX.Element {
       } catch (err) {
         console.error("Failed to fetch system info:", err);
         setSystemInfoError(
-          err instanceof Error ? err.message : "Failed to load system info"
+          err instanceof Error ? err.message : "Failed to load system info",
         );
       } finally {
         setIsLoadingSystemInfo(false);
@@ -182,7 +182,7 @@ export function Settings(): JSX.Element {
     } catch (err) {
       console.error("Password change failed:", err);
       setPasswordError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error ? err.message : "An unexpected error occurred",
       );
     } finally {
       setIsChangingPassword(false);
@@ -228,7 +228,7 @@ export function Settings(): JSX.Element {
     } catch (err) {
       console.error("Clear data failed:", err);
       showErrorToast(
-        err instanceof Error ? err.message : "Failed to clear data"
+        err instanceof Error ? err.message : "Failed to clear data",
       );
     } finally {
       setIsClearingData(false);
@@ -408,7 +408,9 @@ export function Settings(): JSX.Element {
 
       {/* Danger Zone Section */}
       <section style={styles.section}>
-        <h2 style={{ ...styles.sectionTitle, color: "#dc2626" }}>Danger Zone</h2>
+        <h2 style={{ ...styles.sectionTitle, color: "#dc2626" }}>
+          Danger Zone
+        </h2>
 
         <div style={styles.dangerCard}>
           <div style={styles.actionContent}>

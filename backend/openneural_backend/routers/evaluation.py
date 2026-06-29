@@ -15,8 +15,8 @@ from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import Evaluation, Experiment, SubgroupAnalysis
 from openneural_backend.services.evaluation_service import (
     compute_metrics_with_threshold,
-    load_predictions,
     identify_best_run,
+    load_predictions,
 )
 
 router = APIRouter(
@@ -104,9 +104,8 @@ async def get_evaluation(experiment_id: str) -> dict[str, Any]:
         # Load subgroup analyses for this evaluation
         subgroup_analyses = []
         if evaluation:
-            subgroup_stmt = (
-                select(SubgroupAnalysis)
-                .where(SubgroupAnalysis.evaluation_id == evaluation.id)
+            subgroup_stmt = select(SubgroupAnalysis).where(
+                SubgroupAnalysis.evaluation_id == evaluation.id
             )
             subgroup_result = await session.execute(subgroup_stmt)
             subgroups = subgroup_result.scalars().all()
@@ -117,11 +116,13 @@ async def get_evaluation(experiment_id: str) -> dict[str, Any]:
                 except (json.JSONDecodeError, TypeError):
                     subgroup_metrics = {}
 
-                subgroup_analyses.append({
-                    "slice_name": subgroup.slice_name,
-                    "n": subgroup.n,
-                    "metrics": subgroup_metrics,
-                })
+                subgroup_analyses.append(
+                    {
+                        "slice_name": subgroup.slice_name,
+                        "n": subgroup.n,
+                        "metrics": subgroup_metrics,
+                    }
+                )
 
         # Build the response according to TDD §2.5
         response = {

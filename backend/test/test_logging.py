@@ -26,6 +26,7 @@ class LoggingConfigTests(unittest.TestCase):
     def setUp(self) -> None:
         """Create a temporary directory for logs before each test."""
         from openneural_backend.config import Settings
+
         self.temp_dir = Path(tempfile.mkdtemp())
         self.original_env_var = os.environ.get("OPENNEURAL_DATA_DIR")
         os.environ["OPENNEURAL_DATA_DIR"] = str(self.temp_dir)
@@ -35,6 +36,7 @@ class LoggingConfigTests(unittest.TestCase):
     def tearDown(self) -> None:
         """Clean up the temporary directory after each test."""
         from openneural_backend.config import Settings
+
         if self.original_env_var is not None:
             os.environ["OPENNEURAL_DATA_DIR"] = self.original_env_var
         else:
@@ -60,7 +62,8 @@ class LoggingConfigTests(unittest.TestCase):
             isinstance(h, OpenNeuralDailyRotatingFileHandler) for h in handlers
         )
         has_stream_handler = any(
-            isinstance(h, logging.StreamHandler) and not isinstance(h, OpenNeuralDailyRotatingFileHandler)
+            isinstance(h, logging.StreamHandler)
+            and not isinstance(h, OpenNeuralDailyRotatingFileHandler)
             for h in handlers
         )
         self.assertTrue(has_file_handler)
@@ -82,7 +85,7 @@ class LoggingConfigTests(unittest.TestCase):
         logger.setLevel(logging.INFO)
         logger.info("Test log line")
 
-        with open(expected_file, "r", encoding="utf-8") as f:
+        with open(expected_file, encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Test log line", content)
 
@@ -103,7 +106,7 @@ class LoggingConfigTests(unittest.TestCase):
         handler.emit(record)
 
         # New file for today should still exist, and should contain the post-rotation line
-        with open(expected_file, "r", encoding="utf-8") as f:
+        with open(expected_file, encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Post rotation log line", content)
 
@@ -152,78 +155,109 @@ class LoggingConfigTests(unittest.TestCase):
             parsed = datetime.fromisoformat(timestamp)
             self.assertIsNotNone(parsed)
         except ValueError as e:
-            self.fail(f"Failed to parse formatted timestamp '{timestamp}' as ISO8601: {e}")
+            self.fail(
+                f"Failed to parse formatted timestamp '{timestamp}' as ISO8601: {e}"
+            )
 
     def test_database_rollback_logging(self) -> None:
         """Verify database transaction rollback is logged at ERROR level."""
-        from openneural_backend.db.transaction import atomic_transaction
         import asyncio
 
-        with self.assertLogs("openneural_backend.db.transaction", level="ERROR") as log_cm:
-            with self.assertRaises(Exception):
-                async def run_failing_tx():
-                    async with atomic_transaction() as session:
-                        raise ValueError("Simulated DB Error")
-                asyncio.run(run_failing_tx())
-        self.assertTrue(any("Database transaction rollback" in line for line in log_cm.output))
+        from openneural_backend.db.transaction import atomic_transaction
+
+        with self.assertLogs(
+            "openneural_backend.db.transaction", level="ERROR"
+        ) as log_cm, self.assertRaises(Exception):
+
+            async def run_failing_tx():
+                async with atomic_transaction() as session:
+                    raise ValueError("Simulated DB Error")
+
+            asyncio.run(run_failing_tx())
+        self.assertTrue(
+            any("Database transaction rollback" in line for line in log_cm.output)
+        )
 
     def test_training_crash_logging(self) -> None:
         """Verify training process crash is logged at ERROR level."""
-        from openneural_backend.orchestrator.experiment_manager import _run_training as run_experiment_task
         import asyncio
-        from unittest.mock import patch, MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock, patch
 
-        with patch("openneural_backend.orchestrator.trainer.run_experiment", side_effect=Exception("Simulated trainer crash")):
-            with patch("openneural_backend.orchestrator.experiment_manager.async_session") as mock_session_cls:
-                mock_session = MagicMock()
-                mock_session.__aenter__.return_value = mock_session
-                mock_session.execute = AsyncMock()
-                mock_session.commit = AsyncMock()
-                mock_session.refresh = AsyncMock()
-                mock_scalar = MagicMock()
-                mock_scalar.scalar_one_or_none.return_value = MagicMock()
-                mock_session.execute.return_value = mock_scalar
-                mock_session_cls.return_value = mock_session
+        from openneural_backend.orchestrator.experiment_manager import (
+            _run_training as run_experiment_task,
+        )
 
-                with self.assertLogs("openneural_backend.orchestrator.experiment_manager", level="ERROR") as log_cm:
-                    async def run_crashing_trainer():
-                        await run_experiment_task("fake-experiment-id")
-                    asyncio.run(run_crashing_trainer())
+        with patch(
+            "openneural_backend.orchestrator.trainer.run_experiment",
+            side_effect=Exception("Simulated trainer crash"),
+        ), patch(
+            "openneural_backend.orchestrator.experiment_manager.async_session"
+        ) as mock_session_cls:
+            mock_session = MagicMock()
+            mock_session.__aenter__.return_value = mock_session
+            mock_session.execute = AsyncMock()
+            mock_session.commit = AsyncMock()
+            mock_session.refresh = AsyncMock()
+            mock_scalar = MagicMock()
+            mock_scalar.scalar_one_or_none.return_value = MagicMock()
+            mock_session.execute.return_value = mock_scalar
+            mock_session_cls.return_value = mock_session
+
+            with self.assertLogs(
+                "openneural_backend.orchestrator.experiment_manager", level="ERROR"
+            ) as log_cm:
+
+                async def run_crashing_trainer():
+                    await run_experiment_task("fake-experiment-id")
+
+                asyncio.run(run_crashing_trainer())
         self.assertTrue(any("Training process crash" in line for line in log_cm.output))
 
     def test_file_permission_failure_logging(self) -> None:
         """Verify file permission failure is logged at ERROR level."""
-        from openneural_backend.services.dataset_service import import_file
         import asyncio
-        from unittest.mock import patch, MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock, patch
 
-        with patch("pandas.DataFrame.to_parquet", side_effect=PermissionError("Permission denied")):
+        from openneural_backend.services.dataset_service import import_file
+
+        with patch(
+            "pandas.DataFrame.to_parquet",
+            side_effect=PermissionError("Permission denied"),
+        ):
             fake_project = MagicMock()
             fake_project.id = "fake-project-id"
-            with patch("openneural_backend.services.dataset_service.async_session") as mock_session_cls:
+            with patch(
+                "openneural_backend.services.dataset_service.async_session"
+            ) as mock_session_cls:
                 mock_session = MagicMock()
                 mock_session.__aenter__.return_value = mock_session
                 mock_session.execute = AsyncMock()
                 mock_session.commit = AsyncMock()
                 mock_session.refresh = AsyncMock()
-                
+
                 # Mock result scalars for select(Project)
                 mock_scalar = MagicMock()
                 mock_scalar.scalar_one_or_none.return_value = fake_project
                 mock_session.execute.return_value = mock_scalar
                 mock_session_cls.return_value = mock_session
 
-                with self.assertLogs("openneural_backend.services.dataset_service", level="ERROR") as log_cm:
+                with self.assertLogs(
+                    "openneural_backend.services.dataset_service", level="ERROR"
+                ) as log_cm:
                     mock_file = MagicMock()
                     mock_file.filename = "test.csv"
                     mock_file.read = AsyncMock(side_effect=[b"col1,col2\n1,2", b""])
                     try:
+
                         async def run_import():
                             await import_file("fake-project-id", mock_file)
+
                         asyncio.run(run_import())
                     except Exception:
                         pass
-        self.assertTrue(any("File permission failure" in line for line in log_cm.output))
+        self.assertTrue(
+            any("File permission failure" in line for line in log_cm.output)
+        )
 
 
 if __name__ == "__main__":

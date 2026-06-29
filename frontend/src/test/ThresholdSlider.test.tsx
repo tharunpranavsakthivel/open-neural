@@ -20,12 +20,16 @@ describe("ThresholdSlider Component Tests", () => {
   });
 
   it("should render with initial threshold of 0.50 and label", () => {
-    render(<ThresholdSlider experimentId={experimentId} initialThreshold={0.5} />);
+    render(
+      <ThresholdSlider experimentId={experimentId} initialThreshold={0.5} />,
+    );
 
     // Value display shows formatted threshold (multiple "0.50" elements exist, check that at least one is present)
     expect(screen.getAllByText("0.50").length).toBeGreaterThanOrEqual(1);
 
-    const slider = screen.getByLabelText("Decision threshold") as HTMLInputElement;
+    const slider = screen.getByLabelText(
+      "Decision threshold",
+    ) as HTMLInputElement;
     expect(slider.value).toBe("0.5");
   });
 
@@ -40,7 +44,11 @@ describe("ThresholdSlider Component Tests", () => {
 
     // Create a simple wrapper to hold parent state for metrics update verification
     const TestComponent = () => {
-      const [metrics, setMetrics] = useState({ precision: 0.5, recall: 0.5, f1: 0.5 });
+      const [metrics, setMetrics] = useState({
+        precision: 0.5,
+        recall: 0.5,
+        f1: 0.5,
+      });
       return (
         <div>
           <ThresholdSlider
@@ -58,7 +66,7 @@ describe("ThresholdSlider Component Tests", () => {
     render(<TestComponent />);
 
     const slider = screen.getByLabelText("Decision threshold");
-    
+
     // Change value to 0.4
     fireEvent.change(slider, { target: { value: "0.4" } });
 
@@ -66,9 +74,15 @@ describe("ThresholdSlider Component Tests", () => {
     expect(screen.getAllByText("0.40").length).toBeGreaterThanOrEqual(1);
 
     // Now wait for the debounced API call and metric card updates to resolve
-    await waitFor(() => {
-      expect(updateEvaluationThreshold).toHaveBeenCalledWith(experimentId, 0.4);
-    }, { timeout: 1500 });
+    await waitFor(
+      () => {
+        expect(updateEvaluationThreshold).toHaveBeenCalledWith(
+          experimentId,
+          0.4,
+        );
+      },
+      { timeout: 1500 },
+    );
 
     // Check if the mock parent cards updated after the promise resolved
     await waitFor(() => {

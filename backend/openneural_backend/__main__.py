@@ -62,7 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
         No application-level exceptions are expected.
     """
     parser = argparse.ArgumentParser(description="Run the OpenNeural backend.")
-    parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1).")
+    parser.add_argument(
+        "--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)."
+    )
     parser.add_argument(
         "--port",
         default=0,
@@ -116,7 +118,9 @@ def main() -> None:
     if port == 0:
         port = find_free_port()
 
-    logger.info(f"OpenNeural backend starting up. Port: {port}, Data Directory: {data_dir}")
+    logger.info(
+        f"OpenNeural backend starting up. Port: {port}, Data Directory: {data_dir}"
+    )
 
     # Generate and set the ephemeral secret for authentication
     # This is passed via environment variable so the middleware can validate requests

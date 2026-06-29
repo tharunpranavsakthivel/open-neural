@@ -6,16 +6,14 @@ Interquartile Range (IQR) method. Rows containing values outside the
 [Q1 - k*IQR, Q3 + k*IQR] range are filtered out.
 """
 
-from typing import List, Optional, Union
 
-import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -64,7 +62,7 @@ class RemoveOutliersIQRTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(
         self,
-        columns: Optional[List[str]] = None,
+        columns: list[str] | None = None,
         iqr_multiplier: float = 1.5,
     ) -> None:
         """Initialize the transformer.
@@ -82,7 +80,9 @@ class RemoveOutliersIQRTransformer(BaseEstimator, TransformerMixin):
         self.lower_bounds: dict = {}
         self.upper_bounds: dict = {}
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "RemoveOutliersIQRTransformer":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "RemoveOutliersIQRTransformer":
         """Fit the transformer to the training data.
 
         Computes Q1, Q3, and IQR for each specified column to determine
@@ -108,9 +108,11 @@ class RemoveOutliersIQRTransformer(BaseEstimator, TransformerMixin):
             )
 
         # Determine columns to check
-        columns_to_check = self.columns if self.columns else X.select_dtypes(
-            include=["number"]
-        ).columns.tolist()
+        columns_to_check = (
+            self.columns
+            if self.columns
+            else X.select_dtypes(include=["number"]).columns.tolist()
+        )
 
         if columns_to_check:
             missing_cols = set(columns_to_check) - set(X.columns)
@@ -208,22 +210,22 @@ class RemoveOutliersIQRBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to check for outliers. "
-                               "If empty or not provided, all numeric columns are checked.",
+                "If empty or not provided, all numeric columns are checked.",
             },
             "iqr_multiplier": {
                 "type": "number",
                 "default": 1.5,
                 "minimum": 0.1,
                 "description": "Multiplier for IQR to define outlier bounds. "
-                               "Default 1.5 (Tukey's fences). Use 3.0 for more conservative detection.",
-            }
+                "Default 1.5 (Tukey's fences). Use 3.0 for more conservative detection.",
+            },
         },
         "required": [],
     }
 
     def __init__(
         self,
-        columns: Optional[List[str]] = None,
+        columns: list[str] | None = None,
         iqr_multiplier: float = 1.5,
     ) -> None:
         """Initialize the RemoveOutliersIQRBlock.
@@ -237,9 +239,11 @@ class RemoveOutliersIQRBlock(PipelineBlock):
             columns=columns if columns is not None else [],
             iqr_multiplier=iqr_multiplier,
         )
-        self._transformer: Optional[RemoveOutliersIQRTransformer] = None
+        self._transformer: RemoveOutliersIQRTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "RemoveOutliersIQRBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "RemoveOutliersIQRBlock":
         """Fit the block to the data.
 
         Computes the IQR-based bounds for outlier detection on each specified column.

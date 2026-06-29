@@ -6,11 +6,11 @@ database queries and API requests.
 """
 
 import pytest
+from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from httpx import AsyncClient
 
-from openneural_backend.db.models import Project, DatasetSnapshot, Pipeline
+from openneural_backend.db.models import DatasetSnapshot, Pipeline, Project
 
 
 @pytest.mark.anyio

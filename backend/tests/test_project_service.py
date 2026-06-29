@@ -1,15 +1,16 @@
 import pytest
-from openneural_backend.db.models import Project
+
 from openneural_backend.services.project_service import (
-    create_project,
-    list_projects,
-    get_project,
-    rename_project,
-    delete_project,
-    get_dashboard_stats,
     ProjectNotFoundError,
     ProjectValidationError,
+    create_project,
+    delete_project,
+    get_dashboard_stats,
+    get_project,
+    list_projects,
+    rename_project,
 )
+
 
 @pytest.mark.anyio
 async def test_create_project_success(db_session) -> None:
@@ -25,6 +26,7 @@ async def test_create_project_success(db_session) -> None:
     assert p_reg["name"] == "Reg Project"
     assert p_reg["task_type"] == "regression"
 
+
 @pytest.mark.anyio
 async def test_create_project_validation_errors(db_session) -> None:
     with pytest.raises(ProjectValidationError, match="cannot be empty"):
@@ -36,11 +38,13 @@ async def test_create_project_validation_errors(db_session) -> None:
     with pytest.raises(ProjectValidationError, match="Invalid task_type"):
         await create_project("My Project", "invalid_task_type")
 
+
 @pytest.mark.anyio
 async def test_list_projects(db_session, sample_project) -> None:
     projects = await list_projects()
     assert len(projects) >= 1
     assert any(p["id"] == sample_project.id for p in projects)
+
 
 @pytest.mark.anyio
 async def test_get_project_success(db_session, sample_project) -> None:
@@ -48,10 +52,12 @@ async def test_get_project_success(db_session, sample_project) -> None:
     assert project["id"] == sample_project.id
     assert project["name"] == sample_project.name
 
+
 @pytest.mark.anyio
 async def test_get_project_not_found(db_session) -> None:
     with pytest.raises(ProjectNotFoundError, match="Project not found: nonexistent_id"):
         await get_project("nonexistent_id")
+
 
 @pytest.mark.anyio
 async def test_rename_project_success(db_session, sample_project) -> None:
@@ -61,6 +67,7 @@ async def test_rename_project_success(db_session, sample_project) -> None:
     # Verify update in DB
     refetched = await get_project(sample_project.id)
     assert refetched["name"] == "New Name"
+
 
 @pytest.mark.anyio
 async def test_rename_project_validation_errors(db_session, sample_project) -> None:
@@ -73,6 +80,7 @@ async def test_rename_project_validation_errors(db_session, sample_project) -> N
     with pytest.raises(ProjectNotFoundError):
         await rename_project("nonexistent_id", "New Name")
 
+
 @pytest.mark.anyio
 async def test_delete_project_success(db_session) -> None:
     p = await create_project("To Delete", "classification")
@@ -82,10 +90,12 @@ async def test_delete_project_success(db_session) -> None:
     with pytest.raises(ProjectNotFoundError):
         await get_project(p["id"])
 
+
 @pytest.mark.anyio
 async def test_delete_project_not_found(db_session) -> None:
     with pytest.raises(ProjectNotFoundError):
         await delete_project("nonexistent_id")
+
 
 @pytest.mark.anyio
 async def test_get_dashboard_stats(db_session, sample_project) -> None:

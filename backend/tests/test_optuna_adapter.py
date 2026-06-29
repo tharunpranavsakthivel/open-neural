@@ -8,9 +8,10 @@ and checks metric mapping accuracy.
 
 import sys
 from unittest.mock import MagicMock
-import pytest
+
 import numpy as np
 import optuna
+import pytest
 
 # Mock xgboost module if not present to ensure all models are registered and safe to use
 if "xgboost" not in sys.modules:
@@ -20,10 +21,10 @@ if "xgboost" not in sys.modules:
     sys.modules["xgboost"] = mock_xgb
 
 from openneural_backend.models.optuna_adapter import (
-    build_optuna_objective,
-    build_objective_with_timeout,
     _map_metric,
     _suggest_parameter,
+    build_objective_with_timeout,
+    build_optuna_objective,
 )
 
 
@@ -73,12 +74,11 @@ def test_suggest_parameter() -> None:
         _suggest_parameter(trial_bad, "param_bad", ("unknown", 1, 5))
 
 
-
 def test_build_optuna_objective_returns_callable() -> None:
     """Verify that build_optuna_objective returns a callable function."""
     X = np.random.randn(20, 4)
     y = np.random.randint(0, 2, size=20)
-    
+
     objective = build_optuna_objective(
         model_key="logistic_regression",
         X_train=X,
@@ -86,7 +86,7 @@ def test_build_optuna_objective_returns_callable() -> None:
         cv_folds=3,
         metric="f1",
     )
-    
+
     assert callable(objective)
 
 

@@ -11,9 +11,17 @@ from pydantic import BaseModel, field_validator
 from openneural_backend.services.project_service import (
     ProjectNotFoundError,
     ProjectValidationError,
+)
+from openneural_backend.services.project_service import (
     create_project as service_create_project,
+)
+from openneural_backend.services.project_service import (
     delete_project as service_delete_project,
+)
+from openneural_backend.services.project_service import (
     list_projects as service_list_projects,
+)
+from openneural_backend.services.project_service import (
     rename_project as service_rename_project,
 )
 

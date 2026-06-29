@@ -17,7 +17,6 @@ Exposes:
 import hashlib
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -27,7 +26,7 @@ import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sqlalchemy import select
@@ -83,12 +82,11 @@ def _copy_with_checksum(source: Path, dest: Path) -> tuple[int, str]:
     sha256_hash = hashlib.sha256()
     bytes_copied = 0
 
-    with open(source, "rb") as src_f:
-        with open(dest, "wb") as dst_f:
-            for chunk in iter(lambda: src_f.read(8192), b""):
-                sha256_hash.update(chunk)
-                dst_f.write(chunk)
-                bytes_copied += len(chunk)
+    with open(source, "rb") as src_f, open(dest, "wb") as dst_f:
+        for chunk in iter(lambda: src_f.read(8192), b""):
+            sha256_hash.update(chunk)
+            dst_f.write(chunk)
+            bytes_copied += len(chunk)
 
     checksum = sha256_hash.hexdigest()
     return bytes_copied, checksum
@@ -152,7 +150,9 @@ async def _get_experiment(experiment_id: str) -> Experiment:
 
 async def _create_export_record(
     experiment_id: str,
-    artifact_type: Literal["model_onnx", "model_joblib", "pipeline", "report", "predictions"],
+    artifact_type: Literal[
+        "model_onnx", "model_joblib", "pipeline", "report", "predictions"
+    ],
     file_path: Path,
 ) -> Export:
     """Create an export record in the database.
@@ -285,7 +285,11 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
                 n_features = model.n_features_in_
             elif hasattr(model, "coef_"):
                 # Linear models have coef_ attribute
-                n_features = model.coef_.shape[-1] if len(model.coef_.shape) > 0 else model.coef_.shape[0]
+                n_features = (
+                    model.coef_.shape[-1]
+                    if len(model.coef_.shape) > 0
+                    else model.coef_.shape[0]
+                )
             elif hasattr(model, "feature_importances_"):
                 # Tree-based models
                 n_features = len(model.feature_importances_)
@@ -348,8 +352,15 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
         raise
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Failed to export ONNX model: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Failed to export ONNX model: {e}",
+                exc_info=True,
+            )
         raise ExportError(f"Failed to export ONNX model: {e}")
 
 
@@ -409,8 +420,15 @@ async def export_model_joblib(run_id: str, dest_dir: str | Path) -> dict[str, An
         raise
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Failed to export joblib model: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Failed to export joblib model: {e}",
+                exc_info=True,
+            )
         raise ExportError(f"Failed to export joblib model: {e}")
 
 
@@ -470,8 +488,15 @@ async def export_pipeline_joblib(run_id: str, dest_dir: str | Path) -> dict[str,
         raise
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Failed to export pipeline: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Failed to export pipeline: {e}",
+                exc_info=True,
+            )
         raise ExportError(f"Failed to export pipeline: {e}")
 
 
@@ -487,7 +512,7 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
     - Confusion matrix (rendered as a colored grid)
     - Subgroup analysis table (with fairness flag indicators)
     - Decision threshold selection note
-    
+
     Per SRS FR-EXP-03: Evaluation report is generated as a structured PDF.
 
     Args:
@@ -531,7 +556,9 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                 raise ExperimentNotFoundError(experiment_id)
 
             # Fetch pipeline
-            pipeline_stmt = select(Pipeline).where(Pipeline.id == experiment.pipeline_id)
+            pipeline_stmt = select(Pipeline).where(
+                Pipeline.id == experiment.pipeline_id
+            )
             pipeline_result = await session.execute(pipeline_stmt)
             pipeline = pipeline_result.scalar_one_or_none()
 
@@ -615,35 +642,32 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # COVER PAGE
             # ============================================
             story.append(Spacer(1, 100))
-            
+
             # Title
-            story.append(Paragraph(
-                "OpenNeural Evaluation Report",
-                styles["Heading1"]
-            ))
+            story.append(Paragraph("OpenNeural Evaluation Report", styles["Heading1"]))
             story.append(Spacer(1, 30))
-            
+
             # Experiment ID
-            story.append(Paragraph(
-                f"<b>Experiment ID:</b> {experiment.experiment_id_human}",
-                styles["Heading2"]
-            ))
+            story.append(
+                Paragraph(
+                    f"<b>Experiment ID:</b> {experiment.experiment_id_human}",
+                    styles["Heading2"],
+                )
+            )
             story.append(Spacer(1, 12))
-            
+
             # Timestamp
             report_timestamp = datetime.utcnow().isoformat()
-            story.append(Paragraph(
-                f"<b>Report Generated:</b> {report_timestamp}",
-                styles["Normal"]
-            ))
+            story.append(
+                Paragraph(
+                    f"<b>Report Generated:</b> {report_timestamp}", styles["Normal"]
+                )
+            )
             story.append(Spacer(1, 12))
-            
+
             # Experiment UUID
-            story.append(Paragraph(
-                f"<b>UUID:</b> {experiment.id}",
-                styles["Normal"]
-            ))
-            
+            story.append(Paragraph(f"<b>UUID:</b> {experiment.id}", styles["Normal"]))
+
             # Page break after cover
             story.append(Spacer(1, 400))
 
@@ -652,12 +676,19 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # ============================================
             story.append(Paragraph("Experiment Metadata", styles["Heading2"]))
             story.append(Spacer(1, 12))
-            
+
             metadata = [
                 ["Field", "Value"],
                 ["Experiment ID", experiment.id],
                 ["Human ID", experiment.experiment_id_human],
-                ["Task Type", experiment.project.task_type if hasattr(experiment, 'project') else "N/A"],
+                [
+                    "Task Type",
+                    (
+                        experiment.project.task_type
+                        if hasattr(experiment, "project")
+                        else "N/A"
+                    ),
+                ],
                 ["Status", experiment.status],
                 ["Created At", experiment.created_at.isoformat()],
                 ["Optimization Metric", experiment.optimize_metric],
@@ -669,16 +700,20 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                 metadata.append(["Completed At", experiment.completed_at.isoformat()])
 
             metadata_table = Table(metadata)
-            metadata_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 12),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                ("GRID", (0, 0), (-1, -1), 1, colors.black),
-            ]))
+            metadata_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 12),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ]
+                )
+            )
             story.append(metadata_table)
             story.append(Spacer(1, 20))
 
@@ -688,7 +723,7 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             if snapshot:
                 story.append(Paragraph("Dataset Snapshot", styles["Heading2"]))
                 story.append(Spacer(1, 12))
-                
+
                 snapshot_data = [
                     ["Field", "Value"],
                     ["Snapshot ID", snapshot.id],
@@ -700,16 +735,20 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                     ["Created At", snapshot.created_at.isoformat()],
                 ]
                 snapshot_table = Table(snapshot_data)
-                snapshot_table.setStyle(TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, 0), 12),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                ]))
+                snapshot_table.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 12),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]
+                    )
+                )
                 story.append(snapshot_table)
                 story.append(Spacer(1, 12))
 
@@ -719,34 +758,42 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                     if schema and isinstance(schema, list):
                         story.append(Paragraph("Schema Summary", styles["Heading3"]))
                         story.append(Spacer(1, 6))
-                        
+
                         schema_data = [["Column", "Type", "Null %", "Unique Count"]]
                         for col_info in schema[:20]:  # Limit to first 20 columns
-                            schema_data.append([
-                                col_info.get("name", "N/A"),
-                                col_info.get("inferred_type", "N/A"),
-                                f"{col_info.get('null_pct', 0):.1f}%",
-                                str(col_info.get("unique_count", "N/A")),
-                            ])
-                        
+                            schema_data.append(
+                                [
+                                    col_info.get("name", "N/A"),
+                                    col_info.get("inferred_type", "N/A"),
+                                    f"{col_info.get('null_pct', 0):.1f}%",
+                                    str(col_info.get("unique_count", "N/A")),
+                                ]
+                            )
+
                         if len(schema) > 20:
-                            schema_data.append([f"... and {len(schema) - 20} more columns", "", "", ""])
-                        
+                            schema_data.append(
+                                [f"... and {len(schema) - 20} more columns", "", "", ""]
+                            )
+
                         schema_table = Table(schema_data)
-                        schema_table.setStyle(TableStyle([
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        ]))
+                        schema_table.setStyle(
+                            TableStyle(
+                                [
+                                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                                    ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                                ]
+                            )
+                        )
                         story.append(schema_table)
                 except json.JSONDecodeError:
                     pass
-                
+
                 story.append(Spacer(1, 20))
 
             # ============================================
@@ -755,38 +802,52 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             if pipeline:
                 story.append(Paragraph("Pipeline Configuration", styles["Heading2"]))
                 story.append(Spacer(1, 12))
-                
+
                 try:
                     pipeline_config = json.loads(pipeline.config_json)
                     blocks = pipeline_config.get("blocks", [])
-                    
+
                     if blocks:
                         pipeline_data = [["Step", "Block Type", "Parameters"]]
                         for i, block in enumerate(blocks, 1):
                             block_type = block.get("type", "unknown")
                             params = block.get("params", {})
-                            params_str = ", ".join(f"{k}={v}" for k, v in params.items())
+                            params_str = ", ".join(
+                                f"{k}={v}" for k, v in params.items()
+                            )
                             if len(params_str) > 50:
                                 params_str = params_str[:47] + "..."
                             pipeline_data.append([str(i), block_type, params_str])
 
                         pipeline_table = Table(pipeline_data, colWidths=[50, 150, 250])
-                        pipeline_table.setStyle(TableStyle([
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        ]))
+                        pipeline_table.setStyle(
+                            TableStyle(
+                                [
+                                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                                    ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                                ]
+                            )
+                        )
                         story.append(pipeline_table)
                     else:
-                        story.append(Paragraph("No pipeline blocks configured.", styles["Normal"]))
+                        story.append(
+                            Paragraph(
+                                "No pipeline blocks configured.", styles["Normal"]
+                            )
+                        )
                 except json.JSONDecodeError:
-                    story.append(Paragraph("Unable to parse pipeline configuration", styles["Normal"]))
-                
+                    story.append(
+                        Paragraph(
+                            "Unable to parse pipeline configuration", styles["Normal"]
+                        )
+                    )
+
                 story.append(Spacer(1, 20))
 
             # ============================================
@@ -794,7 +855,11 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # ============================================
             if best_run and best_metrics:
                 story.append(Paragraph("Model Performance Metrics", styles["Heading2"]))
-                story.append(Paragraph(f"Best Model: <b>{best_run.model_type}</b>", styles["Normal"]))
+                story.append(
+                    Paragraph(
+                        f"Best Model: <b>{best_run.model_type}</b>", styles["Normal"]
+                    )
+                )
                 story.append(Spacer(1, 12))
 
                 metrics_data = [["Metric", "Value"]]
@@ -807,19 +872,25 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                         metrics_data.append([metric_name, str(metric_value)])
 
                 if best_run.training_time_sec:
-                    metrics_data.append(["Training Time", f"{best_run.training_time_sec:.2f}s"])
+                    metrics_data.append(
+                        ["Training Time", f"{best_run.training_time_sec:.2f}s"]
+                    )
 
                 metrics_table = Table(metrics_data)
-                metrics_table.setStyle(TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, 0), 12),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                ]))
+                metrics_table.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 12),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]
+                    )
+                )
                 story.append(metrics_table)
                 story.append(Spacer(1, 20))
 
@@ -830,45 +901,84 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                 try:
                     cm = json.loads(evaluation.confusion_matrix_json)
                     story.append(Paragraph("Confusion Matrix", styles["Heading2"]))
-                    
+
                     if evaluation.threshold:
-                        story.append(Paragraph(
-                            f"Decision Threshold: {evaluation.threshold:.2f}",
-                            styles["Normal"]
-                        ))
+                        story.append(
+                            Paragraph(
+                                f"Decision Threshold: {evaluation.threshold:.2f}",
+                                styles["Normal"],
+                            )
+                        )
                     story.append(Spacer(1, 12))
 
                     # Handle binary confusion matrix
                     if "tn" in cm:
-                        tn, fp, fn, tp = cm.get("tn", 0), cm.get("fp", 0), cm.get("fn", 0), cm.get("tp", 0)
+                        tn, fp, fn, tp = (
+                            cm.get("tn", 0),
+                            cm.get("fp", 0),
+                            cm.get("fn", 0),
+                            cm.get("tp", 0),
+                        )
                         cm_data = [
                             ["", "Predicted: Negative", "Predicted: Positive"],
                             ["Actual: Negative", str(tn), str(fp)],
                             ["Actual: Positive", str(fn), str(tp)],
                         ]
-                        
+
                         # Calculate max value for color scaling
                         max_val = max(tn, fp, fn, tp) if any([tn, fp, fn, tp]) else 1
-                        
+
                         cm_table = Table(cm_data)
-                        cm_table.setStyle(TableStyle([
-                            # Header row
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                            ("BACKGROUND", (0, 0), (0, -1), colors.grey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                            ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
-                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                            # Data cells with color gradient based on value
-                            ("BACKGROUND", (1, 1), (1, 1), colors.Color(1, 1 - tn/max_val, 1 - tn/max_val)),
-                            ("BACKGROUND", (2, 1), (2, 1), colors.Color(1, 1 - fp/max_val, 1 - fp/max_val)),
-                            ("BACKGROUND", (1, 2), (1, 2), colors.Color(1, 1 - fn/max_val, 1 - fn/max_val)),
-                            ("BACKGROUND", (2, 2), (2, 2), colors.Color(1, 1 - tp/max_val, 1 - tp/max_val)),
-                        ]))
+                        cm_table.setStyle(
+                            TableStyle(
+                                [
+                                    # Header row
+                                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                                    ("BACKGROUND", (0, 0), (0, -1), colors.grey),
+                                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                                    ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
+                                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                                    ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                                    # Data cells with color gradient based on value
+                                    (
+                                        "BACKGROUND",
+                                        (1, 1),
+                                        (1, 1),
+                                        colors.Color(
+                                            1, 1 - tn / max_val, 1 - tn / max_val
+                                        ),
+                                    ),
+                                    (
+                                        "BACKGROUND",
+                                        (2, 1),
+                                        (2, 1),
+                                        colors.Color(
+                                            1, 1 - fp / max_val, 1 - fp / max_val
+                                        ),
+                                    ),
+                                    (
+                                        "BACKGROUND",
+                                        (1, 2),
+                                        (1, 2),
+                                        colors.Color(
+                                            1, 1 - fn / max_val, 1 - fn / max_val
+                                        ),
+                                    ),
+                                    (
+                                        "BACKGROUND",
+                                        (2, 2),
+                                        (2, 2),
+                                        colors.Color(
+                                            1, 1 - tp / max_val, 1 - tp / max_val
+                                        ),
+                                    ),
+                                ]
+                            )
+                        )
                     else:
                         # Multiclass - show full matrix
                         matrix = cm.get("matrix", [[]])
@@ -879,19 +989,23 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                             cm_data.append(row)
 
                         cm_table = Table(cm_data)
-                        cm_table.setStyle(TableStyle([
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                            ("BACKGROUND", (0, 0), (0, -1), colors.grey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                            ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
-                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 9),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        ]))
-                    
+                        cm_table.setStyle(
+                            TableStyle(
+                                [
+                                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                                    ("BACKGROUND", (0, 0), (0, -1), colors.grey),
+                                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                                    ("TEXTCOLOR", (0, 0), (0, -1), colors.whitesmoke),
+                                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                                    ("FONTSIZE", (0, 0), (-1, 0), 9),
+                                    ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                                ]
+                            )
+                        )
+
                     story.append(cm_table)
                     story.append(Spacer(1, 20))
                 except json.JSONDecodeError:
@@ -905,63 +1019,90 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
                 story.append(Spacer(1, 6))
 
                 # Add fairness explanation
-                story.append(Paragraph(
-                    "<i>Fairness Warning: Groups with F1 score > 0.15 below overall F1 are flagged.</i>",
-                    styles["Normal"]
-                ))
+                story.append(
+                    Paragraph(
+                        "<i>Fairness Warning: Groups with F1 score > 0.15 below overall F1 are flagged.</i>",
+                        styles["Normal"],
+                    )
+                )
                 story.append(Spacer(1, 6))
 
-                subgroup_data = [["Slice", "Samples", "F1", "Recall", "Precision", "Fairness Flag"]]
-                
+                subgroup_data = [
+                    ["Slice", "Samples", "F1", "Recall", "Precision", "Fairness Flag"]
+                ]
+
                 # Get overall F1 for comparison
                 overall_f1 = best_metrics.get("f1", 1.0) if best_metrics else 1.0
-                
+
                 for sg in subgroup_analyses:
                     try:
                         sg_metrics = json.loads(sg.metrics_json)
                         sg_f1 = sg_metrics.get("f1", 0)
-                        
+
                         # Fairness flag (per SRS FR-EVAL-07: F1 more than 0.15 below overall)
                         fairness_warning = sg_f1 < (overall_f1 - 0.15)
                         flag_text = "⚠️ LOW F1" if fairness_warning else "✓ OK"
                         flag_color = colors.orange if fairness_warning else colors.green
-                        
-                        subgroup_data.append([
-                            sg.slice_name,
-                            str(sg.n),
-                            f"{sg_f1:.4f}",
-                            f"{sg_metrics.get('recall', 0):.4f}",
-                            f"{sg_metrics.get('precision', 0):.4f}",
-                            flag_text,
-                        ])
+
+                        subgroup_data.append(
+                            [
+                                sg.slice_name,
+                                str(sg.n),
+                                f"{sg_f1:.4f}",
+                                f"{sg_metrics.get('recall', 0):.4f}",
+                                f"{sg_metrics.get('precision', 0):.4f}",
+                                flag_text,
+                            ]
+                        )
                     except json.JSONDecodeError:
                         continue
 
                 if len(subgroup_data) > 1:
                     sg_table = Table(subgroup_data)
-                    
+
                     # Build table style
                     table_style = [
                         ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                        ("ALIGN", (1, 1), (1, -1), "RIGHT"),  # Samples column right-aligned
+                        (
+                            "ALIGN",
+                            (1, 1),
+                            (1, -1),
+                            "RIGHT",
+                        ),  # Samples column right-aligned
                         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                         ("FONTSIZE", (0, 0), (-1, 0), 10),
                         ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
                         ("GRID", (0, 0), (-1, -1), 1, colors.black),
                     ]
-                    
+
                     # Add conditional coloring for fairness flags
                     for i, row in enumerate(subgroup_data[1:], start=1):
                         if len(row) >= 6:
                             flag_text = row[5]
                             if "⚠️" in flag_text:
-                                table_style.append(("BACKGROUND", (0, i), (-1, i), colors.Color(1, 0.9, 0.9)))
-                                table_style.append(("TEXTCOLOR", (5, i), (5, i), colors.red))
+                                table_style.append(
+                                    (
+                                        "BACKGROUND",
+                                        (0, i),
+                                        (-1, i),
+                                        colors.Color(1, 0.9, 0.9),
+                                    )
+                                )
+                                table_style.append(
+                                    ("TEXTCOLOR", (5, i), (5, i), colors.red)
+                                )
                             else:
-                                table_style.append(("BACKGROUND", (0, i), (-1, i), colors.Color(0.9, 1, 0.9)))
-                    
+                                table_style.append(
+                                    (
+                                        "BACKGROUND",
+                                        (0, i),
+                                        (-1, i),
+                                        colors.Color(0.9, 1, 0.9),
+                                    )
+                                )
+
                     sg_table.setStyle(TableStyle(table_style))
                     story.append(sg_table)
                     story.append(Spacer(1, 20))
@@ -970,9 +1111,11 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # DECISION THRESHOLD SELECTION NOTE
             # ============================================
             if evaluation and evaluation.threshold is not None:
-                story.append(Paragraph("Decision Threshold Selection", styles["Heading2"]))
+                story.append(
+                    Paragraph("Decision Threshold Selection", styles["Heading2"])
+                )
                 story.append(Spacer(1, 6))
-                
+
                 threshold_note = f"""
                 The classification decision threshold is set to <b>{evaluation.threshold:.2f}</b>.
                 This threshold was used to compute the confusion matrix and all classification metrics above.
@@ -987,14 +1130,13 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
             # FOOTER
             # ============================================
             story.append(Spacer(1, 40))
-            story.append(Paragraph(
-                "— End of Report —",
-                styles["Normal"]
-            ))
-            story.append(Paragraph(
-                f"Generated by OpenNeural v0.1.0 | {report_timestamp}",
-                styles["Normal"]
-            ))
+            story.append(Paragraph("— End of Report —", styles["Normal"]))
+            story.append(
+                Paragraph(
+                    f"Generated by OpenNeural v0.1.0 | {report_timestamp}",
+                    styles["Normal"],
+                )
+            )
 
             # Build PDF
             doc.build(story)
@@ -1018,8 +1160,14 @@ async def export_report_pdf(experiment_id: str, dest_dir: str | Path) -> dict[st
         raise
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Failed to export report: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Failed to export report: {e}", exc_info=True
+            )
         raise ExportError(f"Failed to export report: {e}")
 
 
@@ -1031,7 +1179,7 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
     - predicted_label: Predicted class label
     - true_label: Actual class label
     - prob_{class}: One column per class with probability scores
-    
+
     Per SRS FR-EXP-04: CSV file contains row index, predicted label, true label,
     and per-class probability scores.
 
@@ -1054,7 +1202,7 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
         ExportError: If the export fails.
     """
     import numpy as np
-    
+
     dest_path = Path(dest_dir).expanduser().resolve()
 
     try:
@@ -1072,62 +1220,85 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
 
         # Build output DataFrame with required columns
         output_df = pd.DataFrame()
-        
+
         # Add row_index
         if "row_index" in df.columns:
             output_df["row_index"] = df["row_index"]
         else:
             # Generate sequential row indices
             output_df["row_index"] = range(len(df))
-        
+
         # Add predicted_label
         if "y_pred" in df.columns:
             output_df["predicted_label"] = df["y_pred"]
         elif "predicted_label" in df.columns:
             output_df["predicted_label"] = df["predicted_label"]
         else:
-            raise ExportError("Predictions file missing 'y_pred' or 'predicted_label' column")
-        
+            raise ExportError(
+                "Predictions file missing 'y_pred' or 'predicted_label' column"
+            )
+
         # Add true_label
         if "y_true" in df.columns:
             output_df["true_label"] = df["y_true"]
         elif "true_label" in df.columns:
             output_df["true_label"] = df["true_label"]
         else:
-            output_df["true_label"] = None  # May not be available for inference-only exports
-        
+            output_df["true_label"] = (
+                None  # May not be available for inference-only exports
+            )
+
         # Add probability columns: prob_{class}
         # Check if y_proba exists and is array-like
         if "y_proba" in df.columns:
             y_proba_values = df["y_proba"].values
-            
-            if len(y_proba_values) > 0 and isinstance(y_proba_values[0], (np.ndarray, list)):
+
+            if len(y_proba_values) > 0 and isinstance(
+                y_proba_values[0], (np.ndarray, list)
+            ):
                 # y_proba is array of probability vectors
                 # Determine unique classes
-                unique_classes = sorted(set(output_df["predicted_label"].dropna().unique()))
-                
+                unique_classes = sorted(
+                    set(output_df["predicted_label"].dropna().unique())
+                )
+
                 # If binary classification with 2-class probabilities
                 if len(y_proba_values[0]) == 2:
                     # Binary: prob_0 and prob_1 (or use class names if available)
-                    class_labels = unique_classes if len(unique_classes) == 2 else [0, 1]
+                    class_labels = (
+                        unique_classes if len(unique_classes) == 2 else [0, 1]
+                    )
                     for i, class_label in enumerate(class_labels):
                         col_name = f"prob_{class_label}"
-                        output_df[col_name] = [proba[i] if len(proba) > i else None for proba in y_proba_values]
+                        output_df[col_name] = [
+                            proba[i] if len(proba) > i else None
+                            for proba in y_proba_values
+                        ]
                 elif len(y_proba_values[0]) > 2:
                     # Multiclass: prob_{class} for each class
-                    class_labels = unique_classes if len(unique_classes) == len(y_proba_values[0]) else list(range(len(y_proba_values[0])))
+                    class_labels = (
+                        unique_classes
+                        if len(unique_classes) == len(y_proba_values[0])
+                        else list(range(len(y_proba_values[0])))
+                    )
                     for i, class_label in enumerate(class_labels):
                         col_name = f"prob_{class_label}"
-                        output_df[col_name] = [proba[i] if len(proba) > i else None for proba in y_proba_values]
+                        output_df[col_name] = [
+                            proba[i] if len(proba) > i else None
+                            for proba in y_proba_values
+                        ]
                 else:
                     # Single probability (binary case with just positive class)
-                    output_df["prob_1"] = [proba[0] if isinstance(proba, (np.ndarray, list)) else proba for proba in y_proba_values]
+                    output_df["prob_1"] = [
+                        proba[0] if isinstance(proba, (np.ndarray, list)) else proba
+                        for proba in y_proba_values
+                    ]
             elif len(y_proba_values) > 0:
                 # y_proba is a scalar per row (binary classification)
                 output_df["prob_1"] = y_proba_values
                 # Compute prob_0 as 1 - prob_1 for binary case
                 output_df["prob_0"] = 1 - output_df["prob_1"]
-        
+
         # Export to CSV: {dest_dir}/predictions.csv
         dest_file = dest_path / "predictions.csv"
         dest_path.mkdir(parents=True, exist_ok=True)
@@ -1154,8 +1325,15 @@ async def export_predictions_csv(run_id: str, dest_dir: str | Path) -> dict[str,
         raise
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Failed to export predictions: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Failed to export predictions: {e}",
+                exc_info=True,
+            )
         raise ExportError(f"Failed to export predictions: {e}")
 
 
@@ -1207,7 +1385,9 @@ async def export_all(
             runs = runs_result.scalars().all()
 
             if not runs:
-                raise ExportError(f"No completed runs found for experiment {experiment_id}")
+                raise ExportError(
+                    f"No completed runs found for experiment {experiment_id}"
+                )
 
             # Find best run by optimization metric
             optimize_metric = experiment.optimize_metric
@@ -1224,7 +1404,9 @@ async def export_all(
                     continue
 
             if not runs_with_scores:
-                raise ExportError(f"No runs with valid metrics found for experiment {experiment_id}")
+                raise ExportError(
+                    f"No runs with valid metrics found for experiment {experiment_id}"
+                )
 
             runs_with_scores.sort(key=lambda x: x[1], reverse=True)
             best_run = runs_with_scores[0][0]
@@ -1233,7 +1415,9 @@ async def export_all(
         errors = []
 
         # Determine model formats to export
-        model_formats = formats.get("model", ["onnx", "joblib"]) if formats else ["onnx", "joblib"]
+        model_formats = (
+            formats.get("model", ["onnx", "joblib"]) if formats else ["onnx", "joblib"]
+        )
 
         # Export model(s)
         for fmt in model_formats:
@@ -1249,12 +1433,23 @@ async def export_all(
                 if fmt == "onnx":
                     errors.append(f"ONNX model not available for {best_run.model_type}")
                 else:
-                    errors.append(f"Export failed: could not write {fmt} model to {dest_path}")
+                    errors.append(
+                        f"Export failed: could not write {fmt} model to {dest_path}"
+                    )
             except Exception as e:
                 import errno
-                if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                    logger.error(f"File permission failure: Failed to export {fmt} model: {e}", exc_info=True)
-                errors.append(f"Export failed: could not write {fmt} model to {dest_path} - {e}")
+
+                if isinstance(e, PermissionError) or (
+                    isinstance(e, OSError)
+                    and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+                ):
+                    logger.error(
+                        f"File permission failure: Failed to export {fmt} model: {e}",
+                        exc_info=True,
+                    )
+                errors.append(
+                    f"Export failed: could not write {fmt} model to {dest_path} - {e}"
+                )
 
         # Export pipeline
         try:
@@ -1262,9 +1457,18 @@ async def export_all(
             exports.append(result)
         except Exception as e:
             import errno
-            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                logger.error(f"File permission failure: Failed to export pipeline: {e}", exc_info=True)
-            errors.append(f"Export failed: could not write pipeline to {dest_path}/pipeline.joblib - {e}")
+
+            if isinstance(e, PermissionError) or (
+                isinstance(e, OSError)
+                and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+            ):
+                logger.error(
+                    f"File permission failure: Failed to export pipeline: {e}",
+                    exc_info=True,
+                )
+            errors.append(
+                f"Export failed: could not write pipeline to {dest_path}/pipeline.joblib - {e}"
+            )
 
         # Export report
         try:
@@ -1272,9 +1476,18 @@ async def export_all(
             exports.append(result)
         except Exception as e:
             import errno
-            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                logger.error(f"File permission failure: Failed to export report: {e}", exc_info=True)
-            errors.append(f"Export failed: could not write report to {dest_path}/report.pdf - {e}")
+
+            if isinstance(e, PermissionError) or (
+                isinstance(e, OSError)
+                and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+            ):
+                logger.error(
+                    f"File permission failure: Failed to export report: {e}",
+                    exc_info=True,
+                )
+            errors.append(
+                f"Export failed: could not write report to {dest_path}/report.pdf - {e}"
+            )
 
         # Export predictions
         try:
@@ -1282,9 +1495,18 @@ async def export_all(
             exports.append(result)
         except Exception as e:
             import errno
-            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                logger.error(f"File permission failure: Failed to export predictions: {e}", exc_info=True)
-            errors.append(f"Export failed: could not write predictions to {dest_path}/predictions.csv - {e}")
+
+            if isinstance(e, PermissionError) or (
+                isinstance(e, OSError)
+                and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+            ):
+                logger.error(
+                    f"File permission failure: Failed to export predictions: {e}",
+                    exc_info=True,
+                )
+            errors.append(
+                f"Export failed: could not write predictions to {dest_path}/predictions.csv - {e}"
+            )
 
         # Generate manifest
         manifest_path = await generate_manifest(dest_path, experiment_id, exports)
@@ -1324,7 +1546,7 @@ async def generate_manifest(
 
     For each exported file, computes SHA-256 checksum and writes export_manifest.json
     containing metadata about the export operation and all artifacts.
-    
+
     Per SRS NFR-SEC-04: Exported artifact files carry a manifest file listing their
     SHA-256 checksums for external verification.
 
@@ -1352,18 +1574,22 @@ async def generate_manifest(
         for export in exported_files:
             if export.get("status") == "success":
                 # Recompute checksum if not provided (ensures integrity)
-                file_path = Path(export.get("file_path")) if export.get("file_path") else None
+                file_path = (
+                    Path(export.get("file_path")) if export.get("file_path") else None
+                )
                 checksum = export.get("checksum_sha256")
-                
+
                 if file_path and file_path.exists() and not checksum:
                     checksum = _compute_file_checksum(file_path)
-                
-                manifest["artifacts"].append({
-                    "type": export.get("artifact_type"),
-                    "path": str(file_path) if file_path else None,
-                    "size_bytes": export.get("file_size_bytes"),
-                    "checksum_sha256": checksum,
-                })
+
+                manifest["artifacts"].append(
+                    {
+                        "type": export.get("artifact_type"),
+                        "path": str(file_path) if file_path else None,
+                        "size_bytes": export.get("file_size_bytes"),
+                        "checksum_sha256": checksum,
+                    }
+                )
 
         manifest_path = dest_path / "export_manifest.json"
         with open(manifest_path, "w") as f:

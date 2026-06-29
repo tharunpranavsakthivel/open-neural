@@ -6,7 +6,6 @@ from specified columns. It provides a custom scikit-learn compatible transformer
 and the corresponding PipelineBlock implementation.
 """
 
-from typing import List, Optional, Union
 
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -30,7 +29,7 @@ class DropNullsTransformer(BaseEstimator, TransformerMixin):
         >>> X_clean = transformer.fit_transform(X)
     """
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the transformer.
 
         Args:
@@ -39,7 +38,9 @@ class DropNullsTransformer(BaseEstimator, TransformerMixin):
         """
         self.columns = columns if columns is not None else []
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "DropNullsTransformer":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "DropNullsTransformer":
         """Fit the transformer to the data.
 
         For DropNullsTransformer, fitting does not learn any statistics from
@@ -117,13 +118,13 @@ class DropNullsBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to check for null values. "
-                               "If empty or not provided, all columns are checked.",
+                "If empty or not provided, all columns are checked.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the DropNullsBlock.
 
         Args:
@@ -131,9 +132,9 @@ class DropNullsBlock(PipelineBlock):
                 If None or empty, all columns are checked.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._transformer: Optional[DropNullsTransformer] = None
+        self._transformer: DropNullsTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "DropNullsBlock":
+    def fit(self, X: pd.DataFrame, y: pd.Series | None = None) -> "DropNullsBlock":
         """Fit the block to the data.
 
         Validates that the specified columns exist in the input data and
@@ -170,8 +171,7 @@ class DropNullsBlock(PipelineBlock):
         """
         if not self._is_fitted or self._transformer is None:
             raise RuntimeError(
-                "DropNullsBlock has not been fitted. "
-                "Call fit() before transform()."
+                "DropNullsBlock has not been fitted. " "Call fit() before transform()."
             )
         return self._transformer.transform(X)
 

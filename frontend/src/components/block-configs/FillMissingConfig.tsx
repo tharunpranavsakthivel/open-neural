@@ -44,12 +44,17 @@ export function FillMissingConfig({
         Fill Missing ({isMean ? "Mean" : "Median"}) Configuration
       </h4>
       <p style={configStyles.helpText}>
-        Impute missing values using the {isMean ? "mean" : "median"} of each column.
+        Impute missing values using the {isMean ? "mean" : "median"} of each
+        column.
       </p>
 
       <div style={configStyles.section}>
         <label style={configStyles.label}>Imputation Strategy</label>
-        <div style={configStyles.radioGroup} role="radiogroup" aria-label="Imputation strategy">
+        <div
+          style={configStyles.radioGroup}
+          role="radiogroup"
+          aria-label="Imputation strategy"
+        >
           <label style={configStyles.radio}>
             <input
               type="radio"
@@ -77,7 +82,12 @@ export function FillMissingConfig({
 
       <div style={configStyles.section}>
         <ColumnMultiSelect
-          columns={availableColumns.filter((c) => c.type === "numeric" || c.type === "integer" || c.type === "float")}
+          columns={availableColumns.filter(
+            (c) =>
+              c.type === "numeric" ||
+              c.type === "integer" ||
+              c.type === "float",
+          )}
           selected={columns}
           onChange={handleColumnsChange}
           label="Numeric columns to fill"

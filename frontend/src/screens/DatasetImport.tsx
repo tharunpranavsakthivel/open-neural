@@ -70,7 +70,9 @@ export function DatasetImport({
   onComplete,
 }: DatasetImportProps): JSX.Element {
   const [importedFile, setImportedFile] = useState<File | null>(null);
-  const [snapshot, setSnapshot] = useState<DatasetSnapshotResponse | null>(null);
+  const [snapshot, setSnapshot] = useState<DatasetSnapshotResponse | null>(
+    null,
+  );
   const [snapshots, setSnapshots] = useState<SnapshotListItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -100,7 +102,7 @@ export function DatasetImport({
               setIsUploading(false);
               setIsAnalyzing(true);
             }
-          }
+          },
         );
 
         setSnapshot(response);
@@ -113,7 +115,7 @@ export function DatasetImport({
         setIsAnalyzing(false);
       }
     },
-    [projectId, onComplete]
+    [projectId, onComplete],
   );
 
   /**
@@ -124,9 +126,7 @@ export function DatasetImport({
       setError(null);
 
       if (!isValidFileType(file)) {
-        setError(
-          "Invalid file type. Please upload a CSV or Parquet file."
-        );
+        setError("Invalid file type. Please upload a CSV or Parquet file.");
         return;
       }
 
@@ -134,7 +134,7 @@ export function DatasetImport({
       const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB in bytes
       if (file.size > MAX_FILE_SIZE) {
         setError(
-          `File size exceeds 2 GB limit. Current size: ${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+          `File size exceeds 2 GB limit. Current size: ${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB`,
         );
         return;
       }
@@ -142,7 +142,7 @@ export function DatasetImport({
       // Start upload process
       await handleFileUpload(file);
     },
-    [handleFileUpload]
+    [handleFileUpload],
   );
 
   /**
@@ -187,7 +187,7 @@ export function DatasetImport({
         void handleFileSelect(file);
       }
     },
-    [handleFileSelect]
+    [handleFileSelect],
   );
 
   /**
@@ -203,14 +203,14 @@ export function DatasetImport({
         // Create a File object from the selected path
         // Note: In Electron, we need to read the file via the main process
         // For now, we create a placeholder that will be replaced when uploaded
-        const fileName = result.split("/").pop() || result.split("\\").pop() || "unknown";
+        const fileName =
+          result.split("/").pop() || result.split("\\").pop() || "unknown";
         const file = new File([], fileName, {
           type: fileName.endsWith(".parquet")
             ? "application/vnd.apache.parquet"
             : "text/csv",
         });
         // Store the actual path for later use
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (file as any).path = result;
         await handleFileSelect(file);
       }
@@ -268,9 +268,7 @@ export function DatasetImport({
                   }}
                 />
               </div>
-              <p style={styles.progressText}>
-                Uploading... {uploadProgress}%
-              </p>
+              <p style={styles.progressText}>Uploading... {uploadProgress}%</p>
             </>
           )}
           {isAnalyzing && (
@@ -306,9 +304,7 @@ export function DatasetImport({
       {!importedFile && !isUploading && !isAnalyzing && (
         <div style={styles.warningBanner} role="alert">
           <span style={styles.warningIcon}>⚠️</span>
-          <span>
-            No dataset imported yet. Please upload a file to proceed.
-          </span>
+          <span>No dataset imported yet. Please upload a file to proceed.</span>
         </div>
       )}
 
@@ -363,7 +359,9 @@ export function DatasetImport({
             <strong>File imported:</strong> {snapshot.file_name}
             <br />
             <small>
-              Version: {snapshot.version_label} • {snapshot.row_count.toLocaleString()} rows • {snapshot.col_count} columns
+              Version: {snapshot.version_label} •{" "}
+              {snapshot.row_count.toLocaleString()} rows • {snapshot.col_count}{" "}
+              columns
             </small>
             <br />
             <small style={styles.checksumText}>
@@ -384,15 +382,19 @@ export function DatasetImport({
         <div style={styles.largeFileWarningBanner} role="alert">
           <div style={styles.largeFileWarningHeader}>
             <span style={styles.largeFileWarningIcon}>📊</span>
-            <span style={styles.largeFileWarningTitle}>Large Dataset Advisory</span>
+            <span style={styles.largeFileWarningTitle}>
+              Large Dataset Advisory
+            </span>
           </div>
           <p style={styles.largeFileWarningMessage}>
-            This file exceeds 500 MB. Training time and memory usage may be significantly impacted. 
-            Consider preprocessing the data or using a smaller sample for initial experiments.
+            This file exceeds 500 MB. Training time and memory usage may be
+            significantly impacted. Consider preprocessing the data or using a
+            smaller sample for initial experiments.
           </p>
           <div style={styles.largeFileWarningStats}>
             <span style={styles.largeFileWarningStat}>
-              <strong>Size:</strong> {(snapshot.file_size_bytes / (1024 * 1024)).toFixed(1)} MB
+              <strong>Size:</strong>{" "}
+              {(snapshot.file_size_bytes / (1024 * 1024)).toFixed(1)} MB
             </span>
             <span style={styles.largeFileWarningStat}>
               <strong>Rows:</strong> {snapshot.row_count.toLocaleString()}
@@ -409,7 +411,8 @@ export function DatasetImport({
             <span style={styles.memoryWarningTitle}>Memory Advisory</span>
           </div>
           <p style={styles.memoryWarningMessage}>
-            {snapshot.memory_warning_message ?? "This dataset may consume significant memory during training. Consider dataset sampling for large datasets."}
+            {snapshot.memory_warning_message ??
+              "This dataset may consume significant memory during training. Consider dataset sampling for large datasets."}
           </p>
           <a
             href="#"

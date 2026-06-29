@@ -6,7 +6,10 @@ Each block provides specific transformation functionality and can be composed in
 a full preprocessing pipeline.
 """
 
-from openneural_backend.pipeline.blocks.drop_nulls import DropNullsBlock, DropNullsTransformer
+from openneural_backend.pipeline.blocks.drop_nulls import (
+    DropNullsBlock,
+    DropNullsTransformer,
+)
 from openneural_backend.pipeline.blocks.encode_categoricals import (
     EncodeCategoricalsOneHotBlock,
     EncodeCategoricalsOrdinalBlock,
@@ -16,7 +19,10 @@ from openneural_backend.pipeline.blocks.fill_missing import (
     FillMissingMeanBlock,
     FillMissingMedianBlock,
 )
-from openneural_backend.pipeline.blocks.log_transform import LogTransformBlock, LogTransformer
+from openneural_backend.pipeline.blocks.log_transform import (
+    LogTransformBlock,
+    LogTransformer,
+)
 from openneural_backend.pipeline.blocks.remove_outliers import (
     RemoveOutliersIQRBlock,
     RemoveOutliersIQRTransformer,

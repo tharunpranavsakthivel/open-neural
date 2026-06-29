@@ -115,16 +115,30 @@ async def export_artifacts(experiment_id: str, request: ExportRequest) -> dict:
             test_file.unlink()
         except (OSError, PermissionError) as e:
             import errno
-            if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                logger.error(f"File permission failure: Destination directory {dest_path} is not writable: {e}", exc_info=True)
+
+            if isinstance(e, PermissionError) or (
+                isinstance(e, OSError)
+                and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+            ):
+                logger.error(
+                    f"File permission failure: Destination directory {dest_path} is not writable: {e}",
+                    exc_info=True,
+                )
             raise HTTPException(
                 status_code=400,
                 detail=f"Destination directory is not writable: {dest_path}. Error: {e}",
             )
     except Exception as e:
         import errno
-        if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-            logger.error(f"File permission failure: Invalid destination directory {dest_path}: {e}", exc_info=True)
+
+        if isinstance(e, PermissionError) or (
+            isinstance(e, OSError)
+            and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+        ):
+            logger.error(
+                f"File permission failure: Invalid destination directory {dest_path}: {e}",
+                exc_info=True,
+            )
         raise HTTPException(
             status_code=400,
             detail=f"Invalid destination directory: {dest_path}. Error: {e}",
@@ -136,9 +150,10 @@ async def export_artifacts(experiment_id: str, request: ExportRequest) -> dict:
 
     try:
         # Import here to avoid circular imports
+        from sqlalchemy import select
+
         from openneural_backend.db.engine import async_session
         from openneural_backend.db.models import Experiment, Run
-        from sqlalchemy import select
 
         # Verify experiment exists and get best run
         async with async_session() as session:

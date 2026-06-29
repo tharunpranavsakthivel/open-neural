@@ -123,10 +123,10 @@ export function App(): JSX.Element {
 
       // Remove from the list
       setInterruptedExperiments((prev) =>
-        prev.filter((e) => e.id !== experimentId)
+        prev.filter((e) => e.id !== experimentId),
       );
     },
-    [setCurrentProjectId, setCurrentExperimentId, setCurrentStep]
+    [setCurrentProjectId, setCurrentExperimentId, setCurrentStep],
   );
 
   /**
@@ -134,7 +134,7 @@ export function App(): JSX.Element {
    */
   const handleDiscard = useCallback((experimentId: string) => {
     setInterruptedExperiments((prev) =>
-      prev.filter((e) => e.id !== experimentId)
+      prev.filter((e) => e.id !== experimentId),
     );
   }, []);
 

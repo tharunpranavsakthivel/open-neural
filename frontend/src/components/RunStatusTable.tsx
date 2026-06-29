@@ -111,7 +111,7 @@ export function RunStatusTable({
       if (priorityDiff !== 0) return priorityDiff;
       // Secondary sort by model name
       return getModelLabel(a.model_type).localeCompare(
-        getModelLabel(b.model_type)
+        getModelLabel(b.model_type),
       );
     });
   }, [runs]);
@@ -120,7 +120,7 @@ export function RunStatusTable({
    * Get status badge style based on run status.
    */
   const getStatusBadgeStyle = (
-    status: RunStatusEntry["status"]
+    status: RunStatusEntry["status"],
   ): React.CSSProperties => {
     switch (status) {
       case "running":

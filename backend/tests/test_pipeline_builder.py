@@ -1,14 +1,16 @@
 import pytest
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.preprocessing import StandardScaler
-from openneural_backend.pipeline.builder import (
-    build_sklearn_pipeline,
-    instantiate_block,
-    extract_split_block,
-    build_pipeline_config,
-)
-from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
+
 from openneural_backend.pipeline.blocks.drop_nulls import DropNullsBlock
+from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
+from openneural_backend.pipeline.builder import (
+    build_pipeline_config,
+    build_sklearn_pipeline,
+    extract_split_block,
+    instantiate_block,
+)
+
 
 def test_build_sklearn_pipeline_invalid_inputs() -> None:
     # config_json must be a dict
@@ -37,7 +39,9 @@ def test_build_sklearn_pipeline_invalid_inputs() -> None:
 
     # non-dict block params
     with pytest.raises(ValueError, match="must be a dict"):
-        build_sklearn_pipeline({"blocks": [{"type": "drop_nulls", "params": "not a dict"}]})
+        build_sklearn_pipeline(
+            {"blocks": [{"type": "drop_nulls", "params": "not a dict"}]}
+        )
 
     # unregistered block type
     with pytest.raises(KeyError, match="is not registered"):
@@ -46,32 +50,55 @@ def test_build_sklearn_pipeline_invalid_inputs() -> None:
     # block instantiation failure
     with pytest.raises(ValueError, match="Failed to instantiate block"):
         # TrainValTestSplitBlock instantiation fails if ratios don't sum to 1.0
-        build_sklearn_pipeline({
-            "blocks": [{"type": "train_val_test_split", "params": {"train": 0.5, "val": 0.1, "test": 0.1}}]
-        })
+        build_sklearn_pipeline(
+            {
+                "blocks": [
+                    {
+                        "type": "train_val_test_split",
+                        "params": {"train": 0.5, "val": 0.1, "test": 0.1},
+                    }
+                ]
+            }
+        )
 
     # multiple split blocks
-    with pytest.raises(ValueError, match="Multiple train_val_test_split blocks are not allowed"):
-        build_sklearn_pipeline({
-            "blocks": [
-                {"type": "train_val_test_split", "params": {"train": 0.8, "val": 0.1, "test": 0.1}},
-                {"type": "train_val_test_split", "params": {"train": 0.8, "val": 0.1, "test": 0.1}},
-            ]
-        })
+    with pytest.raises(
+        ValueError, match="Multiple train_val_test_split blocks are not allowed"
+    ):
+        build_sklearn_pipeline(
+            {
+                "blocks": [
+                    {
+                        "type": "train_val_test_split",
+                        "params": {"train": 0.8, "val": 0.1, "test": 0.1},
+                    },
+                    {
+                        "type": "train_val_test_split",
+                        "params": {"train": 0.8, "val": 0.1, "test": 0.1},
+                    },
+                ]
+            }
+        )
+
 
 def test_instantiate_block_errors() -> None:
     with pytest.raises(KeyError):
         instantiate_block("nonexistent_block_type_123")
 
     with pytest.raises(ValueError, match="Failed to instantiate block"):
-        instantiate_block("train_val_test_split", {"train": 0.5, "val": 0.1, "test": 0.1})
+        instantiate_block(
+            "train_val_test_split", {"train": 0.5, "val": 0.1, "test": 0.1}
+        )
+
 
 def test_extract_split_block_errors() -> None:
     split1 = TrainValTestSplitBlock(train=0.8, val=0.1, test=0.1)
     split2 = TrainValTestSplitBlock(train=0.8, val=0.1, test=0.1)
     drop = DropNullsBlock()
-    
-    with pytest.raises(ValueError, match="Multiple TrainValTestSplitBlock instances found"):
+
+    with pytest.raises(
+        ValueError, match="Multiple TrainValTestSplitBlock instances found"
+    ):
         extract_split_block([split1, split2])
 
     # Test extracting split block with a non-split block in the list (covers line 187-189 in builder.py)
@@ -80,28 +107,31 @@ def test_extract_split_block_errors() -> None:
     assert tx_blocks[0] is drop
     assert found_split is split1
 
+
 def test_build_pipeline_config_serialization() -> None:
     # Create standard sklearn step along with custom step
     drop_block = DropNullsBlock(columns=["col_a"])
     scaler = StandardScaler()
-    
-    pipeline = SklearnPipeline(steps=[
-        ("step_0_drop_nulls", drop_block),
-        ("step_1_scaler", scaler),
-    ])
-    
+
+    pipeline = SklearnPipeline(
+        steps=[
+            ("step_0_drop_nulls", drop_block),
+            ("step_1_scaler", scaler),
+        ]
+    )
+
     split_config = {
         "train": 0.7,
         "val": 0.15,
         "test": 0.15,
-        "stratify_column": "target"
+        "stratify_column": "target",
     }
-    
+
     config = build_pipeline_config(pipeline, split_config)
     assert "blocks" in config
     blocks = config["blocks"]
     assert len(blocks) == 3
-    
+
     assert blocks[0]["type"] == "drop_nulls"
     assert blocks[1]["type"] == "StandardScaler"
     assert blocks[2]["type"] == "train_val_test_split"
@@ -118,18 +148,17 @@ def test_pipeline_block_get_set_params() -> None:
 
 
 def test_pipeline_registry() -> None:
+    from openneural_backend.pipeline.block_interface import PipelineBlock
     from openneural_backend.pipeline.registry import (
-        register_block,
-        get_block,
-        get_block_or_raise,
-        list_blocks,
-        is_registered,
-        unregister_block,
-        clear_registry,
         BLOCK_REGISTRY,
         _register_builtin_blocks,
+        clear_registry,
+        get_block,
+        is_registered,
+        list_blocks,
+        register_block,
+        unregister_block,
     )
-    from openneural_backend.pipeline.block_interface import PipelineBlock
 
     # Test ValueError when class has no block_type
     class InvalidBlockNoType(PipelineBlock):
@@ -188,12 +217,15 @@ def test_pipeline_registry() -> None:
         # Cover PipelineBlock abstract method pass statements
         class DummyBaseCaller(PipelineBlock):
             block_type = "dummy_base"
+
             def fit(self, X, y=None):
                 super().fit(X, y)
                 return self
+
             def transform(self, X):
                 super().transform(X)
                 return X
+
             def to_sklearn(self):
                 super().to_sklearn()
                 return None
@@ -207,5 +239,3 @@ def test_pipeline_registry() -> None:
         # Guarantee cleanup and restore registry state
         BLOCK_REGISTRY.clear()
         BLOCK_REGISTRY.update(original_registry)
-
-

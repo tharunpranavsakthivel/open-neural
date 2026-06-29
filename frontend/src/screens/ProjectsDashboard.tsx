@@ -88,7 +88,7 @@ export function ProjectsDashboard({
     (projectId: string) => {
       onSelectProject(projectId);
     },
-    [onSelectProject]
+    [onSelectProject],
   );
 
   /**
@@ -99,7 +99,7 @@ export function ProjectsDashboard({
       try {
         const updatedProject = await patchProject(projectId, newName);
         setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? updatedProject : p))
+          prev.map((p) => (p.id === projectId ? updatedProject : p)),
         );
       } catch (err) {
         const errorMessage =
@@ -108,31 +108,28 @@ export function ProjectsDashboard({
         alert(errorMessage);
       }
     },
-    []
+    [],
   );
 
   /**
    * Handle deleting a project.
    */
-  const handleDeleteProject = useCallback(
-    async (projectId: string) => {
-      try {
-        const deleted = await deleteProject(projectId);
-        if (deleted) {
-          setProjects((prev) => prev.filter((p) => p.id !== projectId));
-          // Also update stats after deletion
-          const statsData = await fetchDashboardStats();
-          setStats(statsData);
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to delete project";
-        console.error("Project delete failed:", err);
-        alert(errorMessage);
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    try {
+      const deleted = await deleteProject(projectId);
+      if (deleted) {
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        // Also update stats after deletion
+        const statsData = await fetchDashboardStats();
+        setStats(statsData);
       }
-    },
-    []
-  );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete project";
+      console.error("Project delete failed:", err);
+      alert(errorMessage);
+    }
+  }, []);
 
   /**
    * Handle opening the create project modal.
@@ -158,7 +155,7 @@ export function ProjectsDashboard({
       // Optionally auto-select the new project
       // onSelectProject(newProject.id);
     },
-    [loadData]
+    [loadData],
   );
 
   const hasProjects = projects.length > 0;
@@ -235,7 +232,9 @@ export function ProjectsDashboard({
             </div>
             <div style={styles.step}>
               <span style={styles.stepNumber}>2</span>
-              <span style={styles.stepText}>Configure preprocessing pipeline</span>
+              <span style={styles.stepText}>
+                Configure preprocessing pipeline
+              </span>
             </div>
             <div style={styles.step}>
               <span style={styles.stepNumber}>3</span>

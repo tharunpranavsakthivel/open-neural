@@ -10,7 +10,6 @@ import pandas as pd
 import pytest
 from sklearn.pipeline import Pipeline as SklearnPipeline
 
-from openneural_backend.pipeline.builder import build_sklearn_pipeline
 from openneural_backend.pipeline.blocks import (
     DropNullsBlock,
     EncodeCategoricalsOneHotBlock,
@@ -24,34 +23,68 @@ from openneural_backend.pipeline.blocks import (
     ScaleNumericStandardBlock,
     TrainValTestSplitBlock,
 )
+from openneural_backend.pipeline.builder import build_sklearn_pipeline
 
 
 @pytest.fixture
 def sample_numeric_df() -> pd.DataFrame:
     """Fixture with basic numeric columns containing some nulls and outliers."""
-    return pd.DataFrame({
-        "col_a": [1.0, 2.0, np.nan, 4.0, 100.0],  # Outlier at index 4 (100.0), Null at 2
-        "col_b": [10.0, 20.0, 30.0, np.nan, 50.0],  # Null at 3
-        "col_c": [5.0, 6.0, 7.0, 8.0, 9.0],
-    })
+    return pd.DataFrame(
+        {
+            "col_a": [
+                1.0,
+                2.0,
+                np.nan,
+                4.0,
+                100.0,
+            ],  # Outlier at index 4 (100.0), Null at 2
+            "col_b": [10.0, 20.0, 30.0, np.nan, 50.0],  # Null at 3
+            "col_c": [5.0, 6.0, 7.0, 8.0, 9.0],
+        }
+    )
 
 
 @pytest.fixture
 def sample_categorical_df() -> pd.DataFrame:
     """Fixture with categorical and string columns."""
-    return pd.DataFrame({
-        "cat_a": ["low", "medium", "high", "medium", "low"],
-        "cat_b": ["yes", "no", "yes", "no", "yes"],
-    })
+    return pd.DataFrame(
+        {
+            "cat_a": ["low", "medium", "high", "medium", "low"],
+            "cat_b": ["yes", "no", "yes", "no", "yes"],
+        }
+    )
 
 
 @pytest.fixture
 def stratification_df() -> pd.DataFrame:
     """Fixture with classes suitable for stratified splitting."""
-    return pd.DataFrame({
-        "feature_1": range(20),
-        "target": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  # balanced classes (10 of each)
-    })
+    return pd.DataFrame(
+        {
+            "feature_1": range(20),
+            "target": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+            ],  # balanced classes (10 of each)
+        }
+    )
 
 
 def test_build_sklearn_pipeline_produces_valid_pipeline() -> None:
@@ -59,8 +92,14 @@ def test_build_sklearn_pipeline_produces_valid_pipeline() -> None:
     config = {
         "blocks": [
             {"type": "drop_nulls", "params": {"columns": ["col_a"]}},
-            {"type": "scale_numeric_standard", "params": {"columns": ["col_a", "col_b"]}},
-            {"type": "train_val_test_split", "params": {"train": 0.6, "val": 0.2, "test": 0.2}},
+            {
+                "type": "scale_numeric_standard",
+                "params": {"columns": ["col_a", "col_b"]},
+            },
+            {
+                "type": "train_val_test_split",
+                "params": {"train": 0.6, "val": 0.2, "test": 0.2},
+            },
         ]
     }
 
@@ -83,11 +122,12 @@ def test_build_sklearn_pipeline_produces_valid_pipeline() -> None:
 
 # --- 11 Block Types Correct Transformation Tests ---
 
+
 def test_drop_nulls_block(sample_numeric_df: pd.DataFrame) -> None:
     """Test 1: DropNullsBlock removes rows with missing values."""
     block = DropNullsBlock(columns=["col_a"])
     res = block.fit_transform(sample_numeric_df)
-    
+
     # "col_a" has nan at index 2. This row should be dropped.
     assert len(res) == 4
     assert np.nan not in res["col_a"].values
@@ -97,7 +137,7 @@ def test_fill_missing_mean_block(sample_numeric_df: pd.DataFrame) -> None:
     """Test 2: FillMissingMeanBlock imputes nulls using column mean."""
     block = FillMissingMeanBlock(columns=["col_a"])
     res = block.fit_transform(sample_numeric_df)
-    
+
     # col_a: [1.0, 2.0, nan, 4.0, 100.0] -> mean of non-nulls is (1+2+4+100)/4 = 26.75
     assert res.loc[2, "col_a"] == 26.75
     # col_b should not be imputed since it wasn't specified
@@ -108,7 +148,7 @@ def test_fill_missing_median_block(sample_numeric_df: pd.DataFrame) -> None:
     """Test 3: FillMissingMedianBlock imputes nulls using column median."""
     block = FillMissingMedianBlock(columns=["col_a"])
     res = block.fit_transform(sample_numeric_df)
-    
+
     # col_a: [1.0, 2.0, nan, 4.0, 100.0] -> median of non-nulls [1.0, 2.0, 4.0, 100.0] is (2.0 + 4.0)/2 = 3.0
     assert res.loc[2, "col_a"] == 3.0
 
@@ -117,7 +157,7 @@ def test_encode_categoricals_one_hot_block(sample_categorical_df: pd.DataFrame) 
     """Test 4: EncodeCategoricalsOneHotBlock performs one-hot encoding on categorical/string variables."""
     block = EncodeCategoricalsOneHotBlock(columns=["cat_b"])
     res = block.fit_transform(sample_categorical_df)
-    
+
     # cat_b had values "yes", "no"
     # Column "cat_b" is dropped, and new one-hot columns are created
     assert "cat_b" not in res.columns
@@ -129,7 +169,7 @@ def test_encode_categoricals_ordinal_block(sample_categorical_df: pd.DataFrame) 
     """Test 5: EncodeCategoricalsOrdinalBlock maps categories to sequential integers."""
     block = EncodeCategoricalsOrdinalBlock(columns=["cat_a"])
     res = block.fit_transform(sample_categorical_df)
-    
+
     # cat_a should be converted to numeric codes
     # low, medium, high should map to unique float/integer codes: {0.0, 1.0, 2.0}
     assert set(res["cat_a"].astype(float).unique()) == {0.0, 1.0, 2.0}
@@ -141,7 +181,7 @@ def test_scale_numeric_standard_block(sample_numeric_df: pd.DataFrame) -> None:
     df_clean = sample_numeric_df.fillna(0.0)
     block = ScaleNumericStandardBlock(columns=["col_c"])
     res = block.fit_transform(df_clean)
-    
+
     # col_c: [5, 6, 7, 8, 9] -> mean=7.0
     # verify res col_c has approximately 0 mean
     assert np.allclose(res["col_c"].mean(), 0.0, atol=1e-7)
@@ -152,7 +192,7 @@ def test_scale_numeric_min_max_block(sample_numeric_df: pd.DataFrame) -> None:
     df_clean = sample_numeric_df.fillna(0.0)
     block = ScaleNumericMinMaxBlock(columns=["col_c"])
     res = block.fit_transform(df_clean)
-    
+
     assert res["col_c"].min() == 0.0
     assert res["col_c"].max() == 1.0
 
@@ -162,7 +202,7 @@ def test_log_transform_block() -> None:
     df = pd.DataFrame({"col": [0.0, 1.0, 2.0]})
     block = LogTransformBlock(columns=["col"])
     res = block.fit_transform(df)
-    
+
     # log1p(x) -> log(1) = 0.0, log(2), log(3)
     assert np.allclose(res.loc[0, "col"], 0.0)
     assert np.allclose(res.loc[1, "col"], np.log(2.0))
@@ -171,12 +211,14 @@ def test_log_transform_block() -> None:
 def test_remove_outliers_iqr_block(sample_numeric_df: pd.DataFrame) -> None:
     """Test 9: RemoveOutliersIQRBlock drops rows with severe outliers."""
     # We use a clean dataframe without nulls to focus on outliers
-    df_clean = pd.DataFrame({
-        "col_a": [1.0, 1.5, 1.2, 1.1, 100.0],  # 100.0 is clearly an outlier
-    })
+    df_clean = pd.DataFrame(
+        {
+            "col_a": [1.0, 1.5, 1.2, 1.1, 100.0],  # 100.0 is clearly an outlier
+        }
+    )
     block = RemoveOutliersIQRBlock(columns=["col_a"], iqr_multiplier=1.5)
     res = block.fit_transform(df_clean)
-    
+
     # Outlier row 100.0 should be removed
     assert len(res) == 4
     assert 100.0 not in res["col_a"].values
@@ -186,12 +228,14 @@ def test_feature_selection_block(sample_numeric_df: pd.DataFrame) -> None:
     """Test 10: FeatureSelectionBlock drops the specified columns."""
     block = FeatureSelectionBlock(columns=["col_a", "col_c"])
     res = block.fit_transform(sample_numeric_df)
-    
+
     # Re-verify that col_a and col_c are dropped, leaving only col_b
     assert list(res.columns) == ["col_b"]
 
 
-def test_train_val_test_split_block_validation_and_stratification(stratification_df: pd.DataFrame) -> None:
+def test_train_val_test_split_block_validation_and_stratification(
+    stratification_df: pd.DataFrame,
+) -> None:
     """Test 11 & TrainValTestSplitBlock: ratio validation, split partitions, and stratification."""
     # 1. Test ratio sum validation
     with pytest.raises(ValueError) as exc:
@@ -216,18 +260,20 @@ def test_train_val_test_split_block_validation_and_stratification(stratification
         block_empty.fit_transform(pd.DataFrame())
 
     # 3. Test stratification splits ratio accuracy
-    block = TrainValTestSplitBlock(train=0.6, val=0.2, test=0.2, stratify_column="target")
-    
+    block = TrainValTestSplitBlock(
+        train=0.6, val=0.2, test=0.2, stratify_column="target"
+    )
+
     X = stratification_df[["feature_1", "target"]]
     y = stratification_df["target"]
-    
+
     X_train, X_val, X_test, y_train, y_val, y_test = block.fit_transform(X, y)
-    
+
     # 20 samples in total: 60% train (12), 20% val (4), 20% test (4)
     assert len(X_train) == 12
     assert len(X_val) == 4
     assert len(X_test) == 4
-    
+
     # Verify target stratification proportions are preserved
     # Each split must have exactly 50% of target 0 and 50% of target 1
     assert (y_train == 0).sum() == 6
@@ -281,11 +327,12 @@ def test_blocks_validation_errors() -> None:
         EncodeCategoricalsOrdinalBlock,
         FillMissingMeanBlock,
         FillMissingMedianBlock,
-        ScaleNumericStandardBlock,
-        ScaleNumericMinMaxBlock,
-        RemoveOutliersIQRBlock,
         LogTransformBlock,
+        RemoveOutliersIQRBlock,
+        ScaleNumericMinMaxBlock,
+        ScaleNumericStandardBlock,
     )
+
     df = pd.DataFrame({"col_a": [1.0, 2.0]})
 
     blocks = [

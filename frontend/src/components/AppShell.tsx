@@ -74,11 +74,7 @@ export function AppShell(): JSX.Element {
    */
   function renderContent(): JSX.Element {
     if (currentStep === "projects" || !currentProjectId) {
-      return (
-        <ProjectsDashboard
-          onSelectProject={selectProject}
-        />
-      );
+      return <ProjectsDashboard onSelectProject={selectProject} />;
     }
 
     const stepComponents: Record<WizardStep, JSX.Element | null> = {
@@ -111,7 +107,9 @@ export function AppShell(): JSX.Element {
         />
       ) : (
         <div style={styles.noExperimentMessage}>
-          <p>No active experiment. Please configure models and start training.</p>
+          <p>
+            No active experiment. Please configure models and start training.
+          </p>
           <button
             onClick={() => setCurrentStep("model")}
             style={styles.returnButton}

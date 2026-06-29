@@ -108,25 +108,80 @@ interface BlockPaletteItem {
  */
 const BLOCK_PALETTE: BlockPaletteItem[] = [
   // Data Cleaning
-  { type: "drop_nulls", name: "Drop Nulls", description: "Remove rows with null values", icon: "🗑️" },
-  { type: "fill_missing_mean", name: "Fill Missing (Mean)", description: "Impute missing values with column mean", icon: "📊" },
-  { type: "fill_missing_median", name: "Fill Missing (Median)", description: "Impute missing values with column median", icon: "📈" },
-  { type: "remove_outliers", name: "Remove Outliers", description: "Filter rows outside IQR range", icon: "✂️" },
+  {
+    type: "drop_nulls",
+    name: "Drop Nulls",
+    description: "Remove rows with null values",
+    icon: "🗑️",
+  },
+  {
+    type: "fill_missing_mean",
+    name: "Fill Missing (Mean)",
+    description: "Impute missing values with column mean",
+    icon: "📊",
+  },
+  {
+    type: "fill_missing_median",
+    name: "Fill Missing (Median)",
+    description: "Impute missing values with column median",
+    icon: "📈",
+  },
+  {
+    type: "remove_outliers",
+    name: "Remove Outliers",
+    description: "Filter rows outside IQR range",
+    icon: "✂️",
+  },
 
   // Feature Encoding
-  { type: "encode_categoricals_onehot", name: "One-Hot Encode", description: "One-hot encoding for categorical columns", icon: "🔥" },
-  { type: "encode_categoricals_ordinal", name: "Ordinal Encode", description: "Ordinal encoding for categorical columns", icon: "🔢" },
+  {
+    type: "encode_categoricals_onehot",
+    name: "One-Hot Encode",
+    description: "One-hot encoding for categorical columns",
+    icon: "🔥",
+  },
+  {
+    type: "encode_categoricals_ordinal",
+    name: "Ordinal Encode",
+    description: "Ordinal encoding for categorical columns",
+    icon: "🔢",
+  },
 
   // Feature Scaling
-  { type: "scale_numerics_standard", name: "Standard Scale", description: "Standardize numeric features (z-score)", icon: "⚖️" },
-  { type: "scale_numerics_minmax", name: "Min-Max Scale", description: "Scale numeric features to [0,1] range", icon: "📏" },
-  { type: "log_transform", name: "Log Transform", description: "Apply log transformation to numeric columns", icon: "📉" },
+  {
+    type: "scale_numerics_standard",
+    name: "Standard Scale",
+    description: "Standardize numeric features (z-score)",
+    icon: "⚖️",
+  },
+  {
+    type: "scale_numerics_minmax",
+    name: "Min-Max Scale",
+    description: "Scale numeric features to [0,1] range",
+    icon: "📏",
+  },
+  {
+    type: "log_transform",
+    name: "Log Transform",
+    description: "Apply log transformation to numeric columns",
+    icon: "📉",
+  },
 
   // Feature Selection
-  { type: "feature_selection", name: "Feature Selection", description: "Drop specified columns from the dataset", icon: "🎯" },
+  {
+    type: "feature_selection",
+    name: "Feature Selection",
+    description: "Drop specified columns from the dataset",
+    icon: "🎯",
+  },
 
   // Data Split
-  { type: "split", name: "Train/Val/Test Split", description: "Split data into train/validation/test sets", icon: "✂️" },
+  {
+    type: "split",
+    name: "Train/Val/Test Split",
+    description: "Split data into train/validation/test sets",
+    icon: "✂️",
+  },
 ];
 
 /**
@@ -145,7 +200,7 @@ function getBlockConfigComponent(
     params: Record<string, unknown>;
     onChange: (params: Record<string, unknown>) => void;
     availableColumns: ColumnOption[];
-  }
+  },
 ): JSX.Element | null {
   const { params, onChange, availableColumns } = props;
 
@@ -228,7 +283,9 @@ function getBlockConfigComponent(
 /**
  * Convert pipeline blocks to API format.
  */
-function blocksToApiFormat(blocks: PipelineBlockData[]): Array<{ type: string; params: Record<string, unknown> }> {
+function blocksToApiFormat(
+  blocks: PipelineBlockData[],
+): Array<{ type: string; params: Record<string, unknown> }> {
   return blocks.map((block) => ({
     type: block.type,
     params: block.params,
@@ -281,7 +338,7 @@ function SortableBlockWrapper({
     (params: Record<string, unknown>) => {
       onParamsChange(block.id, params);
     },
-    [block.id, onParamsChange]
+    [block.id, onParamsChange],
   );
 
   const configComponent = isSelected
@@ -293,12 +350,7 @@ function SortableBlockWrapper({
     : null;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      role="listitem"
-    >
+    <div ref={setNodeRef} style={style} {...attributes} role="listitem">
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <PipelineBlock
           id={block.id}
@@ -318,9 +370,7 @@ function SortableBlockWrapper({
           isDragging={isDragging}
         />
         {configComponent && (
-          <div style={styles.configPanel}>
-            {configComponent}
-          </div>
+          <div style={styles.configPanel}>{configComponent}</div>
         )}
       </div>
     </div>
@@ -364,7 +414,8 @@ export function PipelineBuilder({
   /** Saved pipelines for reuse */
   const [savedPipelines, setSavedPipelines] = useState<PipelineResponse[]>([]);
   /** Currently selected saved pipeline ID */
-  const [selectedSavedPipelineId, setSelectedSavedPipelineId] = useState<string>("");
+  const [selectedSavedPipelineId, setSelectedSavedPipelineId] =
+    useState<string>("");
   /** Loading state for fetching saved pipelines */
   const [isLoadingPipelines, setIsLoadingPipelines] = useState(false);
 
@@ -389,7 +440,7 @@ export function PipelineBuilder({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   /** Block IDs for SortableContext */
@@ -453,14 +504,17 @@ export function PipelineBuilder({
   /**
    * Remove a block from the pipeline.
    */
-  const handleRemoveBlock = useCallback((blockId: string) => {
-    setBlocks((prevBlocks) => prevBlocks.filter((b) => b.id !== blockId));
-    if (selectedBlockId === blockId) {
-      setSelectedBlockId(null);
-    }
-    // Reset saved state when block is removed
-    setIsSaved(false);
-  }, [selectedBlockId]);
+  const handleRemoveBlock = useCallback(
+    (blockId: string) => {
+      setBlocks((prevBlocks) => prevBlocks.filter((b) => b.id !== blockId));
+      if (selectedBlockId === blockId) {
+        setSelectedBlockId(null);
+      }
+      // Reset saved state when block is removed
+      setIsSaved(false);
+    },
+    [selectedBlockId],
+  );
 
   /**
    * Select a block for editing.
@@ -483,13 +537,15 @@ export function PipelineBuilder({
     (blockId: string, params: Record<string, unknown>) => {
       setBlocks((prevBlocks) =>
         prevBlocks.map((b) =>
-          b.id === blockId ? { ...b, params, status: "configured" as BlockStatus } : b
-        )
+          b.id === blockId
+            ? { ...b, params, status: "configured" as BlockStatus }
+            : b,
+        ),
       );
       // Reset saved state when params change
       setIsSaved(false);
     },
-    []
+    [],
   );
 
   /**
@@ -512,8 +568,12 @@ export function PipelineBuilder({
       // Update block statuses based on validation result
       setBlocks((prevBlocks) =>
         prevBlocks.map((block, index) => {
-          const blockErrors = result.errors.filter((e) => e.block_index === index);
-          const blockWarnings = result.warnings.filter((w) => w.block_index === index);
+          const blockErrors = result.errors.filter(
+            (e) => e.block_index === index,
+          );
+          const blockWarnings = result.warnings.filter(
+            (w) => w.block_index === index,
+          );
 
           let status: BlockStatus = "validated";
           if (blockErrors.length > 0) {
@@ -525,10 +585,12 @@ export function PipelineBuilder({
           return {
             ...block,
             status,
-            errorMessage: blockErrors.map((e) => e.message).join("; ") || undefined,
-            warningMessage: blockWarnings.map((w) => w.message).join("; ") || undefined,
+            errorMessage:
+              blockErrors.map((e) => e.message).join("; ") || undefined,
+            warningMessage:
+              blockWarnings.map((w) => w.message).join("; ") || undefined,
           };
-        })
+        }),
       );
 
       if (result.valid) {
@@ -537,7 +599,7 @@ export function PipelineBuilder({
         const errorCount = result.errors.length;
         const warningCount = result.warnings.length;
         showErrorToast(
-          `Validation failed: ${errorCount} error(s), ${warningCount} warning(s)`
+          `Validation failed: ${errorCount} error(s), ${warningCount} warning(s)`,
         );
       }
     } catch (err) {
@@ -571,8 +633,12 @@ export function PipelineBuilder({
         // Update block statuses to show errors
         setBlocks((prevBlocks) =>
           prevBlocks.map((block, index) => {
-            const blockErrors = validationResult.errors.filter((e) => e.block_index === index);
-            const blockWarnings = validationResult.warnings.filter((w) => w.block_index === index);
+            const blockErrors = validationResult.errors.filter(
+              (e) => e.block_index === index,
+            );
+            const blockWarnings = validationResult.warnings.filter(
+              (w) => w.block_index === index,
+            );
 
             let status: BlockStatus = block.status;
             if (blockErrors.length > 0) {
@@ -584,10 +650,12 @@ export function PipelineBuilder({
             return {
               ...block,
               status,
-              errorMessage: blockErrors.map((e) => e.message).join("; ") || undefined,
-              warningMessage: blockWarnings.map((w) => w.message).join("; ") || undefined,
+              errorMessage:
+                blockErrors.map((e) => e.message).join("; ") || undefined,
+              warningMessage:
+                blockWarnings.map((w) => w.message).join("; ") || undefined,
             };
-          })
+          }),
         );
 
         showErrorToast("Please fix validation errors before saving");
@@ -607,7 +675,8 @@ export function PipelineBuilder({
       const pipelines = await fetchProjectPipelines(projectId);
       setSavedPipelines(pipelines);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to save pipeline";
+      const message =
+        err instanceof Error ? err.message : "Failed to save pipeline";
       showErrorToast(message);
     } finally {
       setIsSaving(false);
@@ -618,32 +687,39 @@ export function PipelineBuilder({
    * Load a saved pipeline (Task 160).
    * Populates the block list from saved config_json.
    */
-  const handleLoadSavedPipeline = useCallback(async (pipelineId: string) => {
-    if (!pipelineId) return;
+  const handleLoadSavedPipeline = useCallback(
+    async (pipelineId: string) => {
+      if (!pipelineId) return;
 
-    const pipeline = savedPipelines.find((p) => p.id === pipelineId);
-    if (!pipeline) return;
+      const pipeline = savedPipelines.find((p) => p.id === pipelineId);
+      if (!pipeline) return;
 
-    // Convert saved blocks to PipelineBlockData
-    const savedBlocks = pipeline.config_json.blocks.map((block, index) => ({
-      id: generateBlockId(block.type as BlockType),
-      type: block.type as BlockType,
-      name: BLOCK_PALETTE.find((b) => b.type === block.type)?.name ?? block.type,
-      description: BLOCK_PALETTE.find((b) => b.type === block.type)?.description ?? "",
-      status: "configured" as BlockStatus,
-      params: block.params,
-    }));
+      // Convert saved blocks to PipelineBlockData
+      const savedBlocks = pipeline.config_json.blocks.map((block, index) => ({
+        id: generateBlockId(block.type as BlockType),
+        type: block.type as BlockType,
+        name:
+          BLOCK_PALETTE.find((b) => b.type === block.type)?.name ?? block.type,
+        description:
+          BLOCK_PALETTE.find((b) => b.type === block.type)?.description ?? "",
+        status: "configured" as BlockStatus,
+        params: block.params,
+      }));
 
-    setBlocks(savedBlocks);
-    setSelectedBlockId(null);
-    setIsSaved(false);
-    showSuccessToast("Pipeline loaded successfully");
-  }, [savedPipelines, showSuccessToast]);
+      setBlocks(savedBlocks);
+      setSelectedBlockId(null);
+      setIsSaved(false);
+      showSuccessToast("Pipeline loaded successfully");
+    },
+    [savedPipelines, showSuccessToast],
+  );
 
   /**
    * Handle saved pipeline selection change.
    */
-  const handleSavedPipelineChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+  const handleSavedPipelineChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
     const pipelineId = e.target.value;
     setSelectedSavedPipelineId(pipelineId);
     if (pipelineId) {
@@ -695,7 +771,9 @@ export function PipelineBuilder({
                     {block.description}
                   </span>
                 </div>
-                <span style={styles.paletteItemAdd} aria-hidden="true">+</span>
+                <span style={styles.paletteItemAdd} aria-hidden="true">
+                  +
+                </span>
               </button>
             ))}
           </div>
@@ -712,7 +790,8 @@ export function PipelineBuilder({
               <option value="">Select a saved pipeline...</option>
               {savedPipelines.map((pipeline) => (
                 <option key={pipeline.id} value={pipeline.id}>
-                  {pipeline.id.slice(0, 8)}... ({pipeline.config_json.blocks.length} blocks)
+                  {pipeline.id.slice(0, 8)}... (
+                  {pipeline.config_json.blocks.length} blocks)
                 </option>
               ))}
             </select>

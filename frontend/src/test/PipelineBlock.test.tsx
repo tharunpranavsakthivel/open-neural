@@ -36,7 +36,7 @@ describe("PipelineBlock Component Tests", () => {
           {...defaultProps}
           id={`block-${index}`}
           blockType={type}
-        />
+        />,
       );
 
       // Map of expected labels if custom label is empty (BLOCK_TYPE_LABELS in PipelineBlock.tsx)
@@ -87,7 +87,7 @@ describe("PipelineBlock Component Tests", () => {
         {...defaultProps}
         blockType="drop_nulls"
         onSelect={onSelectSpy}
-      />
+      />,
     );
 
     // The whole block area can be clicked by clicking on its title text
@@ -104,10 +104,12 @@ describe("PipelineBlock Component Tests", () => {
         {...defaultProps}
         blockType="drop_nulls"
         onConfigure={onConfigureSpy}
-      />
+      />,
     );
 
-    const configureBtn = screen.getByRole("button", { name: "Configure Drop Nulls" });
+    const configureBtn = screen.getByRole("button", {
+      name: "Configure Drop Nulls",
+    });
     await userEvent.click(configureBtn);
 
     expect(onConfigureSpy).toHaveBeenCalledWith("block-1");
@@ -120,7 +122,7 @@ describe("PipelineBlock Component Tests", () => {
         {...defaultProps}
         blockType="drop_nulls"
         onRemove={onRemoveSpy}
-      />
+      />,
     );
 
     const removeBtn = screen.getByRole("button", { name: "Remove Drop Nulls" });

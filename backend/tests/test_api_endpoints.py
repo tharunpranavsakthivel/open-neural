@@ -5,6 +5,7 @@ Validates happy-path and error-path scenarios for every endpoint using httpx.Asy
 
 import json
 from pathlib import Path
+
 import pytest
 from httpx import AsyncClient
 
@@ -17,10 +18,10 @@ from openneural_backend.db.models import (
     Run,
 )
 
-
 # =============================================================================
 # Auth Headers Testing
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_api_auth_required(async_client: AsyncClient) -> None:
@@ -70,10 +71,10 @@ async def test_x_openneural_secret_middleware(async_client: AsyncClient) -> None
     assert response.status_code in (200, 501)
 
 
-
 # =============================================================================
 # §2.7 Authentication Endpoints
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_auth_endpoints_scenarios(async_client: AsyncClient, db_session) -> None:
@@ -84,22 +85,30 @@ async def test_auth_endpoints_scenarios(async_client: AsyncClient, db_session) -
     assert response.json()["configured"] is False
 
     # Happy Path 2: Setup authentication
-    response = await async_client.post("/api/v1/auth/setup", json={"password": "mypassword123"})
+    response = await async_client.post(
+        "/api/v1/auth/setup", json={"password": "mypassword123"}
+    )
     assert response.status_code == 201
     assert response.json()["configured"] is True
 
     # Error Path 2: Setup authentication when already configured
-    response = await async_client.post("/api/v1/auth/setup", json={"password": "anotherpassword"})
+    response = await async_client.post(
+        "/api/v1/auth/setup", json={"password": "anotherpassword"}
+    )
     assert response.status_code == 409
     assert "already configured" in response.json()["detail"]
 
     # Happy Path 3: Verify correct password
-    response = await async_client.post("/api/v1/auth/verify", json={"password": "mypassword123"})
+    response = await async_client.post(
+        "/api/v1/auth/verify", json={"password": "mypassword123"}
+    )
     assert response.status_code == 200
     assert response.json()["valid"] is True
 
     # Error Path 3: Verify wrong password
-    response = await async_client.post("/api/v1/auth/verify", json={"password": "wrongpassword"})
+    response = await async_client.post(
+        "/api/v1/auth/verify", json={"password": "wrongpassword"}
+    )
     assert response.status_code == 401
     assert "Invalid password" in response.json()["detail"]
 
@@ -107,6 +116,7 @@ async def test_auth_endpoints_scenarios(async_client: AsyncClient, db_session) -
 # =============================================================================
 # §2.1 Projects Endpoints
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_projects_endpoints_scenarios(async_client: AsyncClient) -> None:
@@ -130,7 +140,9 @@ async def test_projects_endpoints_scenarios(async_client: AsyncClient) -> None:
 
     # Happy Path: Update project
     update_payload = {"name": "Updated Classification Project"}
-    response = await async_client.patch(f"/api/v1/projects/{project_id}", json=update_payload)
+    response = await async_client.patch(
+        f"/api/v1/projects/{project_id}", json=update_payload
+    )
     assert response.status_code == 200
     assert response.json()["name"] == "Updated Classification Project"
 
@@ -153,6 +165,7 @@ async def test_projects_endpoints_scenarios(async_client: AsyncClient) -> None:
 # §2.2 Dataset Snapshots Endpoints
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_snapshots_endpoints_scenarios(
     async_client: AsyncClient, sample_project: Project
@@ -161,7 +174,7 @@ async def test_snapshots_endpoints_scenarios(
     # Happy Path: Upload a small dummy CSV snapshot
     csv_content = "feature1,feature2,label\n1.0,abc,1\n2.0,xyz,0\n"
     files = {"file": ("dummy.csv", csv_content, "text/csv")}
-    
+
     response = await async_client.post(
         f"/api/v1/projects/{sample_project.id}/snapshots",
         files=files,
@@ -190,6 +203,7 @@ async def test_snapshots_endpoints_scenarios(
 # §2.3 Preprocessing Pipelines Endpoints
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_pipelines_endpoints_scenarios(
     async_client: AsyncClient, sample_project: Project, sample_snapshot: DatasetSnapshot
@@ -201,9 +215,7 @@ async def test_pipelines_endpoints_scenarios(
         "snapshot_id": sample_snapshot.id,
         "config": {
             "snapshot_id": sample_snapshot.id,
-            "blocks": [
-                {"type": "drop_nulls", "params": {"columns": []}}
-            ],
+            "blocks": [{"type": "drop_nulls", "params": {"columns": []}}],
         },
         "name": "E2E Pipeline",
     }
@@ -254,6 +266,7 @@ async def test_pipelines_endpoints_scenarios(
 # §2.4 AutoML Experiments Endpoints
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_experiments_endpoints_scenarios(
     async_client: AsyncClient,
@@ -277,20 +290,28 @@ async def test_experiments_endpoints_scenarios(
     assert response.json()["status"] == "created"
 
     # Happy Path/Assertion: List experiments returns 501 Not Implemented (as per route)
-    response = await async_client.get(f"/api/v1/projects/{sample_project.id}/experiments")
+    response = await async_client.get(
+        f"/api/v1/projects/{sample_project.id}/experiments"
+    )
     assert response.status_code == 501
 
     # Happy Path/Assertion: Get experiment details returns 501 Not Implemented (as per route)
-    response = await async_client.get(f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}")
+    response = await async_client.get(
+        f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}"
+    )
     assert response.status_code == 501
 
     # Happy Path: Get training time estimate
-    response = await async_client.get(f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}/estimate")
+    response = await async_client.get(
+        f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}/estimate"
+    )
     assert response.status_code == 200
     assert "estimated_seconds" in response.json()
 
     # Error Path: Cancel experiment returns 400 Bad Request because experiment is not 'running'
-    response = await async_client.delete(f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}/cancel")
+    response = await async_client.delete(
+        f"/api/v1/projects/{sample_project.id}/experiments/{experiment_id}/cancel"
+    )
     assert response.status_code == 400
 
     # Error Path: Create experiment with unsupported model key
@@ -310,6 +331,7 @@ async def test_experiments_endpoints_scenarios(
 # =============================================================================
 # §2.5 Model Evaluation Endpoints & §2.6 Leaderboard Endpoints
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_evaluation_and_leaderboard_scenarios(
@@ -340,7 +362,9 @@ async def test_evaluation_and_leaderboard_scenarios(
         status="done",
         hyperparams_json="{}",
         cv_metrics_json="{}",
-        test_metrics_json=json.dumps({"f1": 0.85, "accuracy": 0.88, "precision": 0.84, "recall": 0.86}),
+        test_metrics_json=json.dumps(
+            {"f1": 0.85, "accuracy": 0.88, "precision": 0.84, "recall": 0.86}
+        ),
     )
     db_session.add(run)
     await db_session.commit()
@@ -349,7 +373,9 @@ async def test_evaluation_and_leaderboard_scenarios(
     evaluation = Evaluation(
         run_id=run.id,
         split="test",
-        metrics_json=json.dumps({"f1": 0.85, "accuracy": 0.88, "precision": 0.84, "recall": 0.86}),
+        metrics_json=json.dumps(
+            {"f1": 0.85, "accuracy": 0.88, "precision": 0.84, "recall": 0.86}
+        ),
         confusion_matrix_json=json.dumps({"tn": 100, "fp": 5, "fn": 7, "tp": 95}),
         threshold=0.5,
     )
@@ -358,14 +384,18 @@ async def test_evaluation_and_leaderboard_scenarios(
 
     # Setup predictions.parquet file to allow threshold adjustment recalculation
     import pandas as pd
+
     from openneural_backend.config import Settings
+
     run_dir = Settings.get().data_dir / "experiments" / experiment.id / "runs" / run.id
     run_dir.mkdir(parents=True, exist_ok=True)
-    df = pd.DataFrame({
-        "y_true": [0, 1, 0, 1],
-        "y_pred": [0, 1, 0, 1],
-        "y_proba": [0.1, 0.9, 0.2, 0.8]
-    })
+    df = pd.DataFrame(
+        {
+            "y_true": [0, 1, 0, 1],
+            "y_pred": [0, 1, 0, 1],
+            "y_proba": [0.1, 0.9, 0.2, 0.8],
+        }
+    )
     df.to_parquet(run_dir / "predictions.parquet")
 
     # Happy Path: Get evaluation details
@@ -382,18 +412,21 @@ async def test_evaluation_and_leaderboard_scenarios(
     assert "f1" in response.json()
 
     # Happy Path: Get leaderboard
-    response = await async_client.get(f"/api/v1/projects/{sample_project.id}/leaderboard")
+    response = await async_client.get(
+        f"/api/v1/projects/{sample_project.id}/leaderboard"
+    )
     assert response.status_code == 200
     assert len(response.json()) >= 1
 
     # Error Path: Get evaluation for non-existent experiment
-    response = await async_client.get(f"/api/v1/experiments/invalid_id/evaluation")
+    response = await async_client.get("/api/v1/experiments/invalid_id/evaluation")
     assert response.status_code == 404
 
 
 # =============================================================================
 # §2.6 Exports Endpoints
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_exports_endpoints_scenarios(
@@ -432,11 +465,12 @@ async def test_exports_endpoints_scenarios(
     await db_session.refresh(run)
 
     # Train a quick LogisticRegression model & write it to runs folder to prevent actual export missing file failure
-    from openneural_backend.config import Settings
     import joblib
-    from sklearn.linear_model import LogisticRegression
     import numpy as np
-    
+    from sklearn.linear_model import LogisticRegression
+
+    from openneural_backend.config import Settings
+
     run_dir = Settings.get().data_dir / "experiments" / experiment.id / "runs" / run.id
     run_dir.mkdir(parents=True, exist_ok=True)
     model = LogisticRegression()
@@ -472,6 +506,7 @@ async def test_exports_endpoints_scenarios(
 # SSE Training Stream Testing (Task 230)
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_sse_training_stream(
     async_client: AsyncClient,
@@ -486,8 +521,10 @@ async def test_sse_training_stream(
     """
     import asyncio
     import hashlib
-    from sklearn.datasets import make_classification
+
     import pandas as pd
+    from sklearn.datasets import make_classification
+
     from openneural_backend.db.models import DatasetSnapshot, Pipeline, Project
 
     # 1. Generate small synthetic classification dataset (20 samples, 2 features)
@@ -497,7 +534,7 @@ async def test_sse_training_stream(
         n_informative=2,
         n_redundant=0,
         n_classes=2,
-        random_state=42
+        random_state=42,
     )
     df = pd.DataFrame(X, columns=["feat_1", "feat_2"])
     df["target"] = y
@@ -528,11 +565,13 @@ async def test_sse_training_stream(
         file_size_bytes=parquet_path.stat().st_size,
         row_count=len(df),
         col_count=len(df.columns),
-        schema_json=json.dumps([
-            {"name": "feat_1", "inferred_type": "float"},
-            {"name": "feat_2", "inferred_type": "float"},
-            {"name": "target", "inferred_type": "integer"}
-        ]),
+        schema_json=json.dumps(
+            [
+                {"name": "feat_1", "inferred_type": "float"},
+                {"name": "feat_2", "inferred_type": "float"},
+                {"name": "target", "inferred_type": "integer"},
+            ]
+        ),
         checksum_sha256=checksum,
     )
     db_session.add(snapshot)
@@ -574,6 +613,7 @@ async def test_sse_training_stream(
     # 6. Define stream consumer function
     async def consume_stream():
         from openneural_backend.routers.stream import stream_experiment_updates
+
         stream_res = await stream_experiment_updates(experiment_id, session=db_session)
         async for chunk in stream_res.body_iterator:
             if isinstance(chunk, bytes):
@@ -583,7 +623,11 @@ async def test_sse_training_stream(
                     event_data = json.loads(line[6:])
                     collected_events.append(event_data)
                     # Break out once we hit a terminal event
-                    if event_data.get("payload", {}).get("status") in ("done", "cancelled", "interrupted"):
+                    if event_data.get("payload", {}).get("status") in (
+                        "done",
+                        "cancelled",
+                        "interrupted",
+                    ):
                         return
 
     # 7. Start stream consumer in the background
@@ -632,6 +676,7 @@ async def test_sse_training_stream(
 # Crash Recovery Testing (Task 231)
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_crash_recovery_integration(
     async_client: AsyncClient,
@@ -649,8 +694,10 @@ async def test_crash_recovery_integration(
     """
     import asyncio
     from unittest.mock import patch
-    from openneural_backend.shutdown import ShutdownManager
+
     from httpx import ASGITransport
+
+    from openneural_backend.shutdown import ShutdownManager
 
     # Setup AutoML experiment configuration
     create_payload = {
@@ -691,6 +738,7 @@ async def test_crash_recovery_integration(
 
     # 3. "Restart" the backend by creating a brand new ASGI application and AsyncClient
     from openneural_backend.app import create_app
+
     restarted_app = create_app()
 
     async with AsyncClient(
@@ -710,7 +758,9 @@ async def test_crash_recovery_integration(
         assert experiment_id in interrupted_ids
 
         # Assert full details are present
-        exp_summary = next(exp for exp in data["experiments"] if exp["id"] == experiment_id)
+        exp_summary = next(
+            exp for exp in data["experiments"] if exp["id"] == experiment_id
+        )
         assert exp_summary["status"] == "interrupted"
         assert exp_summary["project_id"] == sample_project.id
         assert exp_summary["project_name"] == sample_project.name
@@ -719,6 +769,7 @@ async def test_crash_recovery_integration(
 # =============================================================================
 # Checksum Mismatch Testing (Task 232)
 # =============================================================================
+
 
 @pytest.mark.anyio
 async def test_checksum_mismatch_integration(
@@ -736,9 +787,11 @@ async def test_checksum_mismatch_integration(
     5. Asserts the run is aborted with a 500 error containing the ChecksumMismatchError details.
     """
     import hashlib
-    import pandas as pd
-    from openneural_backend.db.models import DatasetSnapshot, Pipeline, Experiment
     import json
+
+    import pandas as pd
+
+    from openneural_backend.db.models import DatasetSnapshot, Experiment, Pipeline
 
     # 1. Create a valid small dataset Parquet file
     df = pd.DataFrame({"feat_1": [1.0, 2.0], "target": [0, 1]})
@@ -759,10 +812,12 @@ async def test_checksum_mismatch_integration(
         file_size_bytes=parquet_path.stat().st_size,
         row_count=2,
         col_count=2,
-        schema_json=json.dumps([
-            {"name": "feat_1", "inferred_type": "float"},
-            {"name": "target", "inferred_type": "integer"}
-        ]),
+        schema_json=json.dumps(
+            [
+                {"name": "feat_1", "inferred_type": "float"},
+                {"name": "target", "inferred_type": "integer"},
+            ]
+        ),
         checksum_sha256=correct_checksum,
     )
     db_session.add(snapshot)
@@ -814,6 +869,7 @@ async def test_checksum_mismatch_integration(
 # Leaderboard Performance Testing (Task 233)
 # =============================================================================
 
+
 @pytest.mark.anyio
 async def test_leaderboard_sorting_performance(
     async_client: AsyncClient,
@@ -830,6 +886,7 @@ async def test_leaderboard_sorting_performance(
     import json
     import time
     from datetime import datetime
+
     from openneural_backend.db.models import Experiment, Run
 
     # Generate 1,000 experiment records and 1,000 run records
@@ -855,12 +912,14 @@ async def test_leaderboard_sorting_performance(
             model_type="logistic_regression",
             status="done",
             hyperparams_json="{}",
-            test_metrics_json=json.dumps({
-                "f1": 0.5 + (i % 100) / 200.0,
-                "auc_roc": 0.6,
-                "precision": 0.7,
-                "recall": 0.8,
-            }),
+            test_metrics_json=json.dumps(
+                {
+                    "f1": 0.5 + (i % 100) / 200.0,
+                    "auc_roc": 0.6,
+                    "precision": 0.7,
+                    "recall": 0.8,
+                }
+            ),
             training_time_sec=10.0 + i,
         )
         experiments.append(experiment)
@@ -876,7 +935,7 @@ async def test_leaderboard_sorting_performance(
     start_time = time.perf_counter()
     response = await async_client.get(
         f"/api/v1/projects/{sample_project.id}/leaderboard",
-        params={"sort_by": "f1", "order": "desc"}
+        params={"sort_by": "f1", "order": "desc"},
     )
     duration_ms = (time.perf_counter() - start_time) * 1000.0
 
@@ -886,9 +945,10 @@ async def test_leaderboard_sorting_performance(
     assert len(data) == 1000
 
     # Ensure response time is strictly below 500ms
-    assert duration_ms < 500.0, f"Leaderboard sorting took too long: {duration_ms:.1f}ms"
+    assert (
+        duration_ms < 500.0
+    ), f"Leaderboard sorting took too long: {duration_ms:.1f}ms"
 
     # Verify sorting order (descending by F1)
     f1_scores = [entry["metrics"].get("f1") for entry in data]
-    assert all(f1_scores[i] >= f1_scores[i+1] for i in range(len(f1_scores)-1))
-
+    assert all(f1_scores[i] >= f1_scores[i + 1] for i in range(len(f1_scores) - 1))

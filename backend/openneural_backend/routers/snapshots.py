@@ -12,8 +12,12 @@ from openneural_backend.services.dataset_service import (
     DatasetNotFoundError,
     ProjectNotFoundError,
     import_file,
-    get_snapshots as service_get_snapshots,
+)
+from openneural_backend.services.dataset_service import (
     get_snapshot as service_get_snapshot,
+)
+from openneural_backend.services.dataset_service import (
+    get_snapshots as service_get_snapshots,
 )
 
 router = APIRouter(prefix="/projects/{project_id}/snapshots", tags=["snapshots"])
@@ -112,14 +116,18 @@ async def create_snapshot(
         )
         return snapshot
     except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Project not found: {e.project_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Project not found: {e.project_id}"
+        )
     except DatasetImportError as e:
         # Check if it's a file size error
         if "exceeds maximum" in e.message.lower():
             raise HTTPException(status_code=413, detail=e.message)
         raise HTTPException(status_code=400, detail=e.message)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to import dataset: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to import dataset: {str(e)}"
+        )
 
 
 @router.get(
@@ -151,9 +159,13 @@ async def list_snapshots(project_id: str) -> list[dict]:
         snapshots = await service_get_snapshots(project_id=project_id)
         return snapshots
     except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Project not found: {e.project_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Project not found: {e.project_id}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list snapshots: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list snapshots: {str(e)}"
+        )
 
 
 @router.get(
@@ -188,6 +200,8 @@ async def get_snapshot_by_id(project_id: str, snapshot_id: str) -> dict:
         snapshot = await service_get_snapshot(snapshot_id=snapshot_id)
         return snapshot
     except DatasetNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Snapshot not found: {e.snapshot_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Snapshot not found: {e.snapshot_id}"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get snapshot: {str(e)}")

@@ -148,7 +148,7 @@ const COLOR_SCALE = {
 function getPerformanceLevel(
   value: number,
   thresholds: { poor: number; moderate: number; good: number },
-  lowerIsBetter = false
+  lowerIsBetter = false,
 ): "good" | "moderate" | "poor" {
   if (lowerIsBetter) {
     // For metrics where lower is better (RMSE, MAE)
@@ -241,7 +241,7 @@ export function MetricCards({
           const level = getPerformanceLevel(
             metric.value,
             metric.config.thresholds,
-            false
+            false,
           );
           const colors = COLOR_SCALE[level];
 
@@ -315,7 +315,7 @@ export function MetricCards({
             const level = getPerformanceLevel(
               metric.value,
               metric.config.thresholds,
-              metric.config.lowerIsBetter
+              metric.config.lowerIsBetter,
             );
             const colors = COLOR_SCALE[level];
 

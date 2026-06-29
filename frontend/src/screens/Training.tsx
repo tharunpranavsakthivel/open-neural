@@ -16,7 +16,9 @@ interface TrainingProps {
  * @param props - Component props
  * @returns The training screen
  */
-export function Training({ projectId: _projectId }: TrainingProps): JSX.Element {
+export function Training({
+  projectId: _projectId,
+}: TrainingProps): JSX.Element {
   return (
     <div style={styles.container}>
       <header style={styles.header}>

@@ -13,14 +13,13 @@ import json
 import logging
 import os
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-import joblib
+import numpy as np
 import optuna
 import pandas as pd
-import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -40,8 +39,8 @@ from openneural_backend.models.registry import get_model
 from openneural_backend.orchestrator.event_bus import (
     publish_status_update,
 )
-from openneural_backend.pipeline.builder import build_sklearn_pipeline
 from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
+from openneural_backend.pipeline.builder import build_sklearn_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +49,21 @@ logger = logging.getLogger(__name__)
 METRIC_FUNCTIONS = {
     "classification": {
         "f1": lambda y_true, y_pred: f1_score(y_true, y_pred, average="weighted"),
-        "auc_roc": lambda y_true, y_pred_proba: roc_auc_score(y_true, y_pred_proba, multi_class="ovr"),
-        "precision": lambda y_true, y_pred: precision_score(y_true, y_pred, average="weighted"),
-        "recall": lambda y_true, y_pred: recall_score(y_true, y_pred, average="weighted"),
+        "auc_roc": lambda y_true, y_pred_proba: roc_auc_score(
+            y_true, y_pred_proba, multi_class="ovr"
+        ),
+        "precision": lambda y_true, y_pred: precision_score(
+            y_true, y_pred, average="weighted"
+        ),
+        "recall": lambda y_true, y_pred: recall_score(
+            y_true, y_pred, average="weighted"
+        ),
         "accuracy": accuracy_score,
     },
     "regression": {
-        "rmse": lambda y_true, y_pred: mean_squared_error(y_true, y_pred, squared=False),
+        "rmse": lambda y_true, y_pred: mean_squared_error(
+            y_true, y_pred, squared=False
+        ),
         "mae": mean_absolute_error,
         "r2": r2_score,
     },
@@ -88,15 +95,19 @@ def _save_predictions(
     try:
         # Build the predictions file path
         # Per Task 106: {data_dir}/experiments/{experiment_id}/runs/{run_id}/predictions.parquet
-        predictions_dir = Path(data_dir) / "experiments" / experiment_id / "runs" / run_id
+        predictions_dir = (
+            Path(data_dir) / "experiments" / experiment_id / "runs" / run_id
+        )
         predictions_dir.mkdir(parents=True, exist_ok=True)
         predictions_path = predictions_dir / "predictions.parquet"
 
         # Create DataFrame with predictions
-        predictions_df = pd.DataFrame({
-            "y_true": y_test.values if hasattr(y_test, "values") else y_test,
-            "y_pred": y_pred,
-        })
+        predictions_df = pd.DataFrame(
+            {
+                "y_true": y_test.values if hasattr(y_test, "values") else y_test,
+                "y_pred": y_pred,
+            }
+        )
 
         # Add probability column for classification
         if y_pred_proba is not None:
@@ -121,10 +132,10 @@ def _save_predictions(
 def _compute_test_metrics(
     y_true: pd.Series,
     y_pred: pd.Series,
-    y_pred_proba: Optional[pd.DataFrame],
+    y_pred_proba: pd.DataFrame | None,
     task_type: str,
     optimize_metric: str,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compute test set metrics for a trained model.
 
     Args:
@@ -142,7 +153,9 @@ def _compute_test_metrics(
     if task_type == "classification":
         # Classification metrics
         metrics["f1"] = float(f1_score(y_true, y_pred, average="weighted"))
-        metrics["precision"] = float(precision_score(y_true, y_pred, average="weighted"))
+        metrics["precision"] = float(
+            precision_score(y_true, y_pred, average="weighted")
+        )
         metrics["recall"] = float(recall_score(y_true, y_pred, average="weighted"))
         metrics["accuracy"] = float(accuracy_score(y_true, y_pred))
 
@@ -151,7 +164,9 @@ def _compute_test_metrics(
             try:
                 if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] > 1:
                     # Multi-class
-                    metrics["auc_roc"] = float(roc_auc_score(y_true, y_pred_proba, multi_class="ovr"))
+                    metrics["auc_roc"] = float(
+                        roc_auc_score(y_true, y_pred_proba, multi_class="ovr")
+                    )
                 else:
                     # Binary
                     metrics["auc_roc"] = float(roc_auc_score(y_true, y_pred_proba))
@@ -179,7 +194,7 @@ def _run_optuna_study(
     experiment_id: str = "",
     run_id: str = "",
     data_dir: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a single Optuna study for a candidate model.
 
     This function runs in a separate process via ProcessPoolExecutor.
@@ -236,9 +251,11 @@ def _run_optuna_study(
 
     # Compute test metrics
     test_metrics = _compute_test_metrics(
-        y_test, y_pred,
+        y_test,
+        y_pred,
         pd.DataFrame(y_pred_proba) if y_pred_proba is not None else None,
-        task_type, metric,
+        task_type,
+        metric,
     )
 
     # Save predictions to Parquet file for threshold adjustment
@@ -268,7 +285,7 @@ def _run_optuna_study(
     }
 
 
-async def run_experiment(experiment_id: str) -> Dict[str, Any]:
+async def run_experiment(experiment_id: str) -> dict[str, Any]:
     """Run a complete experiment training cycle.
 
     Loads the snapshot Parquet file, builds the scikit-learn pipeline from config,
@@ -328,6 +345,7 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
 
         # Get task type from project
         from openneural_backend.db.models import Project
+
         project_result = await session.execute(
             select(Project).where(Project.id == experiment.project_id)
         )
@@ -386,23 +404,46 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
         )
 
         # Remove target column from features
-        X_train = X_train_full.drop(columns=[target_column]) if target_column in X_train_full.columns else X_train_full
-        X_val = X_val.drop(columns=[target_column]) if target_column in X_val.columns else X_val
-        X_test = X_test.drop(columns=[target_column]) if target_column in X_test.columns else X_test
+        X_train = (
+            X_train_full.drop(columns=[target_column])
+            if target_column in X_train_full.columns
+            else X_train_full
+        )
+        X_val = (
+            X_val.drop(columns=[target_column])
+            if target_column in X_val.columns
+            else X_val
+        )
+        X_test = (
+            X_test.drop(columns=[target_column])
+            if target_column in X_test.columns
+            else X_test
+        )
     else:
         # Default 70/15/15 split
         from sklearn.model_selection import train_test_split
+
         X_temp, X_test, y_temp, y_test = train_test_split(
-            X_processed, y, test_size=0.15, random_state=42, stratify=y if task_type == "classification" else None
+            X_processed,
+            y,
+            test_size=0.15,
+            random_state=42,
+            stratify=y if task_type == "classification" else None,
         )
         X_train, X_val, y_train, y_val = train_test_split(
-            X_temp, y_temp, test_size=0.176, random_state=42, stratify=y_temp if task_type == "classification" else None
+            X_temp,
+            y_temp,
+            test_size=0.176,
+            random_state=42,
+            stratify=y_temp if task_type == "classification" else None,
         )
 
-    logger.info(f"Data split: train={len(X_train)}, val={len(X_val)}, test={len(X_test)}")
+    logger.info(
+        f"Data split: train={len(X_train)}, val={len(X_val)}, test={len(X_test)}"
+    )
 
     # Prepare run records
-    run_records: Dict[str, str] = {}
+    run_records: dict[str, str] = {}
     async with async_session() as session:
         for model_key in candidate_models:
             run = Run(
@@ -430,10 +471,12 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
     # Per TDD Section 4.3: Each model candidate is trained in a separate OS process
     # This bypasses the Python GIL and enables true parallelism
     max_workers = min(len(candidate_models), os.cpu_count() or 4)
-    logger.info(f"Starting training with ProcessPoolExecutor(max_workers={max_workers}) for {len(candidate_models)} candidate models")
+    logger.info(
+        f"Starting training with ProcessPoolExecutor(max_workers={max_workers}) for {len(candidate_models)} candidate models"
+    )
 
     # Track completed studies for periodic persistence
-    completed_studies: Dict[str, Dict[str, Any]] = {}
+    completed_studies: dict[str, dict[str, Any]] = {}
     completed_count = 0
     persistence_lock = asyncio.Lock()
 
@@ -463,9 +506,7 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
         async with async_session() as session:
             for model_key, study_data in studies_to_persist.items():
                 run_id = run_records[model_key]
-                result = await session.execute(
-                    select(Run).where(Run.id == run_id)
-                )
+                result = await session.execute(select(Run).where(Run.id == run_id))
                 run = result.scalar_one()
 
                 if study_data.get("status") == "done":
@@ -477,13 +518,17 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                 else:
                     run.status = "failed"
                     # Store error message for display
-                    run.error_message = study_data.get("error", "Training failed: unknown error")
+                    run.error_message = study_data.get(
+                        "error", "Training failed: unknown error"
+                    )
 
                 await session.commit()
                 completed_count += 1
 
         if studies_to_persist:
-            logger.info(f"Persisted {len(studies_to_persist)} completed studies to database")
+            logger.info(
+                f"Persisted {len(studies_to_persist)} completed studies to database"
+            )
 
     async def _periodic_persistence_task() -> None:
         """Background task to persist state every 60 seconds.
@@ -529,8 +574,8 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
             # Get system metrics
             cpu_pct = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
-            ram_used_gb = memory.used / (1024 ** 3)
-            ram_total_gb = memory.total / (1024 ** 3)
+            ram_used_gb = memory.used / (1024**3)
+            ram_total_gb = memory.total / (1024**3)
 
             # Build runs list
             runs_list = []
@@ -576,6 +621,7 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
 
         # Get data_dir from config
         from openneural_backend.config import Settings
+
         data_dir = str(Settings.get().data_dir)
 
         loop = asyncio.get_event_loop()
@@ -617,28 +663,38 @@ async def run_experiment(experiment_id: str) -> Dict[str, Any]:
                     best_test_score = test_score
                     best_run_id = run_records[model_key]
 
-                logger.info(f"Completed study for {model_key}: test_{optimize_metric}={test_score:.4f}")
+                logger.info(
+                    f"Completed study for {model_key}: test_{optimize_metric}={test_score:.4f}"
+                )
 
                 # Publish status update after study completion
                 await _publish_status_event()
 
             except Exception as e:
                 error_msg = str(e)
-                logger.error(f"Training process crash: Study failed for {model_key}: {error_msg}", exc_info=True)
+                logger.error(
+                    f"Training process crash: Study failed for {model_key}: {error_msg}",
+                    exc_info=True,
+                )
                 async with persistence_lock:
                     completed_studies[model_key] = {
                         "status": "failed",
-                        "error": f"Training failed: {error_msg}"
+                        "error": f"Training failed: {error_msg}",
                     }
 
                 # Publish status update after study failure
                 await _publish_status_event()
 
     # Start all studies concurrently with periodic persistence
-    logger.info("Starting training studies with 60-second periodic persistence (SRS FR-TRAIN-09)")
+    logger.info(
+        "Starting training studies with 60-second periodic persistence (SRS FR-TRAIN-09)"
+    )
 
     # Create study tasks
-    study_tasks = [asyncio.create_task(_run_single_study(model_key)) for model_key in candidate_models]
+    study_tasks = [
+        asyncio.create_task(_run_single_study(model_key))
+        for model_key in candidate_models
+    ]
 
     # Start periodic persistence task
     persistence_task = asyncio.create_task(_periodic_persistence_task())

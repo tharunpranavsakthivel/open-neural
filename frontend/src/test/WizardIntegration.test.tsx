@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within, fireEvent, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useAppStore } from "../stores/appStore";
 import { AppShell } from "../components/AppShell";
@@ -16,8 +23,14 @@ vi.mock("../utils/api", () => {
     fetchInterruptedExperiments: vi.fn().mockResolvedValue([]),
     fetchProjectSnapshots: vi.fn().mockResolvedValue([]),
     uploadDatasetSnapshot: vi.fn().mockResolvedValue({ snapshot: {} }),
-    fetchTrainingTimeEstimate: vi.fn().mockResolvedValue({ estimated_seconds: 10, requires_gpu: false }),
-    createExperiment: vi.fn().mockResolvedValue({ id: "mock-exp-id", project_id: "mock-proj", status: "pending" }),
+    fetchTrainingTimeEstimate: vi
+      .fn()
+      .mockResolvedValue({ estimated_seconds: 10, requires_gpu: false }),
+    createExperiment: vi.fn().mockResolvedValue({
+      id: "mock-exp-id",
+      project_id: "mock-proj",
+      status: "pending",
+    }),
     startExperiment: vi.fn().mockResolvedValue({ success: true }),
     cancelExperiment: vi.fn().mockResolvedValue({ success: true }),
     fetchExperimentEvaluation: vi.fn().mockResolvedValue({
@@ -32,7 +45,9 @@ vi.mock("../utils/api", () => {
     savePipeline: vi.fn().mockResolvedValue({ id: "pipe-1", blocks: [] }),
     fetchPipeline: vi.fn().mockResolvedValue({ id: "pipe-1", blocks: [] }),
     createPipeline: vi.fn().mockResolvedValue({ id: "pipe-1", blocks: [] }),
-    validatePipelineConfig: vi.fn().mockResolvedValue({ valid: true, errors: [], warnings: [] }),
+    validatePipelineConfig: vi
+      .fn()
+      .mockResolvedValue({ valid: true, errors: [], warnings: [] }),
     fetchProjectPipelines: vi.fn().mockResolvedValue([]),
     createProject: vi.fn().mockResolvedValue({}),
     renameProject: vi.fn().mockResolvedValue({}),
@@ -114,7 +129,12 @@ describe("Full Wizard Integration Tests", () => {
       col_count: 6,
       schema: [
         { name: "age", type: "integer", is_target: false, is_ignored: false },
-        { name: "tenure", type: "integer", is_target: false, is_ignored: false },
+        {
+          name: "tenure",
+          type: "integer",
+          is_target: false,
+          is_ignored: false,
+        },
         { name: "churn", type: "integer", is_target: true, is_ignored: false },
       ],
       checksum_sha256: "hash456",
@@ -155,15 +175,36 @@ describe("Full Wizard Integration Tests", () => {
     // Mock API implementations for this specific test
     vi.mocked(fetchProjects as any).mockResolvedValue(mockProjList as any);
     vi.mocked(fetchDashboardStats as any).mockResolvedValue(mockStats as any);
-    vi.mocked(fetchProjectSnapshots as any).mockResolvedValue(mockSnapshots as any);
-    vi.mocked(uploadDatasetSnapshot as any).mockResolvedValue({ snapshot: mockUploadedSnapshot } as any);
-    vi.mocked(fetchTrainingTimeEstimate as any).mockResolvedValue(mockTimeEstimate as any);
-    vi.mocked(createExperiment as any).mockResolvedValue(mockCreatedExperiment as any);
-    vi.mocked(startExperiment as any).mockResolvedValue({ success: true } as any);
-    vi.mocked(fetchExperimentEvaluation as any).mockResolvedValue(mockEvaluation as any);
-    vi.mocked(fetchLeaderboard as any).mockResolvedValue(mockLeaderboard as any);
-    vi.mocked(createPipeline as any).mockResolvedValue({ id: "pipe-1", blocks: [] } as any);
-    vi.mocked(validatePipelineConfig as any).mockResolvedValue({ valid: true, errors: [], warnings: [] } as any);
+    vi.mocked(fetchProjectSnapshots as any).mockResolvedValue(
+      mockSnapshots as any,
+    );
+    vi.mocked(uploadDatasetSnapshot as any).mockResolvedValue({
+      snapshot: mockUploadedSnapshot,
+    } as any);
+    vi.mocked(fetchTrainingTimeEstimate as any).mockResolvedValue(
+      mockTimeEstimate as any,
+    );
+    vi.mocked(createExperiment as any).mockResolvedValue(
+      mockCreatedExperiment as any,
+    );
+    vi.mocked(startExperiment as any).mockResolvedValue({
+      success: true,
+    } as any);
+    vi.mocked(fetchExperimentEvaluation as any).mockResolvedValue(
+      mockEvaluation as any,
+    );
+    vi.mocked(fetchLeaderboard as any).mockResolvedValue(
+      mockLeaderboard as any,
+    );
+    vi.mocked(createPipeline as any).mockResolvedValue({
+      id: "pipe-1",
+      blocks: [],
+    } as any);
+    vi.mocked(validatePipelineConfig as any).mockResolvedValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    } as any);
     vi.mocked(fetchProjectPipelines as any).mockResolvedValue([] as any);
 
     // Also populate store projects
@@ -174,7 +215,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // Check dashboard header and loaded project
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Projects" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Projects" }),
+      ).toBeInTheDocument();
       expect(screen.getByText("Customer Churn Classifier")).toBeInTheDocument();
     });
 
@@ -183,7 +226,9 @@ describe("Full Wizard Integration Tests", () => {
     expect(importBtn).toBeDisabled();
 
     // Select the project
-    const openBtn = screen.getByRole("button", { name: "Open project Customer Churn Classifier" });
+    const openBtn = screen.getByRole("button", {
+      name: "Open project Customer Churn Classifier",
+    });
     await userEvent.click(openBtn);
 
     // After selection, currentStep should change to "dataset"
@@ -192,7 +237,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // 2. STEP 2: Dataset Import
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Dataset Import" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Dataset Import" }),
+      ).toBeInTheDocument();
       expect(screen.getByText("Snapshot History")).toBeInTheDocument();
     });
 
@@ -211,7 +258,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // Trigger dataset complete by simulating a file drop
     const dropZone = screen.getByLabelText("File drop zone");
-    const file = new File(["col1,col2,col3\n1,2,3"], "customer_churn.csv", { type: "text/csv" });
+    const file = new File(["col1,col2,col3\n1,2,3"], "customer_churn.csv", {
+      type: "text/csv",
+    });
 
     fireEvent.drop(dropZone, {
       dataTransfer: {
@@ -234,16 +283,22 @@ describe("Full Wizard Integration Tests", () => {
     expect(modelBtn).toBeDisabled();
 
     // Add a block to the pipeline
-    const addBlockBtn = screen.getByRole("button", { name: "Add Drop Nulls block" });
+    const addBlockBtn = screen.getByRole("button", {
+      name: "Add Drop Nulls block",
+    });
     await userEvent.click(addBlockBtn);
 
     // Save pipeline to enable Next button inside Preprocessing screen
-    const savePipelineBtn = screen.getByRole("button", { name: "Save Pipeline" });
+    const savePipelineBtn = screen.getByRole("button", {
+      name: "Save Pipeline",
+    });
     await userEvent.click(savePipelineBtn);
 
     // Wait for Saved state and "Next →" button to render
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Next →" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Next →" }),
+      ).toBeInTheDocument();
     });
 
     // Click "Next →" to navigate to model selection
@@ -254,7 +309,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // 4. STEP 4: Model Selection
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Model Selection" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Model Selection" }),
+      ).toBeInTheDocument();
     });
 
     // Train (number 4) should be disabled until an experiment starts
@@ -262,7 +319,9 @@ describe("Full Wizard Integration Tests", () => {
     expect(trainBtn).toBeDisabled();
 
     // Click "Start Training" to trigger model creation & training transition
-    const startTrainingBtn = screen.getByRole("button", { name: "Start Training" });
+    const startTrainingBtn = screen.getByRole("button", {
+      name: "Start Training",
+    });
     await userEvent.click(startTrainingBtn);
 
     // Verify experiment was created and training started
@@ -275,7 +334,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // 5. STEP 5: Training Progress
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Training Progress" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Training Progress" }),
+      ).toBeInTheDocument();
     });
 
     // Evaluation (number 5) should be disabled until training completes
@@ -290,7 +351,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // 6. STEP 6: Evaluation
     await waitFor(() => {
-      expect(screen.getByText("Review model performance metrics and analysis.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Review model performance metrics and analysis."),
+      ).toBeInTheDocument();
     });
 
     // Transition to leaderboard via store
@@ -300,7 +363,9 @@ describe("Full Wizard Integration Tests", () => {
 
     // Leaderboard (number 6) should now be clickable in Sidebar
     await waitFor(() => {
-      const leaderboardBtn = screen.getByRole("menuitem", { name: "Leaderboard" });
+      const leaderboardBtn = screen.getByRole("menuitem", {
+        name: "Leaderboard",
+      });
       expect(leaderboardBtn).toBeEnabled();
     });
 
@@ -322,7 +387,11 @@ describe("Full Wizard Integration Tests", () => {
 
     // 8. STEP 8: Export Screen
     await waitFor(() => {
-      expect(screen.getByText("Export trained models, pipelines, and evaluation artifacts.")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Export trained models, pipelines, and evaluation artifacts.",
+        ),
+      ).toBeInTheDocument();
     });
   });
 });

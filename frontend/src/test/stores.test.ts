@@ -212,7 +212,9 @@ describe("Zustand Stores Unit Tests", () => {
     it("should update block params when updateBlockParams is called", () => {
       usePipelineStore.getState().addBlock(mockBlock);
       usePipelineStore.getState().updateBlockParams("block-1", { foo: "bar" });
-      expect(usePipelineStore.getState().blocks[0]!.params).toEqual({ foo: "bar" });
+      expect(usePipelineStore.getState().blocks[0]!.params).toEqual({
+        foo: "bar",
+      });
     });
   });
 
@@ -279,7 +281,7 @@ describe("Zustand Stores Unit Tests", () => {
     it("should allow navigating to completed steps", () => {
       useWizardStore.getState().markStepComplete("projects");
       useWizardStore.getState().markStepComplete("dataset");
-      
+
       // Let's go to preprocessing
       let success = useWizardStore.getState().navigateToStep("dataset");
       expect(success).toBe(true);
@@ -295,7 +297,9 @@ describe("Zustand Stores Unit Tests", () => {
     it("should save and retrieve step config", () => {
       const mockConfig = { file: "test.csv" };
       useWizardStore.getState().saveStepConfig("dataset", mockConfig);
-      expect(useWizardStore.getState().getStepConfig("dataset")).toEqual(mockConfig);
+      expect(useWizardStore.getState().getStepConfig("dataset")).toEqual(
+        mockConfig,
+      );
     });
   });
 });

@@ -12,10 +12,8 @@ Exposes:
 
 import asyncio
 import random
-import signal
 import string
 from datetime import datetime
-from typing import Dict, Optional
 
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import DatasetSnapshot, Experiment, Pipeline
@@ -23,7 +21,7 @@ from openneural_backend.services.dataset_service import verify_snapshot_checksum
 
 # Global registry of running experiment tasks for cancellation
 # Maps experiment_id -> (asyncio.Task, ProcessPoolExecutor)
-_running_experiments: Dict[str, tuple] = {}
+_running_experiments: dict[str, tuple] = {}
 
 
 def _generate_experiment_id_human() -> str:
@@ -203,12 +201,14 @@ async def _run_training(experiment_id: str) -> None:
     except asyncio.CancelledError:
         # Task was cancelled - clean up
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"Training cancelled for experiment {experiment_id}")
 
         # Mark experiment as cancelled
         async with async_session() as session:
             from sqlalchemy import select
+
             result = await session.execute(
                 select(Experiment).where(Experiment.id == experiment_id)
             )
@@ -224,11 +224,16 @@ async def _run_training(experiment_id: str) -> None:
     except Exception as e:
         # Log error and mark experiment as failed
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.error(f"Training process crash: Training failed for experiment {experiment_id}: {e}", exc_info=True)
+        logger.error(
+            f"Training process crash: Training failed for experiment {experiment_id}: {e}",
+            exc_info=True,
+        )
 
         async with async_session() as session:
             from sqlalchemy import select
+
             result = await session.execute(
                 select(Experiment).where(Experiment.id == experiment_id)
             )
@@ -282,13 +287,18 @@ async def get_experiment(experiment_id: str) -> dict:
 
         # Parse automl_config_json
         import json
+
         try:
             automl_config = json.loads(experiment.automl_config_json)
         except (json.JSONDecodeError, TypeError):
             automl_config = {}
 
         # Parse candidate_models
-        candidate_models = experiment.candidate_models.split(",") if experiment.candidate_models else []
+        candidate_models = (
+            experiment.candidate_models.split(",")
+            if experiment.candidate_models
+            else []
+        )
 
         return {
             "id": experiment.id,
@@ -300,9 +310,15 @@ async def get_experiment(experiment_id: str) -> dict:
             "automl_config": automl_config,
             "candidate_models": candidate_models,
             "status": experiment.status,
-            "created_at": experiment.created_at.isoformat() if experiment.created_at else None,
-            "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
-            "completed_at": experiment.completed_at.isoformat() if experiment.completed_at else None,
+            "created_at": (
+                experiment.created_at.isoformat() if experiment.created_at else None
+            ),
+            "started_at": (
+                experiment.started_at.isoformat() if experiment.started_at else None
+            ),
+            "completed_at": (
+                experiment.completed_at.isoformat() if experiment.completed_at else None
+            ),
         }
 
 
@@ -333,6 +349,7 @@ async def cancel_experiment(experiment_id: str) -> dict:
         ExperimentStateError: If the experiment is not in 'running' status.
     """
     from sqlalchemy import select
+
     from openneural_backend.db.models import Run
 
     async with async_session() as session:

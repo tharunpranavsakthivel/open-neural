@@ -42,27 +42,27 @@ const TYPE_BADGE_STYLES: {
 } = {
   string: {
     background: "#dbeafe", // blue-100
-    color: "#1e40af",      // blue-800
+    color: "#1e40af", // blue-800
   },
   integer: {
     background: "#dcfce7", // green-100
-    color: "#166534",      // green-800
+    color: "#166534", // green-800
   },
   float: {
     background: "#e0e7ff", // indigo-100
-    color: "#3730a3",      // indigo-800
+    color: "#3730a3", // indigo-800
   },
   boolean: {
     background: "#fef3c7", // amber-100
-    color: "#92400e",      // amber-800
+    color: "#92400e", // amber-800
   },
   categorical: {
     background: "#f3e8ff", // purple-100
-    color: "#6b21a8",      // purple-800
+    color: "#6b21a8", // purple-800
   },
   unknown: {
     background: "#f3f4f6", // gray-100
-    color: "#374151",      // gray-700
+    color: "#374151", // gray-700
   },
 };
 
@@ -133,22 +133,15 @@ export function SchemaTable({ schema }: SchemaTableProps): JSX.Element {
               <th style={{ ...styles.th, ...styles.columnNameTh }}>
                 Column Name
               </th>
-              <th style={{ ...styles.th, ...styles.typeTh }}>
-                Inferred Type
-              </th>
-              <th style={{ ...styles.th, ...styles.nullTh }}>
-                Null %
-              </th>
-              <th style={{ ...styles.th, ...styles.uniqueTh }}>
-                Unique Count
-              </th>
+              <th style={{ ...styles.th, ...styles.typeTh }}>Inferred Type</th>
+              <th style={{ ...styles.th, ...styles.nullTh }}>Null %</th>
+              <th style={{ ...styles.th, ...styles.uniqueTh }}>Unique Count</th>
             </tr>
           </thead>
           <tbody>
             {schema.map((column, index) => {
               const badgeStyle = getTypeBadgeStyle(column.inferred_type);
-              const rowStyle =
-                index % 2 === 0 ? styles.evenRow : styles.oddRow;
+              const rowStyle = index % 2 === 0 ? styles.evenRow : styles.oddRow;
 
               return (
                 <tr key={column.name} style={rowStyle}>
@@ -272,7 +265,8 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#fafafa",
   },
   columnName: {
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    fontFamily:
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
     fontSize: "0.8125rem",
     color: "#1f2937",
   },

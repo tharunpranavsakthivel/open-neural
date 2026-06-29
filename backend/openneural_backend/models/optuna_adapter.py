@@ -8,17 +8,17 @@ The build_optuna_objective function creates a callable that can be passed
 to Optuna's optimize() method for hyperparameter search.
 """
 
-from typing import Any, Callable, Dict, Union
+from collections.abc import Callable
+from typing import Any
 
 import optuna
 from sklearn.model_selection import cross_val_score
 
 from openneural_backend.models.registry import get_model
 
-
 # Mapping from OpenNeural metric names to scikit-learn scoring names
 # Classification metrics
-CLASSIFICATION_METRICS: Dict[str, str] = {
+CLASSIFICATION_METRICS: dict[str, str] = {
     "f1": "f1_weighted",
     "auc_roc": "roc_auc",
     "precision": "precision_weighted",
@@ -26,14 +26,14 @@ CLASSIFICATION_METRICS: Dict[str, str] = {
 }
 
 # Regression metrics
-REGRESSION_METRICS: Dict[str, str] = {
+REGRESSION_METRICS: dict[str, str] = {
     "rmse": "neg_root_mean_squared_error",
     "mae": "neg_mean_absolute_error",
     "r2": "r2",
 }
 
 # Combined metric map
-METRIC_MAP: Dict[str, str] = {**CLASSIFICATION_METRICS, **REGRESSION_METRICS}
+METRIC_MAP: dict[str, str] = {**CLASSIFICATION_METRICS, **REGRESSION_METRICS}
 
 
 def _map_metric(metric: str, task_type: str) -> str:
@@ -181,7 +181,7 @@ def build_optuna_objective(
             float: Mean cross-validation score.
         """
         # Build hyperparameters by suggesting from search space
-        hyperparams: Dict[str, Any] = {}
+        hyperparams: dict[str, Any] = {}
         for param_name, param_spec in model_spec.search_space.items():
             hyperparams[param_name] = _suggest_parameter(trial, param_name, param_spec)
 
@@ -194,7 +194,7 @@ def build_optuna_objective(
         # Run cross-validation
         # For classification: use stratified CV by default
         # For regression: use standard KFold
-        from sklearn.model_selection import StratifiedKFold, KFold
+        from sklearn.model_selection import KFold, StratifiedKFold
 
         if "classification" in model_spec.task_types:
             cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
@@ -261,6 +261,7 @@ def build_objective_with_timeout(
         Raises:
             optuna.TrialPruned: If the trial exceeds the timeout.
         """
+
         def timeout_handler(signum: int, frame: Any) -> None:
             """Signal handler for timeout."""
             raise optuna.TrialPruned(f"Trial timed out after {timeout_seconds}s")

@@ -7,18 +7,15 @@ column selection via ColumnTransformer for applying different imputation
 strategies to different columns.
 """
 
-from typing import List, Optional, Union
 
 import pandas as pd
-from sklearn.base import TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline as SklearnPipeline
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -43,21 +40,21 @@ def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> N
 class FillMissingMeanBlock(PipelineBlock):
     """Pipeline block for filling missing values with the mean.
 
-    This block imputes missing (null/NaN) values in specified numeric columns
-    using the mean of each column computed from the training data. If no
-columns are specified, all numeric columns are imputed.
+        This block imputes missing (null/NaN) values in specified numeric columns
+        using the mean of each column computed from the training data. If no
+    columns are specified, all numeric columns are imputed.
 
-    Parameters:
-        columns: Optional list of column names to impute. If not provided,
-            all numeric columns are imputed.
+        Parameters:
+            columns: Optional list of column names to impute. If not provided,
+                all numeric columns are imputed.
 
-    Example:
-        >>> block = FillMissingMeanBlock(columns=["age", "income"])
-        >>> X_imputed = block.fit_transform(X)
+        Example:
+            >>> block = FillMissingMeanBlock(columns=["age", "income"])
+            >>> X_imputed = block.fit_transform(X)
 
-        >>> # Impute all numeric columns
-        >>> block = FillMissingMeanBlock()
-        >>> X_imputed = block.fit_transform(X)
+            >>> # Impute all numeric columns
+            >>> block = FillMissingMeanBlock()
+            >>> X_imputed = block.fit_transform(X)
     """
 
     block_type = "fill_missing_mean"
@@ -68,13 +65,13 @@ columns are specified, all numeric columns are imputed.
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to impute with mean. "
-                               "If empty or not provided, all numeric columns are imputed.",
+                "If empty or not provided, all numeric columns are imputed.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the FillMissingMeanBlock.
 
         Args:
@@ -82,10 +79,12 @@ columns are specified, all numeric columns are imputed.
                 all numeric columns are imputed.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._imputer: Optional[SimpleImputer] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._imputer: SimpleImputer | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "FillMissingMeanBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "FillMissingMeanBlock":
         """Fit the imputer to the training data.
 
         Computes the mean for each specified numeric column from the training data.
@@ -118,9 +117,7 @@ columns are specified, all numeric columns are imputed.
         # Wrap in ColumnTransformer to apply only to specified columns
         # Use remainder='passthrough' to keep other columns unchanged
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("imputer", self._imputer, columns)
-            ],
+            transformers=[("imputer", self._imputer, columns)],
             remainder="passthrough",
             verbose_feature_names_out=False,
         )
@@ -160,13 +157,15 @@ columns are specified, all numeric columns are imputed.
 
         # Get column names in the order they appear after transformation
         # ColumnTransformer applies transformers in order, then remainder columns
-        imputed_cols = self._column_transformer.transformers_[0][2]  # columns from first transformer
+        imputed_cols = self._column_transformer.transformers_[0][
+            2
+        ]  # columns from first transformer
         remainder_cols = [col for col in X.columns if col not in imputed_cols]
         output_columns = imputed_cols + remainder_cols
 
         return pd.DataFrame(X_transformed, columns=output_columns, index=X.index)
 
-    def to_sklearn(self) -> Union[SimpleImputer, ColumnTransformer]:
+    def to_sklearn(self) -> SimpleImputer | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:
@@ -185,30 +184,34 @@ columns are specified, all numeric columns are imputed.
 
         if self._column_transformer is not None:
             return self._column_transformer
-        return self._imputer if self._imputer is not None else SimpleImputer(strategy="mean")
+        return (
+            self._imputer
+            if self._imputer is not None
+            else SimpleImputer(strategy="mean")
+        )
 
 
 class FillMissingMedianBlock(PipelineBlock):
     """Pipeline block for filling missing values with the median.
 
-    This block imputes missing (null/NaN) values in specified numeric columns
-    using the median of each column computed from the training data. If no
-columns are specified, all numeric columns are imputed.
+        This block imputes missing (null/NaN) values in specified numeric columns
+        using the median of each column computed from the training data. If no
+    columns are specified, all numeric columns are imputed.
 
-    The median is more robust to outliers than the mean, making it a better
-    choice when data contains extreme values.
+        The median is more robust to outliers than the mean, making it a better
+        choice when data contains extreme values.
 
-    Parameters:
-        columns: Optional list of column names to impute. If not provided,
-            all numeric columns are imputed.
+        Parameters:
+            columns: Optional list of column names to impute. If not provided,
+                all numeric columns are imputed.
 
-    Example:
-        >>> block = FillMissingMedianBlock(columns=["age", "income"])
-        >>> X_imputed = block.fit_transform(X)
+        Example:
+            >>> block = FillMissingMedianBlock(columns=["age", "income"])
+            >>> X_imputed = block.fit_transform(X)
 
-        >>> # Impute all numeric columns
-        >>> block = FillMissingMedianBlock()
-        >>> X_imputed = block.fit_transform(X)
+            >>> # Impute all numeric columns
+            >>> block = FillMissingMedianBlock()
+            >>> X_imputed = block.fit_transform(X)
     """
 
     block_type = "fill_missing_median"
@@ -219,13 +222,13 @@ columns are specified, all numeric columns are imputed.
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Column names to impute with median. "
-                               "If empty or not provided, all numeric columns are imputed.",
+                "If empty or not provided, all numeric columns are imputed.",
             }
         },
         "required": [],
     }
 
-    def __init__(self, columns: Optional[List[str]] = None) -> None:
+    def __init__(self, columns: list[str] | None = None) -> None:
         """Initialize the FillMissingMedianBlock.
 
         Args:
@@ -233,10 +236,12 @@ columns are specified, all numeric columns are imputed.
                 all numeric columns are imputed.
         """
         super().__init__(columns=columns if columns is not None else [])
-        self._imputer: Optional[SimpleImputer] = None
-        self._column_transformer: Optional[ColumnTransformer] = None
+        self._imputer: SimpleImputer | None = None
+        self._column_transformer: ColumnTransformer | None = None
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "FillMissingMedianBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "FillMissingMedianBlock":
         """Fit the imputer to the training data.
 
         Computes the median for each specified numeric column from the training data.
@@ -268,9 +273,7 @@ columns are specified, all numeric columns are imputed.
 
         # Wrap in ColumnTransformer to apply only to specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("imputer", self._imputer, columns)
-            ],
+            transformers=[("imputer", self._imputer, columns)],
             remainder="passthrough",
             verbose_feature_names_out=False,
         )
@@ -315,7 +318,7 @@ columns are specified, all numeric columns are imputed.
 
         return pd.DataFrame(X_transformed, columns=output_columns, index=X.index)
 
-    def to_sklearn(self) -> Union[SimpleImputer, ColumnTransformer]:
+    def to_sklearn(self) -> SimpleImputer | ColumnTransformer:
         """Convert this block to a scikit-learn transformer.
 
         Returns:
@@ -334,4 +337,8 @@ columns are specified, all numeric columns are imputed.
 
         if self._column_transformer is not None:
             return self._column_transformer
-        return self._imputer if self._imputer is not None else SimpleImputer(strategy="median")
+        return (
+            self._imputer
+            if self._imputer is not None
+            else SimpleImputer(strategy="median")
+        )

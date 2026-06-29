@@ -16,15 +16,19 @@ describe("ConfirmDialog Component Tests", () => {
         onCancel={onCancelMock}
         confirmText="Confirm"
         cancelText="Cancel"
-      />
+      />,
     );
 
     // Verify title and description render
     expect(screen.getByText("Delete Item")).toBeInTheDocument();
-    expect(screen.getByText("Are you sure you want to delete this?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Are you sure you want to delete this?"),
+    ).toBeInTheDocument();
 
     // Click Confirm button
-    const confirmButton = screen.getByRole("button", { name: "Confirm this action" });
+    const confirmButton = screen.getByRole("button", {
+      name: "Confirm this action",
+    });
     await userEvent.click(confirmButton);
 
     expect(onConfirmMock).toHaveBeenCalledTimes(1);
@@ -43,11 +47,13 @@ describe("ConfirmDialog Component Tests", () => {
         onCancel={onCancelMock}
         confirmText="Confirm"
         cancelText="Cancel"
-      />
+      />,
     );
 
     // Click Cancel button
-    const cancelButton = screen.getByRole("button", { name: "Cancel and close dialog" });
+    const cancelButton = screen.getByRole("button", {
+      name: "Cancel and close dialog",
+    });
     await userEvent.click(cancelButton);
 
     expect(onCancelMock).toHaveBeenCalledTimes(1);

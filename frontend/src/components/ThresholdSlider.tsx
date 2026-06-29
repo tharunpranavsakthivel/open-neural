@@ -104,14 +104,14 @@ export function ThresholdSlider({
         try {
           const updatedMetrics = await updateEvaluationThreshold(
             experimentId,
-            newThreshold
+            newThreshold,
           );
 
           // Check latency constraint
           const latency = performance.now() - requestStartTimeRef.current;
           if (latency > MAX_UPDATE_LATENCY_MS) {
             console.warn(
-              `Threshold update latency (${latency.toFixed(1)}ms) exceeded ${MAX_UPDATE_LATENCY_MS}ms target`
+              `Threshold update latency (${latency.toFixed(1)}ms) exceeded ${MAX_UPDATE_LATENCY_MS}ms target`,
             );
           }
 
@@ -127,7 +127,7 @@ export function ThresholdSlider({
         }
       }, DEBOUNCE_DELAY_MS);
     },
-    [experimentId, onThresholdChange, onMetricsUpdate]
+    [experimentId, onThresholdChange, onMetricsUpdate],
   );
 
   /**
@@ -226,7 +226,8 @@ export function ThresholdSlider({
       {/* Help Text */}
       <p style={styles.helpText}>
         Adjust the threshold to change the trade-off between Precision and
-        Recall. Higher thresholds favor Precision, lower thresholds favor Recall.
+        Recall. Higher thresholds favor Precision, lower thresholds favor
+        Recall.
       </p>
 
       {/* Error Message */}

@@ -4,2703 +4,2703 @@
  */
 
 export interface paths {
-    "/api/v1/auth/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Auth Setup
-         * @description Set up initial authentication on first launch.
-         *
-         *     This endpoint is only available before authentication is configured
-         *     (when the auth table has zero rows). It accepts a password, hashes it
-         *     using bcrypt (cost factor 12), and stores the hash in the database.
-         *
-         *     After this endpoint is successfully called, it is permanently disabled
-         *     and subsequent calls will return 409 Conflict.
-         *
-         *     Args:
-         *         request: The setup request containing the password to set.
-         *
-         *     Returns:
-         *         AuthSetupResponse: Success response indicating authentication is configured.
-         *
-         *     Raises:
-         *         HTTPException: 400 for validation errors, 409 if already configured,
-         *             500 for unexpected errors.
-         */
-        post: operations["auth_setup_api_v1_auth_setup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/api/v1/auth/setup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Auth Status
-         * @description Check if authentication has been configured.
-         *
-         *     Returns the configuration status of authentication, which can be used
-         *     by the frontend to determine whether to show the password setup screen
-         *     or the login screen.
-         *
-         *     Returns:
-         *         AuthStatusResponse: Object containing the configured boolean.
-         *
-         *     Raises:
-         *         HTTPException: 500 for unexpected errors.
-         */
-        get: operations["auth_status_api_v1_auth_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Auth Setup
+     * @description Set up initial authentication on first launch.
+     *
+     *     This endpoint is only available before authentication is configured
+     *     (when the auth table has zero rows). It accepts a password, hashes it
+     *     using bcrypt (cost factor 12), and stores the hash in the database.
+     *
+     *     After this endpoint is successfully called, it is permanently disabled
+     *     and subsequent calls will return 409 Conflict.
+     *
+     *     Args:
+     *         request: The setup request containing the password to set.
+     *
+     *     Returns:
+     *         AuthSetupResponse: Success response indicating authentication is configured.
+     *
+     *     Raises:
+     *         HTTPException: 400 for validation errors, 409 if already configured,
+     *             500 for unexpected errors.
+     */
+    post: operations["auth_setup_api_v1_auth_setup_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Auth Verify
-         * @description Verify a password against the stored bcrypt hash.
-         *
-         *     This endpoint validates the provided password against the stored bcrypt
-         *     hash in the database. It is used by the Electron main process during
-         *     session authentication before spawning the backend.
-         *
-         *     Note: According to TDD §5.1, the Electron main process should
-         *     ideally validate the password directly against SQLite using better-sqlite3
-         *     rather than calling this endpoint. This endpoint is provided as an
-         *     alternative for scenarios where direct database access is not available.
-         *
-         *     Args:
-         *         request: The verify request containing the password to check.
-         *
-         *     Returns:
-         *         AuthVerifyResponse: Object containing the valid boolean.
-         *
-         *     Raises:
-         *         HTTPException: 400 for invalid password, 401 if authentication fails,
-         *             500 for unexpected errors.
-         */
-        post: operations["auth_verify_api_v1_auth_verify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Auth Status
+     * @description Check if authentication has been configured.
+     *
+     *     Returns the configuration status of authentication, which can be used
+     *     by the frontend to determine whether to show the password setup screen
+     *     or the login screen.
+     *
+     *     Returns:
+     *         AuthStatusResponse: Object containing the configured boolean.
+     *
+     *     Raises:
+     *         HTTPException: 500 for unexpected errors.
+     */
+    get: operations["auth_status_api_v1_auth_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/verify": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Projects
-         * @description List all projects.
-         *
-         *     Returns all projects with experiment counts, ordered by updated_at DESC.
-         *     Each project includes: id, name, task_type, updated_at, experiment_count.
-         *
-         *     Returns:
-         *         list[dict]: List of project summaries.
-         */
-        get: operations["list_projects_api_v1_projects_get"];
-        put?: never;
-        /**
-         * Create Project
-         * @description Create a new project.
-         *
-         *     Accepts a project name and task type, validates the inputs,
-         *     creates the project record, and returns the full project object.
-         *
-         *     Args:
-         *         request: The project creation request with name and task_type.
-         *
-         *     Returns:
-         *         dict: Created project with id, name, task_type, created_at,
-         *             and experiment_count (always 0 for new projects).
-         *
-         *     Raises:
-         *         HTTPException: 400 for validation errors, 500 for unexpected errors.
-         */
-        post: operations["create_project_api_v1_projects_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Auth Verify
+     * @description Verify a password against the stored bcrypt hash.
+     *
+     *     This endpoint validates the provided password against the stored bcrypt
+     *     hash in the database. It is used by the Electron main process during
+     *     session authentication before spawning the backend.
+     *
+     *     Note: According to TDD §5.1, the Electron main process should
+     *     ideally validate the password directly against SQLite using better-sqlite3
+     *     rather than calling this endpoint. This endpoint is provided as an
+     *     alternative for scenarios where direct database access is not available.
+     *
+     *     Args:
+     *         request: The verify request containing the password to check.
+     *
+     *     Returns:
+     *         AuthVerifyResponse: Object containing the valid boolean.
+     *
+     *     Raises:
+     *         HTTPException: 400 for invalid password, 401 if authentication fails,
+     *             500 for unexpected errors.
+     */
+    post: operations["auth_verify_api_v1_auth_verify_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Project
-         * @description Get a project by ID.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *
-         *     Returns:
-         *         dict: Project details.
-         */
-        get: operations["get_project_api_v1_projects__project_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Project
-         * @description Delete a project and all its associated data.
-         *
-         *     Performs a cascade delete that removes the project and all related entities:
-         *     snapshots, pipelines, experiments, runs, evaluations, subgroup analyses, and exports.
-         *     The database cascade configuration handles the deletion.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *
-         *     Returns:
-         *         dict: Deletion confirmation with { "deleted": true }.
-         *
-         *     Raises:
-         *         HTTPException: 404 if project not found, 500 for unexpected errors.
-         */
-        delete: operations["delete_project_api_v1_projects__project_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update Project
-         * @description Rename a project.
-         *
-         *     Updates the project name and automatically updates the updated_at timestamp.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         request: The rename request with the new project name.
-         *
-         *     Returns:
-         *         dict: Updated project with id, name, task_type, updated_at, experiment_count.
-         *
-         *     Raises:
-         *         HTTPException: 400 for validation errors, 404 if project not found,
-         *             500 for unexpected errors.
-         */
-        patch: operations["update_project_api_v1_projects__project_id__patch"];
-        trace?: never;
+    /**
+     * List Projects
+     * @description List all projects.
+     *
+     *     Returns all projects with experiment counts, ordered by updated_at DESC.
+     *     Each project includes: id, name, task_type, updated_at, experiment_count.
+     *
+     *     Returns:
+     *         list[dict]: List of project summaries.
+     */
+    get: operations["list_projects_api_v1_projects_get"];
+    put?: never;
+    /**
+     * Create Project
+     * @description Create a new project.
+     *
+     *     Accepts a project name and task type, validates the inputs,
+     *     creates the project record, and returns the full project object.
+     *
+     *     Args:
+     *         request: The project creation request with name and task_type.
+     *
+     *     Returns:
+     *         dict: Created project with id, name, task_type, created_at,
+     *             and experiment_count (always 0 for new projects).
+     *
+     *     Raises:
+     *         HTTPException: 400 for validation errors, 500 for unexpected errors.
+     */
+    post: operations["create_project_api_v1_projects_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/snapshots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all snapshots for a project
-         * @description Retrieve a list of all dataset snapshots for the specified project.
-         *         Results are ordered by creation time (oldest first).
-         */
-        get: operations["list_snapshots_api_v1_projects__project_id__snapshots_get"];
-        put?: never;
-        /**
-         * Upload a new dataset snapshot
-         * @description Upload a dataset file (CSV or Parquet) and create an immutable snapshot.
-         *
-         *         **Constraints:**
-         *         - Maximum file size: 2 GB (returns 413 error if exceeded)
-         *         - Supported formats: .csv, .parquet
-         *         - Files >500 MB receive a warning in the response
-         *
-         *         The file is stored internally as Parquet for consistency, and a SHA-256
-         *         checksum is computed for integrity verification.
-         */
-        post: operations["create_snapshot_api_v1_projects__project_id__snapshots_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Project
+     * @description Get a project by ID.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *
+     *     Returns:
+     *         dict: Project details.
+     */
+    get: operations["get_project_api_v1_projects__project_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete Project
+     * @description Delete a project and all its associated data.
+     *
+     *     Performs a cascade delete that removes the project and all related entities:
+     *     snapshots, pipelines, experiments, runs, evaluations, subgroup analyses, and exports.
+     *     The database cascade configuration handles the deletion.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *
+     *     Returns:
+     *         dict: Deletion confirmation with { "deleted": true }.
+     *
+     *     Raises:
+     *         HTTPException: 404 if project not found, 500 for unexpected errors.
+     */
+    delete: operations["delete_project_api_v1_projects__project_id__delete"];
+    options?: never;
+    head?: never;
+    /**
+     * Update Project
+     * @description Rename a project.
+     *
+     *     Updates the project name and automatically updates the updated_at timestamp.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         request: The rename request with the new project name.
+     *
+     *     Returns:
+     *         dict: Updated project with id, name, task_type, updated_at, experiment_count.
+     *
+     *     Raises:
+     *         HTTPException: 400 for validation errors, 404 if project not found,
+     *             500 for unexpected errors.
+     */
+    patch: operations["update_project_api_v1_projects__project_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/snapshots": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/snapshots/{snapshot_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a snapshot by ID
-         * @description Retrieve complete details for a specific dataset snapshot.
-         *
-         *         Returns full metadata including schema information, file statistics,
-         *         and integrity checksum.
-         */
-        get: operations["get_snapshot_by_id_api_v1_projects__project_id__snapshots__snapshot_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List all snapshots for a project
+     * @description Retrieve a list of all dataset snapshots for the specified project.
+     *         Results are ordered by creation time (oldest first).
+     */
+    get: operations["list_snapshots_api_v1_projects__project_id__snapshots_get"];
+    put?: never;
+    /**
+     * Upload a new dataset snapshot
+     * @description Upload a dataset file (CSV or Parquet) and create an immutable snapshot.
+     *
+     *         **Constraints:**
+     *         - Maximum file size: 2 GB (returns 413 error if exceeded)
+     *         - Supported formats: .csv, .parquet
+     *         - Files >500 MB receive a warning in the response
+     *
+     *         The file is stored internally as Parquet for consistency, and a SHA-256
+     *         checksum is computed for integrity verification.
+     */
+    post: operations["create_snapshot_api_v1_projects__project_id__snapshots_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/snapshots/{snapshot_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/pipelines": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Pipelines
-         * @description List all pipelines for a project.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         List[PipelineResponse]: List of pipeline records.
-         *
-         *     Raises:
-         *         HTTPException 404: If project not found.
-         */
-        get: operations["list_pipelines_api_v1_projects__project_id__pipelines_get"];
-        put?: never;
-        /**
-         * Create Pipeline
-         * @description Create a new preprocessing pipeline.
-         *
-         *     Accepts pipeline configuration JSON, validates the referenced snapshot exists,
-         *     runs pipeline validation against the snapshot schema, and stores the pipeline
-         *     with a validated flag.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         request: Pipeline creation request containing snapshot_id and config.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         PipelineResponse: Created pipeline record with validated flag.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or snapshot not found.
-         *         HTTPException 400: If validation fails with errors.
-         *         HTTPException 422: If request data is invalid.
-         */
-        post: operations["create_pipeline_api_v1_projects__project_id__pipelines_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get a snapshot by ID
+     * @description Retrieve complete details for a specific dataset snapshot.
+     *
+     *         Returns full metadata including schema information, file statistics,
+     *         and integrity checksum.
+     */
+    get: operations["get_snapshot_by_id_api_v1_projects__project_id__snapshots__snapshot_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/pipelines": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/pipelines/{pipeline_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Pipeline
-         * @description Get a pipeline by ID.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         pipeline_id: The pipeline ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         PipelineResponse: Pipeline configuration.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or pipeline not found.
-         */
-        get: operations["get_pipeline_api_v1_projects__project_id__pipelines__pipeline_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List Pipelines
+     * @description List all pipelines for a project.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         List[PipelineResponse]: List of pipeline records.
+     *
+     *     Raises:
+     *         HTTPException 404: If project not found.
+     */
+    get: operations["list_pipelines_api_v1_projects__project_id__pipelines_get"];
+    put?: never;
+    /**
+     * Create Pipeline
+     * @description Create a new preprocessing pipeline.
+     *
+     *     Accepts pipeline configuration JSON, validates the referenced snapshot exists,
+     *     runs pipeline validation against the snapshot schema, and stores the pipeline
+     *     with a validated flag.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         request: Pipeline creation request containing snapshot_id and config.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         PipelineResponse: Created pipeline record with validated flag.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or snapshot not found.
+     *         HTTPException 400: If validation fails with errors.
+     *         HTTPException 422: If request data is invalid.
+     */
+    post: operations["create_pipeline_api_v1_projects__project_id__pipelines_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/pipelines/{pipeline_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/pipelines/{pipeline_id}/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Validate Pipeline Endpoint
-         * @description Validate a pipeline configuration against its snapshot schema.
-         *
-         *     Re-runs validation against the stored pipeline configuration and current
-         *     snapshot schema.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         pipeline_id: The pipeline ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ValidationResult: Validation result with warnings and errors.
-         *
-         *     Raises:
-         *         HTTPException 404: If project, pipeline, or snapshot not found.
-         */
-        get: operations["validate_pipeline_endpoint_api_v1_projects__project_id__pipelines__pipeline_id__validate_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Pipeline
+     * @description Get a pipeline by ID.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         pipeline_id: The pipeline ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         PipelineResponse: Pipeline configuration.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or pipeline not found.
+     */
+    get: operations["get_pipeline_api_v1_projects__project_id__pipelines__pipeline_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/pipelines/{pipeline_id}/validate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Experiments
-         * @description List all experiments for a project.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *
-         *     Returns:
-         *         list[dict]: List of experiment summaries.
-         */
-        get: operations["list_experiments_api_v1_projects__project_id__experiments_get"];
-        put?: never;
-        /**
-         * Create Experiment Endpoint
-         * @description Create a new experiment.
-         *
-         *     Validates the pipeline belongs to the project, validates candidate models
-         *     are registered for the project's task type, creates the experiment record,
-         *     and returns the created experiment details.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         request: Experiment creation request containing pipeline_id and config.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentCreateResponse: Created experiment with id, experiment_id_human,
-         *             status, and created_at.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or pipeline not found.
-         *         HTTPException 400: If validation fails (e.g., candidate_models invalid).
-         */
-        post: operations["create_experiment_endpoint_api_v1_projects__project_id__experiments_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Validate Pipeline Endpoint
+     * @description Validate a pipeline configuration against its snapshot schema.
+     *
+     *     Re-runs validation against the stored pipeline configuration and current
+     *     snapshot schema.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         pipeline_id: The pipeline ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ValidationResult: Validation result with warnings and errors.
+     *
+     *     Raises:
+     *         HTTPException 404: If project, pipeline, or snapshot not found.
+     */
+    get: operations["validate_pipeline_endpoint_api_v1_projects__project_id__pipelines__pipeline_id__validate_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments/{experiment_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Experiment
-         * @description Get an experiment by ID.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         experiment_id: The experiment ID.
-         *
-         *     Returns:
-         *         dict: Experiment details.
-         */
-        get: operations["get_experiment_api_v1_projects__project_id__experiments__experiment_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List Experiments
+     * @description List all experiments for a project.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *
+     *     Returns:
+     *         list[dict]: List of experiment summaries.
+     */
+    get: operations["list_experiments_api_v1_projects__project_id__experiments_get"];
+    put?: never;
+    /**
+     * Create Experiment Endpoint
+     * @description Create a new experiment.
+     *
+     *     Validates the pipeline belongs to the project, validates candidate models
+     *     are registered for the project's task type, creates the experiment record,
+     *     and returns the created experiment details.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         request: Experiment creation request containing pipeline_id and config.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentCreateResponse: Created experiment with id, experiment_id_human,
+     *             status, and created_at.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or pipeline not found.
+     *         HTTPException 400: If validation fails (e.g., candidate_models invalid).
+     */
+    post: operations["create_experiment_endpoint_api_v1_projects__project_id__experiments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments/{experiment_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments/{experiment_id}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Experiment Endpoint
-         * @description Start an experiment training run.
-         *
-         *     Verifies the experiment exists and belongs to the project, verifies
-         *     the snapshot checksum for data integrity, marks the experiment as
-         *     'running', spawns the training coroutine, and returns the status.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         experiment_id: The experiment ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentStartResponse: Status and started_at timestamp.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or experiment not found.
-         *         HTTPException 400: If experiment is not in 'created' status.
-         *         HTTPException 500: If checksum verification fails.
-         */
-        post: operations["start_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Experiment
+     * @description Get an experiment by ID.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         experiment_id: The experiment ID.
+     *
+     *     Returns:
+     *         dict: Experiment details.
+     */
+    get: operations["get_experiment_api_v1_projects__project_id__experiments__experiment_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments/{experiment_id}/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments/{experiment_id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Experiment Status
-         * @description Get real-time experiment status with progress.
-         *
-         *     Returns the current experiment status, progress percentage calculated as
-         *     done_runs / total_runs * 100, system resource usage (CPU, RAM), and
-         *     detailed status for each model run including metrics if available.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         experiment_id: The experiment ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentStatusResponse: Real-time status with progress, resource usage,
-         *             and per-run details.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or experiment not found.
-         */
-        get: operations["get_experiment_status_api_v1_projects__project_id__experiments__experiment_id__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Start Experiment Endpoint
+     * @description Start an experiment training run.
+     *
+     *     Verifies the experiment exists and belongs to the project, verifies
+     *     the snapshot checksum for data integrity, marks the experiment as
+     *     'running', spawns the training coroutine, and returns the status.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         experiment_id: The experiment ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentStartResponse: Status and started_at timestamp.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or experiment not found.
+     *         HTTPException 400: If experiment is not in 'created' status.
+     *         HTTPException 500: If checksum verification fails.
+     */
+    post: operations["start_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__start_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments/{experiment_id}/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments/{experiment_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Cancel Experiment Endpoint
-         * @description Cancel a running experiment.
-         *
-         *     Cancels the asyncio.Task for the experiment, marks all queued and running
-         *     runs as failed, marks the experiment as cancelled, and discards partial
-         *     results.
-         *
-         *     Per SRS FR-TRAIN-08: Allow the user to cancel a running training job;
-         *     partial run results shall be discarded and the experiment status set
-         *     to "cancelled".
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         experiment_id: The experiment ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentCancelResponse: Cancellation confirmation with id, status,
-         *             completed_at, and number of runs marked as failed.
-         *
-         *     Raises:
-         *         HTTPException 404: If project or experiment not found.
-         *         HTTPException 400: If experiment is not in 'running' status.
-         */
-        delete: operations["cancel_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__cancel_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Experiment Status
+     * @description Get real-time experiment status with progress.
+     *
+     *     Returns the current experiment status, progress percentage calculated as
+     *     done_runs / total_runs * 100, system resource usage (CPU, RAM), and
+     *     detailed status for each model run including metrics if available.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         experiment_id: The experiment ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentStatusResponse: Real-time status with progress, resource usage,
+     *             and per-run details.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or experiment not found.
+     */
+    get: operations["get_experiment_status_api_v1_projects__project_id__experiments__experiment_id__status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments/{experiment_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/experiments/{experiment_id}/estimate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Estimate Experiment Time
-         * @description Estimate training time for an experiment.
-         *
-         *     Applies a heuristic formula based on dataset size (rows × features),
-         *     number of candidate models, and AutoML configuration to estimate
-         *     the total training time.
-         *
-         *     Per SRS FR-MODEL-08: Display pre-training estimated time to completion
-         *     based on dataset size and candidate count. This estimate is advisory
-         *     and may differ from actual training time.
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         experiment_id: The experiment ID.
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentEstimateResponse: Estimated training time in seconds and minutes,
-         *             along with dataset and configuration details.
-         *
-         *     Raises:
-         *         HTTPException 404: If project, experiment, pipeline, or snapshot not found.
-         */
-        get: operations["estimate_experiment_time_api_v1_projects__project_id__experiments__experiment_id__estimate_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Cancel Experiment Endpoint
+     * @description Cancel a running experiment.
+     *
+     *     Cancels the asyncio.Task for the experiment, marks all queued and running
+     *     runs as failed, marks the experiment as cancelled, and discards partial
+     *     results.
+     *
+     *     Per SRS FR-TRAIN-08: Allow the user to cancel a running training job;
+     *     partial run results shall be discarded and the experiment status set
+     *     to "cancelled".
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         experiment_id: The experiment ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentCancelResponse: Cancellation confirmation with id, status,
+     *             completed_at, and number of runs marked as failed.
+     *
+     *     Raises:
+     *         HTTPException 404: If project or experiment not found.
+     *         HTTPException 400: If experiment is not in 'running' status.
+     */
+    delete: operations["cancel_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__cancel_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/experiments/{experiment_id}/estimate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/interrupted": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Interrupted Experiments
-         * @description Get all experiments with status 'interrupted' across all projects.
-         *
-         *     Used by Electron main process for crash recovery detection.
-         *     Per SRS NFR-REL-04: On application restart after a crash, detect any
-         *     experiments in 'running' state and mark them as 'interrupted'.
-         *
-         *     Args:
-         *         session: Database session.
-         *
-         *     Returns:
-         *         InterruptedExperimentsResponse: List of interrupted experiments
-         *             with project information for crash recovery.
-         */
-        get: operations["get_interrupted_experiments_api_v1_experiments_interrupted_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Estimate Experiment Time
+     * @description Estimate training time for an experiment.
+     *
+     *     Applies a heuristic formula based on dataset size (rows × features),
+     *     number of candidate models, and AutoML configuration to estimate
+     *     the total training time.
+     *
+     *     Per SRS FR-MODEL-08: Display pre-training estimated time to completion
+     *     based on dataset size and candidate count. This estimate is advisory
+     *     and may differ from actual training time.
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         experiment_id: The experiment ID.
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentEstimateResponse: Estimated training time in seconds and minutes,
+     *             along with dataset and configuration details.
+     *
+     *     Raises:
+     *         HTTPException 404: If project, experiment, pipeline, or snapshot not found.
+     */
+    get: operations["estimate_experiment_time_api_v1_projects__project_id__experiments__experiment_id__estimate_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/interrupted": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/{experiment_id}/recover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Recover Experiment
-         * @description Recover an interrupted experiment.
-         *
-         *     Accepts an action to either restart or discard the interrupted experiment.
-         *     If restart: reset status to 'created', clear partial run data, and clear
-         *     started_at/completed_at timestamps.
-         *     If discard: mark the experiment as 'cancelled'.
-         *
-         *     Per SRS NFR-REL-04: On application restart after a crash, allow the user
-         *     to restart or discard interrupted experiments.
-         *
-         *     Args:
-         *         experiment_id: The UUID of the experiment to recover.
-         *         request: Recovery request containing action ('restart' or 'discard').
-         *         session: Database session.
-         *
-         *     Returns:
-         *         ExperimentRecoverResponse: Recovery confirmation with new status.
-         *
-         *     Raises:
-         *         HTTPException 404: If experiment not found.
-         *         HTTPException 400: If experiment is not in 'interrupted' status.
-         */
-        patch: operations["recover_experiment_api_v1_experiments__experiment_id__recover_patch"];
-        trace?: never;
+    /**
+     * Get Interrupted Experiments
+     * @description Get all experiments with status 'interrupted' across all projects.
+     *
+     *     Used by Electron main process for crash recovery detection.
+     *     Per SRS NFR-REL-04: On application restart after a crash, detect any
+     *     experiments in 'running' state and mark them as 'interrupted'.
+     *
+     *     Args:
+     *         session: Database session.
+     *
+     *     Returns:
+     *         InterruptedExperimentsResponse: List of interrupted experiments
+     *             with project information for crash recovery.
+     */
+    get: operations["get_interrupted_experiments_api_v1_experiments_interrupted_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/{experiment_id}/recover": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/{experiment_id}/evaluation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Evaluation
-         * @description Get evaluation results for an experiment.
-         *
-         *     Calls identify_best_run to find the best performing run, then loads
-         *     confusion matrix, subgroup analyses, and metrics from the evaluations
-         *     and subgroup_analyses tables. Returns the full evaluation response
-         *     object as specified in TDD §2.5.
-         *
-         *     Args:
-         *         experiment_id: The UUID of the experiment to evaluate.
-         *
-         *     Returns:
-         *         dict: Full evaluation response containing:
-         *             - best_run_id: UUID of the best run.
-         *             - best_model_type: Type of model for the best run.
-         *             - metrics: Dict of metrics (f1, auc_roc, precision, recall, etc.).
-         *             - confusion_matrix: TN/FP/FN/TP for binary, or N×N matrix for multiclass.
-         *             - threshold: Decision threshold used for classification.
-         *             - subgroup_analyses: List of subgroup performance analyses.
-         *
-         *     Raises:
-         *         HTTPException 404: If the experiment is not found.
-         *         HTTPException 400: If no completed runs exist for the experiment.
-         */
-        get: operations["get_evaluation_api_v1_experiments__experiment_id__evaluation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Recover Experiment
+     * @description Recover an interrupted experiment.
+     *
+     *     Accepts an action to either restart or discard the interrupted experiment.
+     *     If restart: reset status to 'created', clear partial run data, and clear
+     *     started_at/completed_at timestamps.
+     *     If discard: mark the experiment as 'cancelled'.
+     *
+     *     Per SRS NFR-REL-04: On application restart after a crash, allow the user
+     *     to restart or discard interrupted experiments.
+     *
+     *     Args:
+     *         experiment_id: The UUID of the experiment to recover.
+     *         request: Recovery request containing action ('restart' or 'discard').
+     *         session: Database session.
+     *
+     *     Returns:
+     *         ExperimentRecoverResponse: Recovery confirmation with new status.
+     *
+     *     Raises:
+     *         HTTPException 404: If experiment not found.
+     *         HTTPException 400: If experiment is not in 'interrupted' status.
+     */
+    patch: operations["recover_experiment_api_v1_experiments__experiment_id__recover_patch"];
+    trace?: never;
+  };
+  "/api/v1/experiments/{experiment_id}/evaluation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/{experiment_id}/evaluation/threshold": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Update Threshold
-         * @description Update decision threshold and recalculate metrics.
-         *
-         *     Accepts a new threshold value, validates it, and returns updated metrics
-         *     computed with the new threshold using pre-stored test-set predictions.
-         *     This ensures response latency ≤ 200ms by loading from Parquet rather
-         *     than re-running model inference.
-         *
-         *     Args:
-         *         experiment_id: The UUID of the experiment.
-         *         request: Dict containing "threshold" key with float value (0.10-0.90, step 0.05).
-         *
-         *     Returns:
-         *         dict: Updated metrics (precision, recall, f1) with the new threshold.
-         *
-         *     Raises:
-         *         HTTPException 404: If the experiment is not found.
-         *         HTTPException 400: If threshold is out of valid range, step is invalid,
-         *             or no completed runs exist.
-         */
-        post: operations["update_threshold_api_v1_experiments__experiment_id__evaluation_threshold_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Evaluation
+     * @description Get evaluation results for an experiment.
+     *
+     *     Calls identify_best_run to find the best performing run, then loads
+     *     confusion matrix, subgroup analyses, and metrics from the evaluations
+     *     and subgroup_analyses tables. Returns the full evaluation response
+     *     object as specified in TDD §2.5.
+     *
+     *     Args:
+     *         experiment_id: The UUID of the experiment to evaluate.
+     *
+     *     Returns:
+     *         dict: Full evaluation response containing:
+     *             - best_run_id: UUID of the best run.
+     *             - best_model_type: Type of model for the best run.
+     *             - metrics: Dict of metrics (f1, auc_roc, precision, recall, etc.).
+     *             - confusion_matrix: TN/FP/FN/TP for binary, or N×N matrix for multiclass.
+     *             - threshold: Decision threshold used for classification.
+     *             - subgroup_analyses: List of subgroup performance analyses.
+     *
+     *     Raises:
+     *         HTTPException 404: If the experiment is not found.
+     *         HTTPException 400: If no completed runs exist for the experiment.
+     */
+    get: operations["get_evaluation_api_v1_experiments__experiment_id__evaluation_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/{experiment_id}/evaluation/threshold": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/projects/{project_id}/leaderboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Leaderboard
-         * @description Get the experiment leaderboard for a project.
-         *
-         *     Joins experiments → runs → evaluations to extract per-experiment best run metrics.
-         *     Returns a sorted list with an `is_best` flag on the top experiment by the sort metric.
-         *
-         *     Per SRS NFR-PERF-05: Sorts the experiment leaderboard within 500ms of a column
-         *     header click, regardless of experiment count (up to 1,000 experiments).
-         *
-         *     Args:
-         *         project_id: The project ID.
-         *         sort_by: Column to sort by (f1, auc_roc, precision, recall, training_time).
-         *             Default: f1.
-         *         order: Sort order (asc or desc). Default: desc.
-         *
-         *     Returns:
-         *         list[LeaderboardEntry]: Sorted list of experiment results. The first entry
-         *             (after sorting) has is_best=True, all others have is_best=False.
-         *
-         *     Raises:
-         *         HTTPException 404: If the project is not found.
-         *         HTTPException 400: If sort_by or order parameters are invalid.
-         */
-        get: operations["get_leaderboard_api_v1_projects__project_id__leaderboard_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Update Threshold
+     * @description Update decision threshold and recalculate metrics.
+     *
+     *     Accepts a new threshold value, validates it, and returns updated metrics
+     *     computed with the new threshold using pre-stored test-set predictions.
+     *     This ensures response latency ≤ 200ms by loading from Parquet rather
+     *     than re-running model inference.
+     *
+     *     Args:
+     *         experiment_id: The UUID of the experiment.
+     *         request: Dict containing "threshold" key with float value (0.10-0.90, step 0.05).
+     *
+     *     Returns:
+     *         dict: Updated metrics (precision, recall, f1) with the new threshold.
+     *
+     *     Raises:
+     *         HTTPException 404: If the experiment is not found.
+     *         HTTPException 400: If threshold is out of valid range, step is invalid,
+     *             or no completed runs exist.
+     */
+    post: operations["update_threshold_api_v1_experiments__experiment_id__evaluation_threshold_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/projects/{project_id}/leaderboard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/{experiment_id}/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Export Artifacts
-         * @description Export artifacts from an experiment.
-         *
-         *     Executes requested exports sequentially, generates a manifest,
-         *     inserts records into the exports table, and returns the full
-         *     export result object per TDD §2.7.
-         *
-         *     Args:
-         *         experiment_id: The UUID of the experiment to export from.
-         *         request: ExportRequest containing artifacts list, destination directory,
-         *             and optional formats specification.
-         *
-         *     Returns:
-         *         dict: Export results per TDD §2.7 containing:
-         *             - exports: List of export results with artifact type, path, size, checksum.
-         *             - manifest_path: Path to the generated export_manifest.json.
-         *             - status: "success", "partial_failure", or "failed".
-         *             - message: Human-readable status summary.
-         *             - errors: List of error messages (if any).
-         *
-         *     Raises:
-         *         HTTPException 400: If destination directory is not writable.
-         *         HTTPException 404: If experiment not found.
-         *         HTTPException 500: If export fails unexpectedly.
-         */
-        post: operations["export_artifacts_api_v1_experiments__experiment_id__export_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Leaderboard
+     * @description Get the experiment leaderboard for a project.
+     *
+     *     Joins experiments → runs → evaluations to extract per-experiment best run metrics.
+     *     Returns a sorted list with an `is_best` flag on the top experiment by the sort metric.
+     *
+     *     Per SRS NFR-PERF-05: Sorts the experiment leaderboard within 500ms of a column
+     *     header click, regardless of experiment count (up to 1,000 experiments).
+     *
+     *     Args:
+     *         project_id: The project ID.
+     *         sort_by: Column to sort by (f1, auc_roc, precision, recall, training_time).
+     *             Default: f1.
+     *         order: Sort order (asc or desc). Default: desc.
+     *
+     *     Returns:
+     *         list[LeaderboardEntry]: Sorted list of experiment results. The first entry
+     *             (after sorting) has is_best=True, all others have is_best=False.
+     *
+     *     Raises:
+     *         HTTPException 404: If the project is not found.
+     *         HTTPException 400: If sort_by or order parameters are invalid.
+     */
+    get: operations["get_leaderboard_api_v1_projects__project_id__leaderboard_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/{experiment_id}/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/experiments/{experiment_id}/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream Experiment Updates
-         * @description Stream real-time experiment updates via Server-Sent Events.
-         *
-         *     Opens a persistent SSE connection that streams status updates for the
-         *     specified experiment using an event-driven pub/sub mechanism. Each
-         *     subscriber gets their own asyncio.Queue; events are published by the
-         *     training orchestrator and consumed by this handler.
-         *
-         *     The stream automatically closes when the experiment reaches a terminal
-         *     state (done, cancelled, or interrupted).
-         *
-         *     Per Task 119: Uses event bus with asyncio.Queue per experiment.
-         *     Per TDD §4.3: Training orchestrator publishes events to the queue;
-         *     SSE handler consumes and emits them.
-         *     Per SRS FR-TRAIN-03 through FR-TRAIN-05: Real-time progress and metrics.
-         *
-         *     Args:
-         *         experiment_id: The UUID of the experiment to stream updates for.
-         *         session: Database session for initial experiment validation.
-         *
-         *     Returns:
-         *         StreamingResponse: SSE stream with media_type="text/event-stream".
-         *             Each line is an SSE event with data field containing JSON payload
-         *             in the format: { "type": "status_update", "payload": <status_object> }
-         *
-         *     Raises:
-         *         HTTPException 404: If the experiment does not exist.
-         *
-         *     Example:
-         *         Event format:
-         *         ```
-         *         data: {"type": "status_update", "payload": {"status": "running", ...}}
-         *
-         *         ```
-         *
-         *     Note:
-         *         When the client disconnects, the queue is automatically unsubscribed
-         *         and cleaned up by the consume() generator.
-         */
-        get: operations["stream_experiment_updates_api_v1_experiments__experiment_id__stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Export Artifacts
+     * @description Export artifacts from an experiment.
+     *
+     *     Executes requested exports sequentially, generates a manifest,
+     *     inserts records into the exports table, and returns the full
+     *     export result object per TDD §2.7.
+     *
+     *     Args:
+     *         experiment_id: The UUID of the experiment to export from.
+     *         request: ExportRequest containing artifacts list, destination directory,
+     *             and optional formats specification.
+     *
+     *     Returns:
+     *         dict: Export results per TDD §2.7 containing:
+     *             - exports: List of export results with artifact type, path, size, checksum.
+     *             - manifest_path: Path to the generated export_manifest.json.
+     *             - status: "success", "partial_failure", or "failed".
+     *             - message: Human-readable status summary.
+     *             - errors: List of error messages (if any).
+     *
+     *     Raises:
+     *         HTTPException 400: If destination directory is not writable.
+     *         HTTPException 404: If experiment not found.
+     *         HTTPException 500: If export fails unexpectedly.
+     */
+    post: operations["export_artifacts_api_v1_experiments__experiment_id__export_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/{experiment_id}/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/dashboard/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Dashboard Statistics
-         * @description Get aggregate dashboard statistics across all projects.
-         *
-         *     Returns total counts for experiments, exports, and dataset snapshots
-         *     aggregated across all projects in the system.
-         *
-         *     Returns:
-         *         dict: Dashboard statistics with keys:
-         *             - total_experiments: Total number of experiments across all projects.
-         *             - total_exports: Total number of exports (all artifact types).
-         *             - total_snapshots: Total number of dataset snapshots.
-         *
-         *     Raises:
-         *         HTTPException: 500 for unexpected errors.
-         */
-        get: operations["get_dashboard_statistics_api_v1_dashboard_stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Stream Experiment Updates
+     * @description Stream real-time experiment updates via Server-Sent Events.
+     *
+     *     Opens a persistent SSE connection that streams status updates for the
+     *     specified experiment using an event-driven pub/sub mechanism. Each
+     *     subscriber gets their own asyncio.Queue; events are published by the
+     *     training orchestrator and consumed by this handler.
+     *
+     *     The stream automatically closes when the experiment reaches a terminal
+     *     state (done, cancelled, or interrupted).
+     *
+     *     Per Task 119: Uses event bus with asyncio.Queue per experiment.
+     *     Per TDD §4.3: Training orchestrator publishes events to the queue;
+     *     SSE handler consumes and emits them.
+     *     Per SRS FR-TRAIN-03 through FR-TRAIN-05: Real-time progress and metrics.
+     *
+     *     Args:
+     *         experiment_id: The UUID of the experiment to stream updates for.
+     *         session: Database session for initial experiment validation.
+     *
+     *     Returns:
+     *         StreamingResponse: SSE stream with media_type="text/event-stream".
+     *             Each line is an SSE event with data field containing JSON payload
+     *             in the format: { "type": "status_update", "payload": <status_object> }
+     *
+     *     Raises:
+     *         HTTPException 404: If the experiment does not exist.
+     *
+     *     Example:
+     *         Event format:
+     *         ```
+     *         data: {"type": "status_update", "payload": {"status": "running", ...}}
+     *
+     *         ```
+     *
+     *     Note:
+     *         When the client disconnects, the queue is automatically unsubscribed
+     *         and cleaned up by the consume() generator.
+     */
+    get: operations["stream_experiment_updates_api_v1_experiments__experiment_id__stream_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/dashboard/stats": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/system/info": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get System Info
-         * @description Get host machine system information.
-         *
-         *     Returns system details including hostname, total RAM (in GB), CPU model,
-         *     and application version. Uses platform, psutil, and os standard library
-         *     modules as specified in SRS requirements.
-         *
-         *     Returns:
-         *         dict: System information with keys:
-         *             - hostname (str): OS-reported host machine name.
-         *             - ram_total_gb (float): Total system RAM in gigabytes.
-         *             - cpu_model (str): CPU model identifier string.
-         *             - app_version (str): OpenNeural application version.
-         *
-         *     Raises:
-         *         No exceptions are expected as all calls are safe.
-         */
-        get: operations["get_system_info_api_v1_system_info_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Dashboard Statistics
+     * @description Get aggregate dashboard statistics across all projects.
+     *
+     *     Returns total counts for experiments, exports, and dataset snapshots
+     *     aggregated across all projects in the system.
+     *
+     *     Returns:
+     *         dict: Dashboard statistics with keys:
+     *             - total_experiments: Total number of experiments across all projects.
+     *             - total_exports: Total number of exports (all artifact types).
+     *             - total_snapshots: Total number of dataset snapshots.
+     *
+     *     Raises:
+     *         HTTPException: 500 for unexpected errors.
+     */
+    get: operations["get_dashboard_statistics_api_v1_dashboard_stats_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/system/info": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/system/clear-data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Clear All Data
-         * @description Clear all application data (destructive operation).
-         *
-         *     Removes all projects, snapshots, pipelines, experiments, runs, evaluations,
-         *     subgroup analyses, and exports. Preserves the auth record (password).
-         *
-         *     This is a destructive operation that requires explicit user confirmation
-         *     via the frontend ConfirmDialog per SRS §21 (Destructive Operation Protocol).
-         *
-         *     Returns:
-         *         ClearDataResponse: Success status and message about what was cleared.
-         *
-         *     Raises:
-         *         HTTPException: 500 if the operation fails.
-         */
-        delete: operations["clear_all_data_api_v1_system_clear_data_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get System Info
+     * @description Get host machine system information.
+     *
+     *     Returns system details including hostname, total RAM (in GB), CPU model,
+     *     and application version. Uses platform, psutil, and os standard library
+     *     modules as specified in SRS requirements.
+     *
+     *     Returns:
+     *         dict: System information with keys:
+     *             - hostname (str): OS-reported host machine name.
+     *             - ram_total_gb (float): Total system RAM in gigabytes.
+     *             - cpu_model (str): CPU model identifier string.
+     *             - app_version (str): OpenNeural application version.
+     *
+     *     Raises:
+     *         No exceptions are expected as all calls are safe.
+     */
+    get: operations["get_system_info_api_v1_system_info_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/system/clear-data": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health Check
-         * @description Report backend process health.
-         *
-         *     Returns:
-         *         dict[str, str]: Static status payload for local process checks.
-         *
-         *     Raises:
-         *         No application-level exceptions are expected.
-         */
-        get: operations["health_check_api_v1_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Clear All Data
+     * @description Clear all application data (destructive operation).
+     *
+     *     Removes all projects, snapshots, pipelines, experiments, runs, evaluations,
+     *     subgroup analyses, and exports. Preserves the auth record (password).
+     *
+     *     This is a destructive operation that requires explicit user confirmation
+     *     via the frontend ConfirmDialog per SRS §21 (Destructive Operation Protocol).
+     *
+     *     Returns:
+     *         ClearDataResponse: Success status and message about what was cleared.
+     *
+     *     Raises:
+     *         HTTPException: 500 if the operation fails.
+     */
+    delete: operations["clear_all_data_api_v1_system_clear_data_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /**
+     * Health Check
+     * @description Report backend process health.
+     *
+     *     Returns:
+     *         dict[str, str]: Static status payload for local process checks.
+     *
+     *     Raises:
+     *         No application-level exceptions are expected.
+     */
+    get: operations["health_check_api_v1_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * AuthSetupRequest
-         * @description Request body for initial password setup.
-         *
-         *     Attributes:
-         *         password: The plain-text password to set. Must be at least 8 characters.
-         * @example {
-         *       "password": "my_secure_password_123"
-         *     }
-         */
-        AuthSetupRequest: {
-            /**
-             * Password
-             * @description The password to set for the application
-             */
-            password: string;
-        };
-        /**
-         * AuthSetupResponse
-         * @description Response body for successful password setup.
-         *
-         *     Attributes:
-         *         configured: Whether authentication has been configured.
-         *         message: Human-readable success message.
-         */
-        AuthSetupResponse: {
-            /** Configured */
-            configured: boolean;
-            /** Message */
-            message: string;
-        };
-        /**
-         * AuthStatusResponse
-         * @description Response body for auth configuration status.
-         *
-         *     Attributes:
-         *         configured: Whether authentication has been configured.
-         */
-        AuthStatusResponse: {
-            /** Configured */
-            configured: boolean;
-        };
-        /**
-         * AuthVerifyRequest
-         * @description Request body for password verification.
-         *
-         *     Attributes:
-         *         password: The plain-text password to verify.
-         * @example {
-         *       "password": "my_password"
-         *     }
-         */
-        AuthVerifyRequest: {
-            /**
-             * Password
-             * @description The password to verify
-             */
-            password: string;
-        };
-        /**
-         * AuthVerifyResponse
-         * @description Response body for password verification.
-         *
-         *     Attributes:
-         *         valid: Whether the password is valid.
-         */
-        AuthVerifyResponse: {
-            /** Valid */
-            valid: boolean;
-        };
-        /**
-         * AutoMLConfig
-         * @description AutoML configuration for experiment.
-         */
-        AutoMLConfig: {
-            /**
-             * Max Trials
-             * @description Maximum number of AutoML trials
-             * @default 25
-             */
-            max_trials: number;
-            /**
-             * Cv Folds
-             * @description Number of cross-validation folds
-             * @default 5
-             */
-            cv_folds: number;
-            /**
-             * Time Budget Minutes
-             * @description Time budget in minutes
-             * @default 8
-             */
-            time_budget_minutes: number;
-        };
-        /** Body_create_snapshot_api_v1_projects__project_id__snapshots_post */
-        Body_create_snapshot_api_v1_projects__project_id__snapshots_post: {
-            /**
-             * File
-             * @description Dataset file (CSV or Parquet, max 2GB)
-             */
-            file: string;
-        };
-        /**
-         * ClearDataResponse
-         * @description Response for clearing all application data.
-         *
-         *     Attributes:
-         *         success: Whether the operation was successful.
-         *         message: Human-readable description of what was cleared.
-         */
-        ClearDataResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-        };
-        /**
-         * CreateProjectRequest
-         * @description Request body for creating a new project.
-         *
-         *     Attributes:
-         *         name: The project name. Must be non-empty.
-         *         task_type: The ML task type, either "classification" or "regression".
-         * @example {
-         *       "name": "Customer Churn Analysis",
-         *       "task_type": "classification"
-         *     }
-         */
-        CreateProjectRequest: {
-            /** Name */
-            name: string;
-            /**
-             * Task Type
-             * @enum {string}
-             */
-            task_type: "classification" | "regression";
-        };
-        /**
-         * ExperimentCancelResponse
-         * @description Response model for experiment cancellation.
-         */
-        ExperimentCancelResponse: {
-            /** Id */
-            id: string;
-            /** Status */
-            status: string;
-            /** Completed At */
-            completed_at: string;
-            /** Runs Failed */
-            runs_failed: number;
-        };
-        /**
-         * ExperimentCreateRequest
-         * @description Request model for creating a new experiment.
-         */
-        ExperimentCreateRequest: {
-            /**
-             * Pipeline Id
-             * @description ID of the pipeline to use
-             */
-            pipeline_id: string;
-            /**
-             * Automl Enabled
-             * @description Whether AutoML is enabled
-             * @default true
-             */
-            automl_enabled: boolean;
-            /**
-             * Optimize Metric
-             * @description Metric to optimize
-             * @default f1
-             */
-            optimize_metric: string;
-            /** @description AutoML configuration */
-            automl_config?: components["schemas"]["AutoMLConfig"];
-            /**
-             * Candidate Models
-             * @description List of candidate model types
-             */
-            candidate_models: string[];
-        };
-        /**
-         * ExperimentCreateResponse
-         * @description Response model for experiment creation.
-         */
-        ExperimentCreateResponse: {
-            /** Id */
-            id: string;
-            /** Experiment Id Human */
-            experiment_id_human: string;
-            /** Status */
-            status: string;
-            /** Created At */
-            created_at: string;
-        };
-        /**
-         * ExperimentEstimateResponse
-         * @description Response model for training time estimation.
-         */
-        ExperimentEstimateResponse: {
-            /** Estimated Seconds */
-            estimated_seconds: number;
-            /** Estimated Minutes */
-            estimated_minutes: number;
-            /** Estimated Time Str */
-            estimated_time_str: string;
-            /** Row Count */
-            row_count: number;
-            /** Feature Count */
-            feature_count: number;
-            /** Candidate Count */
-            candidate_count: number;
-            /** Automl Config */
-            automl_config: {
-                [key: string]: unknown;
-            };
-        };
-        /**
-         * ExperimentRecoverRequest
-         * @description Request model for experiment recovery action.
-         */
-        ExperimentRecoverRequest: {
-            /**
-             * Action
-             * @description Recovery action: 'restart' or 'discard'
-             */
-            action: string;
-        };
-        /**
-         * ExperimentRecoverResponse
-         * @description Response model for experiment recovery.
-         */
-        ExperimentRecoverResponse: {
-            /** Id */
-            id: string;
-            /** Experiment Id Human */
-            experiment_id_human: string;
-            /** Status */
-            status: string;
-            /** Action */
-            action: string;
-            /** Message */
-            message: string;
-        };
-        /**
-         * ExperimentStartResponse
-         * @description Response model for experiment start.
-         */
-        ExperimentStartResponse: {
-            /** Status */
-            status: string;
-            /** Started At */
-            started_at: string;
-        };
-        /**
-         * ExperimentStatusResponse
-         * @description Response model for experiment status.
-         *
-         *     Returns real-time experiment status including progress percentage,
-         *     CPU and RAM usage, and per-run status with metrics.
-         */
-        ExperimentStatusResponse: {
-            /**
-             * Status
-             * @description Experiment status (created, running, done, cancelled, interrupted)
-             */
-            status: string;
-            /**
-             * Progress Pct
-             * @description Progress percentage (0-100)
-             */
-            progress_pct: number;
-            /**
-             * Cpu Pct
-             * @description Current CPU usage percentage
-             */
-            cpu_pct: number;
-            /**
-             * Ram Used Gb
-             * @description Used RAM in GB
-             */
-            ram_used_gb: number;
-            /**
-             * Ram Total Gb
-             * @description Total RAM in GB
-             */
-            ram_total_gb: number;
-            /**
-             * Runs
-             * @description List of run statuses with model_type, status, and metrics
-             */
-            runs: {
-                [key: string]: unknown;
-            }[];
-        };
-        /**
-         * ExportRequest
-         * @description Request body for exporting artifacts from an experiment.
-         *
-         *     Per TDD §2.7: Accepts artifacts list, destination directory,
-         *     and optional formats specification.
-         *
-         *     Attributes:
-         *         artifacts: List of artifact types to export.
-         *             Options: "model", "pipeline", "report", "predictions".
-         *         destination_dir: Directory path where artifacts will be written.
-         *             Must be writable by the application.
-         *         formats: Optional formats specification for model exports.
-         *             For example: {"model": ["onnx", "joblib"]}
-         * @example {
-         *       "artifacts": [
-         *         "model",
-         *         "pipeline",
-         *         "report",
-         *         "predictions"
-         *       ],
-         *       "destination_dir": "/Users/tp/Desktop/openneural_exports/",
-         *       "formats": {
-         *         "model": [
-         *           "onnx",
-         *           "joblib"
-         *         ]
-         *       }
-         *     }
-         */
-        ExportRequest: {
-            /** Artifacts */
-            artifacts: ("model" | "pipeline" | "report" | "predictions")[];
-            /** Destination Dir */
-            destination_dir: string;
-            /** Formats */
-            formats?: {
-                [key: string]: string[];
-            } | null;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * InterruptedExperimentSummary
-         * @description Summary of an interrupted experiment for crash recovery.
-         */
-        InterruptedExperimentSummary: {
-            /** Id */
-            id: string;
-            /** Experiment Id Human */
-            experiment_id_human: string;
-            /** Project Id */
-            project_id: string;
-            /** Project Name */
-            project_name: string;
-            /** Status */
-            status: string;
-            /** Created At */
-            created_at: string;
-            /** Started At */
-            started_at?: string | null;
-        };
-        /**
-         * InterruptedExperimentsResponse
-         * @description Response model for interrupted experiments endpoint.
-         */
-        InterruptedExperimentsResponse: {
-            /** Experiments */
-            experiments: components["schemas"]["InterruptedExperimentSummary"][];
-            /** Count */
-            count: number;
-        };
-        /**
-         * LeaderboardEntry
-         * @description Single experiment entry in the leaderboard.
-         *
-         *     Attributes:
-         *         experiment_id: UUID of the experiment.
-         *         experiment_id_human: Human-readable experiment ID (e.g., "exp_cxp8_1015").
-         *         best_model_type: Type of the best model for this experiment.
-         *         metrics: Dict of metrics (f1, auc_roc, precision, recall, training_time).
-         *         training_time_seconds: Training duration in seconds.
-         *         is_best: Flag indicating if this is the globally best experiment.
-         *         created_at: ISO8601 timestamp when experiment was created.
-         * @example {
-         *       "best_model_type": "xgboost",
-         *       "created_at": "2024-10-15T14:30:00",
-         *       "experiment_id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "experiment_id_human": "exp_cxp8_1015",
-         *       "is_best": true,
-         *       "metrics": {
-         *         "auc_roc": 0.921,
-         *         "f1": 0.847,
-         *         "precision": 0.831,
-         *         "recall": 0.864
-         *       },
-         *       "training_time_seconds": 222
-         *     }
-         */
-        LeaderboardEntry: {
-            /** Experiment Id */
-            experiment_id: string;
-            /** Experiment Id Human */
-            experiment_id_human: string;
-            /** Best Model Type */
-            best_model_type: string;
-            /** Metrics */
-            metrics: {
-                [key: string]: unknown;
-            };
-            /** Training Time Seconds */
-            training_time_seconds: number;
-            /** Is Best */
-            is_best: boolean;
-            /** Created At */
-            created_at: string;
-        };
-        /**
-         * PipelineBlockConfig
-         * @description Configuration for a single pipeline block.
-         */
-        PipelineBlockConfig: {
-            /**
-             * Type
-             * @description Block type identifier
-             */
-            type: string;
-            /**
-             * Params
-             * @description Block parameters
-             */
-            params?: {
-                [key: string]: unknown;
-            };
-        };
-        /**
-         * PipelineConfig
-         * @description Pipeline configuration containing ordered blocks.
-         */
-        PipelineConfig: {
-            /**
-             * Snapshot Id
-             * @description ID of the dataset snapshot to use
-             */
-            snapshot_id: string;
-            /**
-             * Blocks
-             * @description Ordered list of pipeline blocks
-             */
-            blocks: components["schemas"]["PipelineBlockConfig"][];
-        };
-        /**
-         * PipelineCreateRequest
-         * @description Request model for creating a new pipeline.
-         */
-        PipelineCreateRequest: {
-            /**
-             * Snapshot Id
-             * @description ID of the dataset snapshot to use
-             */
-            snapshot_id: string;
-            /** @description Pipeline configuration */
-            config: components["schemas"]["PipelineConfig"];
-            /**
-             * Name
-             * @description Optional pipeline name
-             */
-            name?: string | null;
-        };
-        /**
-         * PipelineResponse
-         * @description Response model for pipeline operations.
-         */
-        PipelineResponse: {
-            /** Id */
-            id: string;
-            /** Project Id */
-            project_id: string;
-            /** Snapshot Id */
-            snapshot_id: string;
-            /** Name */
-            name: string | null;
-            /** Config Json */
-            config_json: {
-                [key: string]: unknown;
-            };
-            /** Validated */
-            validated: boolean;
-            /** Created At */
-            created_at: string;
-        };
-        /**
-         * RenameProjectRequest
-         * @description Request body for renaming a project.
-         *
-         *     Attributes:
-         *         name: The new project name. Must be non-empty.
-         * @example {
-         *       "name": "Updated Project Name"
-         *     }
-         */
-        RenameProjectRequest: {
-            /** Name */
-            name: string;
-        };
-        /**
-         * SnapshotListResponse
-         * @description Response model for a snapshot in list view.
-         *
-         *     Attributes:
-         *         id: UUID of the snapshot.
-         *         version_label: Human-readable version label.
-         *         file_name: Original file name.
-         *         row_count: Number of rows in the dataset.
-         *         created_at: ISO-formatted timestamp.
-         */
-        SnapshotListResponse: {
-            /** Id */
-            id: string;
-            /** Version Label */
-            version_label: string;
-            /** File Name */
-            file_name: string;
-            /** Row Count */
-            row_count: number;
-            /** Created At */
-            created_at: string;
-        };
-        /**
-         * SnapshotResponse
-         * @description Response model for a dataset snapshot.
-         *
-         *     Attributes:
-         *         id: UUID of the snapshot.
-         *         version_label: Human-readable version label (e.g., "Snapshot v1").
-         *         file_name: Original file name.
-         *         file_size_bytes: File size in bytes.
-         *         row_count: Number of rows in the dataset.
-         *         col_count: Number of columns in the dataset.
-         *         schema: List of column schema dictionaries.
-         *         checksum_sha256: SHA-256 checksum for integrity verification.
-         *         created_at: ISO-formatted timestamp.
-         *         warning: Optional warning message (e.g., for large files).
-         */
-        SnapshotResponse: {
-            /** Id */
-            id: string;
-            /** Version Label */
-            version_label: string;
-            /** File Name */
-            file_name: string;
-            /** File Size Bytes */
-            file_size_bytes: number;
-            /** Row Count */
-            row_count: number;
-            /** Col Count */
-            col_count: number;
-            /** Schema */
-            schema: {
-                [key: string]: unknown;
-            }[];
-            /** Checksum Sha256 */
-            checksum_sha256: string;
-            /** Created At */
-            created_at: string;
-            /** Warning */
-            warning?: string | null;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-        /**
-         * ValidationResult
-         * @description Pipeline validation result.
-         */
-        ValidationResult: {
-            /** Valid */
-            valid: boolean;
-            /** Warnings */
-            warnings: string[];
-            /** Errors */
-            errors: string[];
-        };
+  schemas: {
+    /**
+     * AuthSetupRequest
+     * @description Request body for initial password setup.
+     *
+     *     Attributes:
+     *         password: The plain-text password to set. Must be at least 8 characters.
+     * @example {
+     *       "password": "my_secure_password_123"
+     *     }
+     */
+    AuthSetupRequest: {
+      /**
+       * Password
+       * @description The password to set for the application
+       */
+      password: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /**
+     * AuthSetupResponse
+     * @description Response body for successful password setup.
+     *
+     *     Attributes:
+     *         configured: Whether authentication has been configured.
+     *         message: Human-readable success message.
+     */
+    AuthSetupResponse: {
+      /** Configured */
+      configured: boolean;
+      /** Message */
+      message: string;
+    };
+    /**
+     * AuthStatusResponse
+     * @description Response body for auth configuration status.
+     *
+     *     Attributes:
+     *         configured: Whether authentication has been configured.
+     */
+    AuthStatusResponse: {
+      /** Configured */
+      configured: boolean;
+    };
+    /**
+     * AuthVerifyRequest
+     * @description Request body for password verification.
+     *
+     *     Attributes:
+     *         password: The plain-text password to verify.
+     * @example {
+     *       "password": "my_password"
+     *     }
+     */
+    AuthVerifyRequest: {
+      /**
+       * Password
+       * @description The password to verify
+       */
+      password: string;
+    };
+    /**
+     * AuthVerifyResponse
+     * @description Response body for password verification.
+     *
+     *     Attributes:
+     *         valid: Whether the password is valid.
+     */
+    AuthVerifyResponse: {
+      /** Valid */
+      valid: boolean;
+    };
+    /**
+     * AutoMLConfig
+     * @description AutoML configuration for experiment.
+     */
+    AutoMLConfig: {
+      /**
+       * Max Trials
+       * @description Maximum number of AutoML trials
+       * @default 25
+       */
+      max_trials: number;
+      /**
+       * Cv Folds
+       * @description Number of cross-validation folds
+       * @default 5
+       */
+      cv_folds: number;
+      /**
+       * Time Budget Minutes
+       * @description Time budget in minutes
+       * @default 8
+       */
+      time_budget_minutes: number;
+    };
+    /** Body_create_snapshot_api_v1_projects__project_id__snapshots_post */
+    Body_create_snapshot_api_v1_projects__project_id__snapshots_post: {
+      /**
+       * File
+       * @description Dataset file (CSV or Parquet, max 2GB)
+       */
+      file: string;
+    };
+    /**
+     * ClearDataResponse
+     * @description Response for clearing all application data.
+     *
+     *     Attributes:
+     *         success: Whether the operation was successful.
+     *         message: Human-readable description of what was cleared.
+     */
+    ClearDataResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+    };
+    /**
+     * CreateProjectRequest
+     * @description Request body for creating a new project.
+     *
+     *     Attributes:
+     *         name: The project name. Must be non-empty.
+     *         task_type: The ML task type, either "classification" or "regression".
+     * @example {
+     *       "name": "Customer Churn Analysis",
+     *       "task_type": "classification"
+     *     }
+     */
+    CreateProjectRequest: {
+      /** Name */
+      name: string;
+      /**
+       * Task Type
+       * @enum {string}
+       */
+      task_type: "classification" | "regression";
+    };
+    /**
+     * ExperimentCancelResponse
+     * @description Response model for experiment cancellation.
+     */
+    ExperimentCancelResponse: {
+      /** Id */
+      id: string;
+      /** Status */
+      status: string;
+      /** Completed At */
+      completed_at: string;
+      /** Runs Failed */
+      runs_failed: number;
+    };
+    /**
+     * ExperimentCreateRequest
+     * @description Request model for creating a new experiment.
+     */
+    ExperimentCreateRequest: {
+      /**
+       * Pipeline Id
+       * @description ID of the pipeline to use
+       */
+      pipeline_id: string;
+      /**
+       * Automl Enabled
+       * @description Whether AutoML is enabled
+       * @default true
+       */
+      automl_enabled: boolean;
+      /**
+       * Optimize Metric
+       * @description Metric to optimize
+       * @default f1
+       */
+      optimize_metric: string;
+      /** @description AutoML configuration */
+      automl_config?: components["schemas"]["AutoMLConfig"];
+      /**
+       * Candidate Models
+       * @description List of candidate model types
+       */
+      candidate_models: string[];
+    };
+    /**
+     * ExperimentCreateResponse
+     * @description Response model for experiment creation.
+     */
+    ExperimentCreateResponse: {
+      /** Id */
+      id: string;
+      /** Experiment Id Human */
+      experiment_id_human: string;
+      /** Status */
+      status: string;
+      /** Created At */
+      created_at: string;
+    };
+    /**
+     * ExperimentEstimateResponse
+     * @description Response model for training time estimation.
+     */
+    ExperimentEstimateResponse: {
+      /** Estimated Seconds */
+      estimated_seconds: number;
+      /** Estimated Minutes */
+      estimated_minutes: number;
+      /** Estimated Time Str */
+      estimated_time_str: string;
+      /** Row Count */
+      row_count: number;
+      /** Feature Count */
+      feature_count: number;
+      /** Candidate Count */
+      candidate_count: number;
+      /** Automl Config */
+      automl_config: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * ExperimentRecoverRequest
+     * @description Request model for experiment recovery action.
+     */
+    ExperimentRecoverRequest: {
+      /**
+       * Action
+       * @description Recovery action: 'restart' or 'discard'
+       */
+      action: string;
+    };
+    /**
+     * ExperimentRecoverResponse
+     * @description Response model for experiment recovery.
+     */
+    ExperimentRecoverResponse: {
+      /** Id */
+      id: string;
+      /** Experiment Id Human */
+      experiment_id_human: string;
+      /** Status */
+      status: string;
+      /** Action */
+      action: string;
+      /** Message */
+      message: string;
+    };
+    /**
+     * ExperimentStartResponse
+     * @description Response model for experiment start.
+     */
+    ExperimentStartResponse: {
+      /** Status */
+      status: string;
+      /** Started At */
+      started_at: string;
+    };
+    /**
+     * ExperimentStatusResponse
+     * @description Response model for experiment status.
+     *
+     *     Returns real-time experiment status including progress percentage,
+     *     CPU and RAM usage, and per-run status with metrics.
+     */
+    ExperimentStatusResponse: {
+      /**
+       * Status
+       * @description Experiment status (created, running, done, cancelled, interrupted)
+       */
+      status: string;
+      /**
+       * Progress Pct
+       * @description Progress percentage (0-100)
+       */
+      progress_pct: number;
+      /**
+       * Cpu Pct
+       * @description Current CPU usage percentage
+       */
+      cpu_pct: number;
+      /**
+       * Ram Used Gb
+       * @description Used RAM in GB
+       */
+      ram_used_gb: number;
+      /**
+       * Ram Total Gb
+       * @description Total RAM in GB
+       */
+      ram_total_gb: number;
+      /**
+       * Runs
+       * @description List of run statuses with model_type, status, and metrics
+       */
+      runs: {
+        [key: string]: unknown;
+      }[];
+    };
+    /**
+     * ExportRequest
+     * @description Request body for exporting artifacts from an experiment.
+     *
+     *     Per TDD §2.7: Accepts artifacts list, destination directory,
+     *     and optional formats specification.
+     *
+     *     Attributes:
+     *         artifacts: List of artifact types to export.
+     *             Options: "model", "pipeline", "report", "predictions".
+     *         destination_dir: Directory path where artifacts will be written.
+     *             Must be writable by the application.
+     *         formats: Optional formats specification for model exports.
+     *             For example: {"model": ["onnx", "joblib"]}
+     * @example {
+     *       "artifacts": [
+     *         "model",
+     *         "pipeline",
+     *         "report",
+     *         "predictions"
+     *       ],
+     *       "destination_dir": "/Users/tp/Desktop/openneural_exports/",
+     *       "formats": {
+     *         "model": [
+     *           "onnx",
+     *           "joblib"
+     *         ]
+     *       }
+     *     }
+     */
+    ExportRequest: {
+      /** Artifacts */
+      artifacts: ("model" | "pipeline" | "report" | "predictions")[];
+      /** Destination Dir */
+      destination_dir: string;
+      /** Formats */
+      formats?: {
+        [key: string]: string[];
+      } | null;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * InterruptedExperimentSummary
+     * @description Summary of an interrupted experiment for crash recovery.
+     */
+    InterruptedExperimentSummary: {
+      /** Id */
+      id: string;
+      /** Experiment Id Human */
+      experiment_id_human: string;
+      /** Project Id */
+      project_id: string;
+      /** Project Name */
+      project_name: string;
+      /** Status */
+      status: string;
+      /** Created At */
+      created_at: string;
+      /** Started At */
+      started_at?: string | null;
+    };
+    /**
+     * InterruptedExperimentsResponse
+     * @description Response model for interrupted experiments endpoint.
+     */
+    InterruptedExperimentsResponse: {
+      /** Experiments */
+      experiments: components["schemas"]["InterruptedExperimentSummary"][];
+      /** Count */
+      count: number;
+    };
+    /**
+     * LeaderboardEntry
+     * @description Single experiment entry in the leaderboard.
+     *
+     *     Attributes:
+     *         experiment_id: UUID of the experiment.
+     *         experiment_id_human: Human-readable experiment ID (e.g., "exp_cxp8_1015").
+     *         best_model_type: Type of the best model for this experiment.
+     *         metrics: Dict of metrics (f1, auc_roc, precision, recall, training_time).
+     *         training_time_seconds: Training duration in seconds.
+     *         is_best: Flag indicating if this is the globally best experiment.
+     *         created_at: ISO8601 timestamp when experiment was created.
+     * @example {
+     *       "best_model_type": "xgboost",
+     *       "created_at": "2024-10-15T14:30:00",
+     *       "experiment_id": "550e8400-e29b-41d4-a716-446655440000",
+     *       "experiment_id_human": "exp_cxp8_1015",
+     *       "is_best": true,
+     *       "metrics": {
+     *         "auc_roc": 0.921,
+     *         "f1": 0.847,
+     *         "precision": 0.831,
+     *         "recall": 0.864
+     *       },
+     *       "training_time_seconds": 222
+     *     }
+     */
+    LeaderboardEntry: {
+      /** Experiment Id */
+      experiment_id: string;
+      /** Experiment Id Human */
+      experiment_id_human: string;
+      /** Best Model Type */
+      best_model_type: string;
+      /** Metrics */
+      metrics: {
+        [key: string]: unknown;
+      };
+      /** Training Time Seconds */
+      training_time_seconds: number;
+      /** Is Best */
+      is_best: boolean;
+      /** Created At */
+      created_at: string;
+    };
+    /**
+     * PipelineBlockConfig
+     * @description Configuration for a single pipeline block.
+     */
+    PipelineBlockConfig: {
+      /**
+       * Type
+       * @description Block type identifier
+       */
+      type: string;
+      /**
+       * Params
+       * @description Block parameters
+       */
+      params?: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * PipelineConfig
+     * @description Pipeline configuration containing ordered blocks.
+     */
+    PipelineConfig: {
+      /**
+       * Snapshot Id
+       * @description ID of the dataset snapshot to use
+       */
+      snapshot_id: string;
+      /**
+       * Blocks
+       * @description Ordered list of pipeline blocks
+       */
+      blocks: components["schemas"]["PipelineBlockConfig"][];
+    };
+    /**
+     * PipelineCreateRequest
+     * @description Request model for creating a new pipeline.
+     */
+    PipelineCreateRequest: {
+      /**
+       * Snapshot Id
+       * @description ID of the dataset snapshot to use
+       */
+      snapshot_id: string;
+      /** @description Pipeline configuration */
+      config: components["schemas"]["PipelineConfig"];
+      /**
+       * Name
+       * @description Optional pipeline name
+       */
+      name?: string | null;
+    };
+    /**
+     * PipelineResponse
+     * @description Response model for pipeline operations.
+     */
+    PipelineResponse: {
+      /** Id */
+      id: string;
+      /** Project Id */
+      project_id: string;
+      /** Snapshot Id */
+      snapshot_id: string;
+      /** Name */
+      name: string | null;
+      /** Config Json */
+      config_json: {
+        [key: string]: unknown;
+      };
+      /** Validated */
+      validated: boolean;
+      /** Created At */
+      created_at: string;
+    };
+    /**
+     * RenameProjectRequest
+     * @description Request body for renaming a project.
+     *
+     *     Attributes:
+     *         name: The new project name. Must be non-empty.
+     * @example {
+     *       "name": "Updated Project Name"
+     *     }
+     */
+    RenameProjectRequest: {
+      /** Name */
+      name: string;
+    };
+    /**
+     * SnapshotListResponse
+     * @description Response model for a snapshot in list view.
+     *
+     *     Attributes:
+     *         id: UUID of the snapshot.
+     *         version_label: Human-readable version label.
+     *         file_name: Original file name.
+     *         row_count: Number of rows in the dataset.
+     *         created_at: ISO-formatted timestamp.
+     */
+    SnapshotListResponse: {
+      /** Id */
+      id: string;
+      /** Version Label */
+      version_label: string;
+      /** File Name */
+      file_name: string;
+      /** Row Count */
+      row_count: number;
+      /** Created At */
+      created_at: string;
+    };
+    /**
+     * SnapshotResponse
+     * @description Response model for a dataset snapshot.
+     *
+     *     Attributes:
+     *         id: UUID of the snapshot.
+     *         version_label: Human-readable version label (e.g., "Snapshot v1").
+     *         file_name: Original file name.
+     *         file_size_bytes: File size in bytes.
+     *         row_count: Number of rows in the dataset.
+     *         col_count: Number of columns in the dataset.
+     *         schema: List of column schema dictionaries.
+     *         checksum_sha256: SHA-256 checksum for integrity verification.
+     *         created_at: ISO-formatted timestamp.
+     *         warning: Optional warning message (e.g., for large files).
+     */
+    SnapshotResponse: {
+      /** Id */
+      id: string;
+      /** Version Label */
+      version_label: string;
+      /** File Name */
+      file_name: string;
+      /** File Size Bytes */
+      file_size_bytes: number;
+      /** Row Count */
+      row_count: number;
+      /** Col Count */
+      col_count: number;
+      /** Schema */
+      schema: {
+        [key: string]: unknown;
+      }[];
+      /** Checksum Sha256 */
+      checksum_sha256: string;
+      /** Created At */
+      created_at: string;
+      /** Warning */
+      warning?: string | null;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
+    /**
+     * ValidationResult
+     * @description Pipeline validation result.
+     */
+    ValidationResult: {
+      /** Valid */
+      valid: boolean;
+      /** Warnings */
+      warnings: string[];
+      /** Errors */
+      errors: string[];
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    auth_setup_api_v1_auth_setup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthSetupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthSetupResponse"];
-                };
-            };
-            /** @description Invalid password or validation error */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Authentication is already configured */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  auth_setup_api_v1_auth_setup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    auth_status_api_v1_auth_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthStatusResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuthSetupRequest"];
+      };
     };
-    auth_verify_api_v1_auth_verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthVerifyRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["AuthSetupResponse"];
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthVerifyResponse"];
-                };
-            };
-            /** @description Invalid password */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Authentication failed */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+      };
+      /** @description Invalid password or validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
+      /** @description Authentication is already configured */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    list_projects_api_v1_projects_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-        };
+  };
+  auth_status_api_v1_auth_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    create_project_api_v1_projects_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProjectRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["AuthStatusResponse"];
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
     };
-    get_project_api_v1_projects__project_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  auth_verify_api_v1_auth_verify_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    delete_project_api_v1_projects__project_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuthVerifyRequest"];
+      };
     };
-    update_project_api_v1_projects__project_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RenameProjectRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["AuthVerifyResponse"];
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Invalid password */
+      400: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
+      /** @description Authentication failed */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    list_snapshots_api_v1_projects__project_id__snapshots_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotListResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  list_projects_api_v1_projects_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    create_snapshot_api_v1_projects__project_id__snapshots_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_create_snapshot_api_v1_projects__project_id__snapshots_post"];
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          }[];
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+      };
     };
-    get_snapshot_by_id_api_v1_projects__project_id__snapshots__snapshot_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                snapshot_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  create_project_api_v1_projects_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    list_pipelines_api_v1_projects__project_id__pipelines_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateProjectRequest"];
+      };
     };
-    create_pipeline_api_v1_projects__project_id__pipelines_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PipelineCreateRequest"];
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_pipeline_api_v1_projects__project_id__pipelines__pipeline_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                pipeline_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  get_project_api_v1_projects__project_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    validate_pipeline_endpoint_api_v1_projects__project_id__pipelines__pipeline_id__validate_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                pipeline_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    list_experiments_api_v1_projects__project_id__experiments_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  delete_project_api_v1_projects__project_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    create_experiment_endpoint_api_v1_projects__project_id__experiments_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExperimentCreateRequest"];
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentCreateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_experiment_api_v1_projects__project_id__experiments__experiment_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  update_project_api_v1_projects__project_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    start_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentStartResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RenameProjectRequest"];
+      };
     };
-    get_experiment_status_api_v1_projects__project_id__experiments__experiment_id__status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                experiment_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentStatusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    cancel_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__cancel_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentCancelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  list_snapshots_api_v1_projects__project_id__snapshots_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    estimate_experiment_time_api_v1_projects__project_id__experiments__experiment_id__estimate_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                experiment_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentEstimateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["SnapshotListResponse"][];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_interrupted_experiments_api_v1_experiments_interrupted_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InterruptedExperimentsResponse"];
-                };
-            };
-        };
+  };
+  create_snapshot_api_v1_projects__project_id__snapshots_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    recover_experiment_api_v1_experiments__experiment_id__recover_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExperimentRecoverRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentRecoverResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_create_snapshot_api_v1_projects__project_id__snapshots_post"];
+      };
     };
-    get_evaluation_api_v1_experiments__experiment_id__evaluation_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["SnapshotResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    update_threshold_api_v1_experiments__experiment_id__evaluation_threshold_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  get_snapshot_by_id_api_v1_projects__project_id__snapshots__snapshot_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        snapshot_id: string;
+      };
+      cookie?: never;
     };
-    get_leaderboard_api_v1_projects__project_id__leaderboard_get: {
-        parameters: {
-            query?: {
-                /** @description Column to sort by */
-                sort_by?: "f1" | "auc_roc" | "precision" | "recall" | "training_time";
-                /** @description Sort order (asc or desc) */
-                order?: "asc" | "desc";
-            };
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LeaderboardEntry"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["SnapshotResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    export_artifacts_api_v1_experiments__experiment_id__export_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExportRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  list_pipelines_api_v1_projects__project_id__pipelines_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    stream_experiment_updates_api_v1_experiments__experiment_id__stream_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["PipelineResponse"][];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_dashboard_statistics_api_v1_dashboard_stats_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
+  };
+  create_pipeline_api_v1_projects__project_id__pipelines_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
     };
-    get_system_info_api_v1_system_info_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PipelineCreateRequest"];
+      };
     };
-    clear_all_data_api_v1_system_clear_data_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ClearDataResponse"];
-                };
-            };
-            /** @description Internal server error during clear operation */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          "application/json": components["schemas"]["PipelineResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    health_check_api_v1_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-        };
+  };
+  get_pipeline_api_v1_projects__project_id__pipelines__pipeline_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        pipeline_id: string;
+      };
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PipelineResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  validate_pipeline_endpoint_api_v1_projects__project_id__pipelines__pipeline_id__validate_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        pipeline_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ValidationResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_experiments_api_v1_projects__project_id__experiments_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_experiment_endpoint_api_v1_projects__project_id__experiments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExperimentCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentCreateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_experiment_api_v1_projects__project_id__experiments__experiment_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  start_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__start_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentStartResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_experiment_status_api_v1_projects__project_id__experiments__experiment_id__status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_experiment_endpoint_api_v1_projects__project_id__experiments__experiment_id__cancel_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentCancelResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  estimate_experiment_time_api_v1_projects__project_id__experiments__experiment_id__estimate_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        project_id: string;
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentEstimateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_interrupted_experiments_api_v1_experiments_interrupted_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InterruptedExperimentsResponse"];
+        };
+      };
+    };
+  };
+  recover_experiment_api_v1_experiments__experiment_id__recover_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExperimentRecoverRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExperimentRecoverResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_evaluation_api_v1_experiments__experiment_id__evaluation_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_threshold_api_v1_experiments__experiment_id__evaluation_threshold_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_leaderboard_api_v1_projects__project_id__leaderboard_get: {
+    parameters: {
+      query?: {
+        /** @description Column to sort by */
+        sort_by?: "f1" | "auc_roc" | "precision" | "recall" | "training_time";
+        /** @description Sort order (asc or desc) */
+        order?: "asc" | "desc";
+      };
+      header?: never;
+      path: {
+        project_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LeaderboardEntry"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_artifacts_api_v1_experiments__experiment_id__export_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExportRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  stream_experiment_updates_api_v1_experiments__experiment_id__stream_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        experiment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_dashboard_statistics_api_v1_dashboard_stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+    };
+  };
+  get_system_info_api_v1_system_info_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+    };
+  };
+  clear_all_data_api_v1_system_clear_data_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClearDataResponse"];
+        };
+      };
+      /** @description Internal server error during clear operation */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  health_check_api_v1_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
+        };
+      };
+    };
+  };
 }

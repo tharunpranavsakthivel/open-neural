@@ -11,7 +11,10 @@ from openneural_backend.pipeline.validator import validate_pipeline
 def test_validator_split_not_last_raises_error() -> None:
     """Verify that a Train/Val/Test Split block placed before other blocks raises an error."""
     blocks = [
-        {"type": "train_val_test_split", "params": {"train": 0.7, "val": 0.15, "test": 0.15}},
+        {
+            "type": "train_val_test_split",
+            "params": {"train": 0.7, "val": 0.15, "test": 0.15},
+        },
         {"type": "drop_nulls", "params": {"columns": ["col_a"]}},
     ]
 
@@ -35,10 +38,7 @@ def test_validator_incompatible_ordering_warnings() -> None:
     result = validate_pipeline(blocks, schema_columns=["col_a"])
 
     # Ordering issues trigger warnings, but can still be mathematically computed (so valid can be True or False depending on columns)
-    assert any(
-        "occurs before imputation block" in warn
-        for warn in result["warnings"]
-    )
+    assert any("occurs before imputation block" in warn for warn in result["warnings"])
 
 
 def test_validator_column_not_in_schema_error() -> None:
@@ -51,7 +51,8 @@ def test_validator_column_not_in_schema_error() -> None:
 
     assert result["valid"] is False
     assert any(
-        "Referenced column 'non_existent_column' does not exist in dataset schema" in err
+        "Referenced column 'non_existent_column' does not exist in dataset schema"
+        in err
         for err in result["errors"]
     )
 
@@ -62,7 +63,10 @@ def test_validator_valid_pipeline_returns_valid_true() -> None:
         {"type": "drop_nulls", "params": {"columns": ["col_a"]}},
         {"type": "fill_missing_mean", "params": {"columns": ["col_a"]}},
         {"type": "scale_numeric_standard", "params": {"columns": ["col_a"]}},
-        {"type": "train_val_test_split", "params": {"train": 0.7, "val": 0.15, "test": 0.15}},
+        {
+            "type": "train_val_test_split",
+            "params": {"train": 0.7, "val": 0.15, "test": 0.15},
+        },
     ]
 
     result = validate_pipeline(blocks, schema_columns=["col_a"])
@@ -108,7 +112,9 @@ def test_validator_block_type_non_string() -> None:
 
 def test_validator_block_type_unregistered() -> None:
     """Verify validate_pipeline handles blocks where 'type' is unregistered."""
-    result = validate_pipeline([{"type": "nonexistent_block_type"}], schema_columns=["col_a"])
+    result = validate_pipeline(
+        [{"type": "nonexistent_block_type"}], schema_columns=["col_a"]
+    )
     assert result["valid"] is False
     assert "Unknown block type" in result["errors"][0]
 
@@ -123,12 +129,21 @@ def test_validator_block_params_non_dict() -> None:
 def test_validator_multiple_splits() -> None:
     """Verify validate_pipeline raises error when multiple split blocks are present."""
     blocks = [
-        {"type": "train_val_test_split", "params": {"train": 0.7, "val": 0.15, "test": 0.15}},
-        {"type": "train_val_test_split", "params": {"train": 0.6, "val": 0.2, "test": 0.2}},
+        {
+            "type": "train_val_test_split",
+            "params": {"train": 0.7, "val": 0.15, "test": 0.15},
+        },
+        {
+            "type": "train_val_test_split",
+            "params": {"train": 0.6, "val": 0.2, "test": 0.2},
+        },
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
     assert result["valid"] is False
-    assert any("Only one split block is allowed per pipeline" in err for err in result["errors"])
+    assert any(
+        "Only one split block is allowed per pipeline" in err
+        for err in result["errors"]
+    )
 
 
 def test_validator_missing_split_warning() -> None:
@@ -138,7 +153,10 @@ def test_validator_missing_split_warning() -> None:
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
     assert result["valid"] is True
-    assert any("No Train/Val/Test Split block found in pipeline" in warn for warn in result["warnings"])
+    assert any(
+        "No Train/Val/Test Split block found in pipeline" in warn
+        for warn in result["warnings"]
+    )
 
 
 def test_validator_removed_column_referenced() -> None:
@@ -149,7 +167,10 @@ def test_validator_removed_column_referenced() -> None:
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
     assert result["valid"] is False
-    assert any("Referenced column 'col_a' was removed by an earlier block" in err for err in result["errors"])
+    assert any(
+        "Referenced column 'col_a' was removed by an earlier block" in err
+        for err in result["errors"]
+    )
 
 
 def test_validator_columns_as_string() -> None:
@@ -164,11 +185,22 @@ def test_validator_columns_as_string() -> None:
 def test_validator_stratify_column() -> None:
     """Verify validate_pipeline validates stratify_column."""
     blocks = [
-        {"type": "train_val_test_split", "params": {"train": 0.7, "val": 0.15, "test": 0.15, "stratify_column": "nonexistent"}},
+        {
+            "type": "train_val_test_split",
+            "params": {
+                "train": 0.7,
+                "val": 0.15,
+                "test": 0.15,
+                "stratify_column": "nonexistent",
+            },
+        },
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
     assert result["valid"] is False
-    assert any("Referenced column 'nonexistent' does not exist in dataset schema" in err for err in result["errors"])
+    assert any(
+        "Referenced column 'nonexistent' does not exist in dataset schema" in err
+        for err in result["errors"]
+    )
 
 
 def test_validator_logical_warnings() -> None:
@@ -179,7 +211,10 @@ def test_validator_logical_warnings() -> None:
         {"type": "fill_missing_mean", "params": {"columns": ["col_a"]}},
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
-    assert any("Encoding block" in warn and "occurs before imputation block" in warn for warn in result["warnings"])
+    assert any(
+        "Encoding block" in warn and "occurs before imputation block" in warn
+        for warn in result["warnings"]
+    )
 
     # Outlier before imputation
     blocks = [
@@ -187,7 +222,10 @@ def test_validator_logical_warnings() -> None:
         {"type": "fill_missing_mean", "params": {"columns": ["col_a"]}},
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
-    assert any("Outlier removal block" in warn and "occurs before imputation block" in warn for warn in result["warnings"])
+    assert any(
+        "Outlier removal block" in warn and "occurs before imputation block" in warn
+        for warn in result["warnings"]
+    )
 
     # Multiple transformations warning
     blocks = [
@@ -196,7 +234,10 @@ def test_validator_logical_warnings() -> None:
         {"type": "log_transform", "params": {"columns": ["col_a"]}},
     ]
     result = validate_pipeline(blocks, schema_columns=["col_a"])
-    assert any("Pipeline contains 3 transformation blocks" in warn for warn in result["warnings"])
+    assert any(
+        "Pipeline contains 3 transformation blocks" in warn
+        for warn in result["warnings"]
+    )
 
 
 def test_validate_block_params() -> None:
@@ -209,17 +250,23 @@ def test_validate_block_params() -> None:
     assert "Unknown block type" in res["errors"][0]
 
     # Split incorrect sum
-    res = validate_block_params("train_val_test_split", {"train": 0.5, "val": 0.1, "test": 0.1})
+    res = validate_block_params(
+        "train_val_test_split", {"train": 0.5, "val": 0.1, "test": 0.1}
+    )
     assert res["valid"] is False
     assert "Split ratios must sum to 1.0" in res["errors"][0]
 
     # Split train <= 0
-    res = validate_block_params("train_val_test_split", {"train": 0.0, "val": 0.5, "test": 0.5})
+    res = validate_block_params(
+        "train_val_test_split", {"train": 0.0, "val": 0.5, "test": 0.5}
+    )
     assert res["valid"] is False
     assert "Training ratio must be greater than 0" in res["errors"][0]
 
     # Split out of range
-    res = validate_block_params("train_val_test_split", {"train": 1.2, "val": -0.1, "test": -0.1})
+    res = validate_block_params(
+        "train_val_test_split", {"train": 1.2, "val": -0.1, "test": -0.1}
+    )
     assert res["valid"] is False
     assert any("ratio must be between 0 and 1" in err for err in res["errors"])
 
@@ -229,4 +276,3 @@ def test_validate_block_params() -> None:
 
     res = validate_block_params("encode_categoricals_onehot", {})
     assert "will encode all categorical columns" in res["warnings"][0]
-

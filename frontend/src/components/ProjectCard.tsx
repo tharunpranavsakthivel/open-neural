@@ -86,7 +86,7 @@ export function ProjectCard({
         handleCancelRename();
       }
     },
-    [handleConfirmRename, handleCancelRename]
+    [handleConfirmRename, handleCancelRename],
   );
 
   /**

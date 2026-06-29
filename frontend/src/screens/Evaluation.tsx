@@ -28,7 +28,9 @@ interface EvaluationProps {
  * @param props - Component props (projectId is passed but experimentId comes from store)
  * @returns The evaluation screen
  */
-export function Evaluation({ projectId: _projectId }: EvaluationProps): JSX.Element {
+export function Evaluation({
+  projectId: _projectId,
+}: EvaluationProps): JSX.Element {
   const { currentExperimentId } = useAppStore();
 
   // If no experiment is selected, show a placeholder

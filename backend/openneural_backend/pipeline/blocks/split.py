@@ -7,7 +7,6 @@ transformer but a pipeline stage that partitions the dataset and returns
 the split data directly.
 """
 
-from typing import Optional, Tuple
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -75,8 +74,8 @@ class TrainValTestSplitBlock(PipelineBlock):
             "stratify_column": {
                 "type": "string",
                 "description": "Optional column name for stratified splitting. "
-                               "If provided, class proportions are maintained in each split.",
-            }
+                "If provided, class proportions are maintained in each split.",
+            },
         },
         "required": [],
     }
@@ -86,7 +85,7 @@ class TrainValTestSplitBlock(PipelineBlock):
         train: float = 0.70,
         val: float = 0.15,
         test: float = 0.15,
-        stratify_column: Optional[str] = None,
+        stratify_column: str | None = None,
     ) -> None:
         """Initialize the TrainValTestSplitBlock.
 
@@ -126,12 +125,12 @@ class TrainValTestSplitBlock(PipelineBlock):
             test=test,
             stratify_column=stratify_column,
         )
-        self._train_indices: Optional[pd.Index] = None
-        self._val_indices: Optional[pd.Index] = None
-        self._test_indices: Optional[pd.Index] = None
+        self._train_indices: pd.Index | None = None
+        self._val_indices: pd.Index | None = None
+        self._test_indices: pd.Index | None = None
 
     def fit(
-        self, X: pd.DataFrame, y: Optional[pd.Series] = None
+        self, X: pd.DataFrame, y: pd.Series | None = None
     ) -> "TrainValTestSplitBlock":
         """Fit the block to the data by computing split indices.
 
@@ -239,9 +238,14 @@ class TrainValTestSplitBlock(PipelineBlock):
             "Use fit_transform(X, y) to get (X_train, X_val, X_test, y_train, y_val, y_test)."
         )
 
-    def fit_transform(
-        self, X: pd.DataFrame, y: Optional[pd.Series] = None
-    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Optional[pd.Series], Optional[pd.Series], Optional[pd.Series]]:
+    def fit_transform(self, X: pd.DataFrame, y: pd.Series | None = None) -> tuple[
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.Series | None,
+        pd.Series | None,
+        pd.Series | None,
+    ]:
         """Split the data into train/validation/test sets.
 
         This is the primary method for using this block. It fits the split
@@ -271,13 +275,33 @@ class TrainValTestSplitBlock(PipelineBlock):
             )
 
         # Extract splits
-        X_train = X.loc[self._train_indices] if len(self._train_indices) > 0 else pd.DataFrame()
-        X_val = X.loc[self._val_indices] if len(self._val_indices) > 0 else pd.DataFrame()
-        X_test = X.loc[self._test_indices] if len(self._test_indices) > 0 else pd.DataFrame()
+        X_train = (
+            X.loc[self._train_indices]
+            if len(self._train_indices) > 0
+            else pd.DataFrame()
+        )
+        X_val = (
+            X.loc[self._val_indices] if len(self._val_indices) > 0 else pd.DataFrame()
+        )
+        X_test = (
+            X.loc[self._test_indices] if len(self._test_indices) > 0 else pd.DataFrame()
+        )
 
-        y_train = y.loc[self._train_indices] if y is not None and len(self._train_indices) > 0 else None
-        y_val = y.loc[self._val_indices] if y is not None and len(self._val_indices) > 0 else None
-        y_test = y.loc[self._test_indices] if y is not None and len(self._test_indices) > 0 else None
+        y_train = (
+            y.loc[self._train_indices]
+            if y is not None and len(self._train_indices) > 0
+            else None
+        )
+        y_val = (
+            y.loc[self._val_indices]
+            if y is not None and len(self._val_indices) > 0
+            else None
+        )
+        y_test = (
+            y.loc[self._test_indices]
+            if y is not None and len(self._test_indices) > 0
+            else None
+        )
 
         return X_train, X_val, X_test, y_train, y_val, y_test
 

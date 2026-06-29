@@ -58,7 +58,10 @@ export interface OpenNeuralElectronApi {
    * @param confirmPassword - The confirmation password
    * @returns AuthResult indicating success or failure
    */
-  validateSetupPassword(password: string, confirmPassword: string): Promise<AuthResult>;
+  validateSetupPassword(
+    password: string,
+    confirmPassword: string,
+  ): Promise<AuthResult>;
 
   /**
    * Store a password hash in the database during first-time setup.
@@ -73,7 +76,10 @@ export interface OpenNeuralElectronApi {
    * @param newPassword - The new password to set
    * @returns AuthResult indicating success or failure
    */
-  changePassword(currentPassword: string, newPassword: string): Promise<AuthResult>;
+  changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthResult>;
 
   /**
    * Get the backend port for API communication.

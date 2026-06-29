@@ -96,7 +96,7 @@ export function SnapshotHistory({
         onSelectSnapshot(snapshotId);
       }
     },
-    [currentSnapshotId, onSelectSnapshot]
+    [currentSnapshotId, onSelectSnapshot],
   );
 
   return (

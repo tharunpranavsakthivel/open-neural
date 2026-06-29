@@ -1,8 +1,8 @@
 /**
  * Exports API module.
- * 
+ *
  * Provides typed Axios-based wrappers for exporting experiment artifacts.
- * 
+ *
  * @module api/exports
  */
 import { getApiClient } from "./client";
@@ -10,7 +10,8 @@ import { getApiClient } from "./client";
 /**
  * Export artifact type options.
  */
-export type ExportArtifactType = "model" | "pipeline" | "report" | "predictions";
+export type ExportArtifactType =
+  "model" | "pipeline" | "report" | "predictions";
 
 /**
  * Export request payload.
@@ -55,21 +56,21 @@ export interface ExportResponse {
 
 /**
  * Export artifacts from an experiment.
- * 
+ *
  * POST /api/v1/experiments/{experimentId}/export
- * 
+ *
  * @param experimentId - The ID of the experiment to export from
  * @param request - The export configuration payload
  * @returns Details of exported files and manifest path
  */
 export async function exportExperiment(
   experimentId: string,
-  request: ExportRequest
+  request: ExportRequest,
 ): Promise<ExportResponse> {
   const client = getApiClient();
   const response = await client.post<ExportResponse>(
     `/experiments/${experimentId}/export`,
-    request
+    request,
   );
   return response.data;
 }

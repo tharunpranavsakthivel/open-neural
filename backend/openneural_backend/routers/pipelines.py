@@ -4,7 +4,7 @@ Provides endpoints for preprocessing pipeline management: create, list, get, val
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
@@ -22,18 +22,22 @@ class PipelineBlockConfig(BaseModel):
     """Configuration for a single pipeline block."""
 
     type: str = Field(..., description="Block type identifier")
-    params: Dict[str, Any] = Field(default_factory=dict, description="Block parameters")
+    params: dict[str, Any] = Field(default_factory=dict, description="Block parameters")
 
 
 class PipelineConfig(BaseModel):
     """Pipeline configuration containing ordered blocks."""
 
     snapshot_id: str = Field(..., description="ID of the dataset snapshot to use")
-    blocks: List[PipelineBlockConfig] = Field(..., description="Ordered list of pipeline blocks")
+    blocks: list[PipelineBlockConfig] = Field(
+        ..., description="Ordered list of pipeline blocks"
+    )
 
     @field_validator("blocks")
     @classmethod
-    def validate_blocks_not_empty(cls, v: List[PipelineBlockConfig]) -> List[PipelineBlockConfig]:
+    def validate_blocks_not_empty(
+        cls, v: list[PipelineBlockConfig]
+    ) -> list[PipelineBlockConfig]:
         """Validate that blocks list is not empty."""
         if not v:
             raise ValueError("Pipeline must contain at least one block")
@@ -45,7 +49,7 @@ class PipelineCreateRequest(BaseModel):
 
     snapshot_id: str = Field(..., description="ID of the dataset snapshot to use")
     config: PipelineConfig = Field(..., description="Pipeline configuration")
-    name: Optional[str] = Field(None, description="Optional pipeline name")
+    name: str | None = Field(None, description="Optional pipeline name")
 
 
 class PipelineResponse(BaseModel):
@@ -54,8 +58,8 @@ class PipelineResponse(BaseModel):
     id: str
     project_id: str
     snapshot_id: str
-    name: Optional[str]
-    config_json: Dict[str, Any]
+    name: str | None
+    config_json: dict[str, Any]
     validated: bool
     created_at: str
 
@@ -64,8 +68,8 @@ class ValidationResult(BaseModel):
     """Pipeline validation result."""
 
     valid: bool
-    warnings: List[str]
-    errors: List[str]
+    warnings: list[str]
+    errors: list[str]
 
 
 @router.post("", response_model=PipelineResponse, status_code=status.HTTP_201_CREATED)
@@ -167,11 +171,11 @@ async def create_pipeline(
     )
 
 
-@router.get("", response_model=List[PipelineResponse])
+@router.get("", response_model=list[PipelineResponse])
 async def list_pipelines(
     project_id: str,
     session: AsyncSession = Depends(get_async_session),
-) -> List[PipelineResponse]:
+) -> list[PipelineResponse]:
     """List all pipelines for a project.
 
     Args:

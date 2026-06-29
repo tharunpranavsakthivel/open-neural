@@ -8,8 +8,7 @@ Exposes functions for looking up, listing, and registering models.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Type, Union
-
+from typing import Any
 
 # Type alias for Optuna search space parameter specification
 # Supports: int range ("int", min, max), float range ("float", min, max),
@@ -34,14 +33,14 @@ class ModelSpec:
             the parameter distribution (type, min, max) or categorical options.
     """
 
-    model_class: Type[Any]
-    task_types: List[str]
-    default_params: Dict[str, Any] = field(default_factory=dict)
-    search_space: Dict[str, OptunaParamSpec] = field(default_factory=dict)
+    model_class: type[Any]
+    task_types: list[str]
+    default_params: dict[str, Any] = field(default_factory=dict)
+    search_space: dict[str, OptunaParamSpec] = field(default_factory=dict)
 
 
 # Central registry mapping model key strings to ModelSpec dataclasses
-MODEL_REGISTRY: Dict[str, ModelSpec] = {}
+MODEL_REGISTRY: dict[str, ModelSpec] = {}
 
 
 def register_model(key: str, spec: ModelSpec) -> None:
@@ -73,9 +72,7 @@ def register_model(key: str, spec: ModelSpec) -> None:
         >>> register_model("random_forest", spec)
     """
     if not isinstance(spec, ModelSpec):
-        raise TypeError(
-            f"spec must be a ModelSpec instance, got {type(spec).__name__}"
-        )
+        raise TypeError(f"spec must be a ModelSpec instance, got {type(spec).__name__}")
 
     if key in MODEL_REGISTRY:
         raise ValueError(
@@ -111,7 +108,7 @@ def get_model(key: str) -> ModelSpec:
     return MODEL_REGISTRY[key]
 
 
-def list_models(task_type: Optional[str] = None) -> Dict[str, ModelSpec]:
+def list_models(task_type: str | None = None) -> dict[str, ModelSpec]:
     """List all registered models, optionally filtered by task type.
 
     Args:
@@ -199,6 +196,7 @@ def _register_builtin_models() -> None:
         # XGBoost is optional
         try:
             from xgboost import XGBClassifier, XGBRegressor
+
             XGBOOST_AVAILABLE = True
         except ImportError:
             XGBOOST_AVAILABLE = False
@@ -383,6 +381,7 @@ def _register_builtin_models() -> None:
         # If sklearn is not available (should not happen in normal operation),
         # we log a warning but don't fail the import
         import warnings
+
         warnings.warn(f"Could not register built-in models: {e}")
 
 

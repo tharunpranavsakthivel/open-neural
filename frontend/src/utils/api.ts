@@ -52,7 +52,8 @@ export interface CreateProjectRequest {
   /** Name of the project */
   name: string;
   /** Type of ML task */
-  task_type: "binary_classification" | "multiclass_classification" | "regression";
+  task_type:
+    "binary_classification" | "multiclass_classification" | "regression";
 }
 
 /**
@@ -91,7 +92,9 @@ export async function fetchProjects(): Promise<Project[]> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch projects: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch projects: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as ProjectsResponse;
@@ -130,7 +133,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
  */
 export async function renameProject(
   projectId: string,
-  newName: string
+  newName: string,
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
@@ -143,7 +146,9 @@ export async function renameProject(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to rename project: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to rename project: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as RenameProjectResponse;
@@ -162,7 +167,7 @@ export async function renameProject(
  */
 export async function patchProject(
   projectId: string,
-  newName: string
+  newName: string,
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
@@ -175,7 +180,9 @@ export async function patchProject(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to rename project: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to rename project: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as RenameProjectResponse;
@@ -199,7 +206,9 @@ export async function deleteProject(projectId: string): Promise<boolean> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to delete project: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to delete project: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as DeleteProjectResponse;
@@ -218,7 +227,8 @@ export async function deleteProject(projectId: string): Promise<boolean> {
  */
 export async function createProject(
   name: string,
-  taskType: "binary_classification" | "multiclass_classification" | "regression"
+  taskType:
+    "binary_classification" | "multiclass_classification" | "regression",
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/v1/projects`, {
@@ -231,7 +241,9 @@ export async function createProject(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to create project: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to create project: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as CreateProjectResponse;
@@ -285,7 +297,7 @@ export interface DatasetSnapshotResponse {
 export async function uploadDatasetSnapshot(
   projectId: string,
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<DatasetSnapshotResponse> {
   const baseUrl = await getBaseUrl();
   const formData = new FormData();
@@ -352,14 +364,18 @@ export interface SnapshotListItem {
  * @throws Error if the request fails
  */
 export async function fetchProjectSnapshots(
-  projectId: string
+  projectId: string,
 ): Promise<SnapshotListItem[]> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/snapshots`);
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/snapshots`,
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch snapshots: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch snapshots: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as SnapshotListItem[];
@@ -435,20 +451,25 @@ export interface PipelineResponse {
  */
 export async function createPipeline(
   projectId: string,
-  request: CreatePipelineRequest
+  request: CreatePipelineRequest,
 ): Promise<PipelineResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/pipelines`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/pipelines`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to create pipeline: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to create pipeline: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as PipelineResponse;
@@ -464,14 +485,18 @@ export async function createPipeline(
  * @throws Error if the request fails
  */
 export async function fetchProjectPipelines(
-  projectId: string
+  projectId: string,
 ): Promise<PipelineResponse[]> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}/pipelines`);
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/${projectId}/pipelines`,
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch pipelines: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch pipelines: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as PipelineResponse[];
@@ -489,16 +514,18 @@ export async function fetchProjectPipelines(
  */
 export async function validatePipeline(
   projectId: string,
-  pipelineId: string
+  pipelineId: string,
 ): Promise<PipelineValidationResult> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
-    `${baseUrl}/api/v1/projects/${projectId}/pipelines/${pipelineId}/validate`
+    `${baseUrl}/api/v1/projects/${projectId}/pipelines/${pipelineId}/validate`,
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to validate pipeline: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to validate pipeline: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as PipelineValidationResult;
@@ -516,7 +543,7 @@ export async function validatePipeline(
  */
 export async function validatePipelineConfig(
   projectId: string,
-  request: CreatePipelineRequest
+  request: CreatePipelineRequest,
 ): Promise<PipelineValidationResult> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
@@ -527,12 +554,14 @@ export async function validatePipelineConfig(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to validate pipeline: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to validate pipeline: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as PipelineValidationResult;
@@ -578,7 +607,7 @@ export interface TrainingTimeEstimateRequest {
  * @throws Error if the request fails
  */
 export async function fetchTrainingTimeEstimate(
-  request: TrainingTimeEstimateRequest
+  request: TrainingTimeEstimateRequest,
 ): Promise<TrainingTimeEstimateResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/v1/experiments/estimate`, {
@@ -591,7 +620,9 @@ export async function fetchTrainingTimeEstimate(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch time estimate: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch time estimate: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as TrainingTimeEstimateResponse;
@@ -643,7 +674,7 @@ export interface CreateExperimentRequest {
  */
 export async function createExperiment(
   projectId: string,
-  request: CreateExperimentRequest
+  request: CreateExperimentRequest,
 ): Promise<CreateExperimentResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
@@ -654,12 +685,14 @@ export async function createExperiment(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to create experiment: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to create experiment: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as CreateExperimentResponse;
@@ -685,19 +718,21 @@ export interface StartExperimentResponse {
  * @throws Error if the request fails
  */
 export async function startExperiment(
-  experimentId: string
+  experimentId: string,
 ): Promise<StartExperimentResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
     `${baseUrl}/api/v1/experiments/${experimentId}/start`,
     {
       method: "POST",
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to start experiment: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to start experiment: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as StartExperimentResponse;
@@ -721,19 +756,21 @@ export interface CancelExperimentResponse {
  * @throws Error if the request fails
  */
 export async function cancelExperiment(
-  experimentId: string
+  experimentId: string,
 ): Promise<CancelExperimentResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
     `${baseUrl}/api/v1/experiments/${experimentId}/cancel`,
     {
       method: "DELETE",
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to cancel experiment: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to cancel experiment: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as CancelExperimentResponse;
@@ -788,14 +825,12 @@ export async function fetchInterruptedExperiments(): Promise<
   InterruptedExperiment[]
 > {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/api/v1/experiments/interrupted`
-  );
+  const response = await fetch(`${baseUrl}/api/v1/experiments/interrupted`);
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Failed to fetch interrupted experiments: ${response.status} ${errorText}`
+      `Failed to fetch interrupted experiments: ${response.status} ${errorText}`,
     );
   }
 
@@ -825,7 +860,7 @@ export interface RecoverExperimentResponse {
  */
 export async function recoverExperiment(
   experimentId: string,
-  action: "restart" | "discard"
+  action: "restart" | "discard",
 ): Promise<RecoverExperimentResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
@@ -836,13 +871,13 @@ export async function recoverExperiment(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ action }),
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Failed to recover experiment: ${response.status} ${errorText}`
+      `Failed to recover experiment: ${response.status} ${errorText}`,
     );
   }
 
@@ -941,17 +976,17 @@ export interface UpdateThresholdResponse {
  * @throws Error if the request fails
  */
 export async function fetchExperimentEvaluation(
-  experimentId: string
+  experimentId: string,
 ): Promise<EvaluationResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
-    `${baseUrl}/api/v1/experiments/${experimentId}/evaluation`
+    `${baseUrl}/api/v1/experiments/${experimentId}/evaluation`,
   );
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Failed to fetch evaluation: ${response.status} ${errorText}`
+      `Failed to fetch evaluation: ${response.status} ${errorText}`,
     );
   }
 
@@ -970,7 +1005,7 @@ export async function fetchExperimentEvaluation(
  */
 export async function updateEvaluationThreshold(
   experimentId: string,
-  threshold: number
+  threshold: number,
 ): Promise<UpdateThresholdResponse> {
   const baseUrl = await getBaseUrl();
   const response = await fetch(
@@ -981,13 +1016,13 @@ export async function updateEvaluationThreshold(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ threshold }),
-    }
+    },
   );
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Failed to update threshold: ${response.status} ${errorText}`
+      `Failed to update threshold: ${response.status} ${errorText}`,
     );
   }
 
@@ -1026,7 +1061,8 @@ export interface LeaderboardEntry {
 /**
  * Sort column options for the leaderboard.
  */
-export type LeaderboardSortBy = "f1" | "auc_roc" | "precision" | "recall" | "training_time";
+export type LeaderboardSortBy =
+  "f1" | "auc_roc" | "precision" | "recall" | "training_time";
 
 /**
  * Sort order options for the leaderboard.
@@ -1050,7 +1086,7 @@ export type LeaderboardOrder = "asc" | "desc";
 export async function fetchLeaderboard(
   projectId: string,
   sortBy: LeaderboardSortBy = "f1",
-  order: LeaderboardOrder = "desc"
+  order: LeaderboardOrder = "desc",
 ): Promise<LeaderboardEntry[]> {
   const baseUrl = await getBaseUrl();
   const url = new URL(`${baseUrl}/api/v1/projects/${projectId}/leaderboard`);
@@ -1061,7 +1097,9 @@ export async function fetchLeaderboard(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch leaderboard: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch leaderboard: ${response.status} ${errorText}`,
+    );
   }
 
   return (await response.json()) as LeaderboardEntry[];
@@ -1121,7 +1159,7 @@ export async function clearAllData(): Promise<ClearDataResponse> {
  */
 export async function changePassword(
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   // This calls the Electron main process via IPC, not the backend API
   return window.electronAPI.changePassword(currentPassword, newPassword);

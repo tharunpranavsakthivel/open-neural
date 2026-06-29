@@ -57,14 +57,14 @@ export function SessionFooter(): JSX.Element {
               // Development mode - secret may not be required
               "X-OpenNeural-Secret": "dev-secret",
             },
-          }
+          },
         );
 
         if (!response.ok) {
           // Endpoint may not exist yet (Task 134)
           if (response.status === 404) {
             console.log(
-              "System info endpoint not available yet (Task 134 pending)"
+              "System info endpoint not available yet (Task 134 pending)",
             );
             setError("System info endpoint not available");
           } else {
@@ -136,7 +136,10 @@ export function SessionFooter(): JSX.Element {
             >
               📦
             </span>
-            <span style={styles.value} title={`OpenNeural v${systemInfo.app_version}`}>
+            <span
+              style={styles.value}
+              title={`OpenNeural v${systemInfo.app_version}`}
+            >
               v{systemInfo.app_version}
             </span>
           </div>
@@ -167,11 +170,7 @@ export function SessionFooter(): JSX.Element {
 
           {/* RAM */}
           <div style={styles.infoItem}>
-            <span
-              aria-label="Total RAM"
-              style={styles.icon}
-              title="Total RAM"
-            >
+            <span aria-label="Total RAM" style={styles.icon} title="Total RAM">
               🧠
             </span>
             <span style={styles.value}>
@@ -186,17 +185,10 @@ export function SessionFooter(): JSX.Element {
 
           {/* CPU */}
           <div style={styles.infoItem}>
-            <span
-              aria-label="CPU model"
-              style={styles.icon}
-              title="CPU model"
-            >
+            <span aria-label="CPU model" style={styles.icon} title="CPU model">
               ⚙️
             </span>
-            <span
-              style={styles.value}
-              title={systemInfo.cpu_model}
-            >
+            <span style={styles.value} title={systemInfo.cpu_model}>
               {truncateCpuModel(systemInfo.cpu_model)}
             </span>
           </div>

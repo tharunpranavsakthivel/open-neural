@@ -27,7 +27,8 @@ export function ScaleNumericsConfig({
   availableColumns,
   isStandard = true,
 }: ScaleNumericsConfigProps): JSX.Element {
-  const strategy = (params.strategy as string) ?? (isStandard ? "standard" : "minmax");
+  const strategy =
+    (params.strategy as string) ?? (isStandard ? "standard" : "minmax");
   const columns = (params.columns as string[]) ?? [];
 
   const handleStrategyChange = (newStrategy: string): void => {
@@ -51,7 +52,11 @@ export function ScaleNumericsConfig({
 
       <div style={configStyles.section}>
         <label style={configStyles.label}>Scaling Strategy</label>
-        <div style={configStyles.radioGroup} role="radiogroup" aria-label="Scaling strategy">
+        <div
+          style={configStyles.radioGroup}
+          role="radiogroup"
+          aria-label="Scaling strategy"
+        >
           <label style={configStyles.radio}>
             <input
               type="radio"
@@ -79,7 +84,12 @@ export function ScaleNumericsConfig({
 
       <div style={configStyles.section}>
         <ColumnMultiSelect
-          columns={availableColumns.filter((c) => c.type === "numeric" || c.type === "integer" || c.type === "float")}
+          columns={availableColumns.filter(
+            (c) =>
+              c.type === "numeric" ||
+              c.type === "integer" ||
+              c.type === "float",
+          )}
           selected={columns}
           onChange={handleColumnsChange}
           label="Numeric columns to scale"

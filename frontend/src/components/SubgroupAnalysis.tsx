@@ -284,7 +284,9 @@ export function SubgroupAnalysis({
                             </span>
                           </div>
                           <div style={styles.metricItem}>
-                            <span style={styles.metricLabel}>Sample Count:</span>
+                            <span style={styles.metricLabel}>
+                              Sample Count:
+                            </span>
                             <span style={styles.metricValue}>
                               {subgroup.n.toLocaleString()}
                             </span>
@@ -298,8 +300,8 @@ export function SubgroupAnalysis({
                                 <span
                                   style={{
                                     ...styles.metricValue,
-                                    ...((overallF1 - subgroup.metrics.f1 >
-                                      warningThreshold)
+                                    ...(overallF1 - subgroup.metrics.f1 >
+                                    warningThreshold
                                       ? styles.metricValueNegative
                                       : styles.metricValuePositive),
                                   }}
@@ -319,9 +321,13 @@ export function SubgroupAnalysis({
                         }}
                       >
                         <h4 style={styles.sectionTitle}>
-                          {hasWarning ? "⚠ Diagnostic Note" : "ℹ Diagnostic Note"}
+                          {hasWarning
+                            ? "⚠ Diagnostic Note"
+                            : "ℹ Diagnostic Note"}
                         </h4>
-                        <p style={styles.noteText}>{getDiagnosticNote(subgroup)}</p>
+                        <p style={styles.noteText}>
+                          {getDiagnosticNote(subgroup)}
+                        </p>
                       </div>
                     </div>
                   </div>

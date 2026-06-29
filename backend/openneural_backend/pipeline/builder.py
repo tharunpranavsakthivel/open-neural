@@ -6,7 +6,7 @@ from JSON configuration. It handles the instantiation of pipeline blocks
 from the registry and composes them into an executable sklearn pipeline.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sklearn.pipeline import Pipeline as SklearnPipeline
 
@@ -16,8 +16,8 @@ from openneural_backend.pipeline.registry import get_block_or_raise
 
 
 def build_sklearn_pipeline(
-    config_json: Dict[str, Any]
-) -> Tuple[SklearnPipeline, Optional[Dict[str, Any]]]:
+    config_json: dict[str, Any],
+) -> tuple[SklearnPipeline, dict[str, Any] | None]:
     """Build a scikit-learn Pipeline from JSON configuration.
 
     Parses an ordered array of block configurations, instantiates each block
@@ -57,33 +57,45 @@ def build_sklearn_pipeline(
         >>> pipeline, split_config = build_sklearn_pipeline(config)
     """
     if not isinstance(config_json, dict):
-        raise ValueError(f"config_json must be a dict, got {type(config_json).__name__}")
+        raise ValueError(
+            f"config_json must be a dict, got {type(config_json).__name__}"
+        )
 
     blocks_config = config_json.get("blocks")
     if blocks_config is None:
-        raise ValueError("config_json must contain a 'blocks' key with a list of block configurations")
+        raise ValueError(
+            "config_json must contain a 'blocks' key with a list of block configurations"
+        )
 
     if not isinstance(blocks_config, list):
         raise ValueError(f"'blocks' must be a list, got {type(blocks_config).__name__}")
 
-    sklearn_steps: List[Tuple[str, Any]] = []
-    split_config: Optional[Dict[str, Any]] = None
-    split_block: Optional[TrainValTestSplitBlock] = None
+    sklearn_steps: list[tuple[str, Any]] = []
+    split_config: dict[str, Any] | None = None
+    split_block: TrainValTestSplitBlock | None = None
 
     for idx, block_config in enumerate(blocks_config):
         if not isinstance(block_config, dict):
-            raise ValueError(f"Block configuration at index {idx} must be a dict, got {type(block_config).__name__}")
+            raise ValueError(
+                f"Block configuration at index {idx} must be a dict, got {type(block_config).__name__}"
+            )
 
         block_type = block_config.get("type")
         if not block_type:
-            raise ValueError(f"Block configuration at index {idx} is missing 'type' key")
+            raise ValueError(
+                f"Block configuration at index {idx} is missing 'type' key"
+            )
 
         if not isinstance(block_type, str):
-            raise ValueError(f"Block type at index {idx} must be a string, got {type(block_type).__name__}")
+            raise ValueError(
+                f"Block type at index {idx} must be a string, got {type(block_type).__name__}"
+            )
 
         block_params = block_config.get("params", {})
         if not isinstance(block_params, dict):
-            raise ValueError(f"Block params at index {idx} must be a dict, got {type(block_params).__name__}")
+            raise ValueError(
+                f"Block params at index {idx} must be a dict, got {type(block_params).__name__}"
+            )
 
         # Get the block class from registry
         block_class = get_block_or_raise(block_type)
@@ -125,7 +137,9 @@ def build_sklearn_pipeline(
     return pipeline, split_config
 
 
-def instantiate_block(block_type: str, params: Optional[Dict[str, Any]] = None) -> PipelineBlock:
+def instantiate_block(
+    block_type: str, params: dict[str, Any] | None = None
+) -> PipelineBlock:
     """Instantiate a pipeline block by type.
 
     Convenience function to create a single block instance from the registry.
@@ -151,14 +165,12 @@ def instantiate_block(block_type: str, params: Optional[Dict[str, Any]] = None) 
     try:
         return block_class(**params)
     except Exception as e:
-        raise ValueError(
-            f"Failed to instantiate block '{block_type}': {str(e)}"
-        ) from e
+        raise ValueError(f"Failed to instantiate block '{block_type}': {str(e)}") from e
 
 
 def extract_split_block(
-    blocks: List[PipelineBlock]
-) -> Tuple[List[PipelineBlock], Optional[TrainValTestSplitBlock]]:
+    blocks: list[PipelineBlock],
+) -> tuple[list[PipelineBlock], TrainValTestSplitBlock | None]:
     """Extract the TrainValTestSplitBlock from a list of blocks.
 
     Separates the split block from regular transformer blocks. The split
@@ -175,13 +187,15 @@ def extract_split_block(
     Raises:
         ValueError: If multiple split blocks are found.
     """
-    transformer_blocks: List[PipelineBlock] = []
-    split_block: Optional[TrainValTestSplitBlock] = None
+    transformer_blocks: list[PipelineBlock] = []
+    split_block: TrainValTestSplitBlock | None = None
 
     for block in blocks:
         if isinstance(block, TrainValTestSplitBlock):
             if split_block is not None:
-                raise ValueError("Multiple TrainValTestSplitBlock instances found. Only one split block is allowed.")
+                raise ValueError(
+                    "Multiple TrainValTestSplitBlock instances found. Only one split block is allowed."
+                )
             split_block = block
         else:
             transformer_blocks.append(block)
@@ -190,9 +204,8 @@ def extract_split_block(
 
 
 def build_pipeline_config(
-    sklearn_pipeline: SklearnPipeline,
-    split_config: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    sklearn_pipeline: SklearnPipeline, split_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Build pipeline configuration from a sklearn pipeline.
 
     Serializes a sklearn pipeline back to JSON configuration format.
@@ -209,23 +222,23 @@ def build_pipeline_config(
         >>> config = build_pipeline_config(pipeline, split_config)
         >>> # config can be saved as JSON
     """
-    blocks_config: List[Dict[str, Any]] = []
+    blocks_config: list[dict[str, Any]] = []
 
     # Serialize sklearn pipeline steps
     for name, step in sklearn_pipeline.steps:
-        if hasattr(step, 'block_type'):
+        if hasattr(step, "block_type"):
             # This is one of our PipelineBlock instances
             block_config = {
                 "type": step.block_type,
-                "params": step.get_params() if hasattr(step, 'get_params') else {}
+                "params": step.get_params() if hasattr(step, "get_params") else {},
             }
             blocks_config.append(block_config)
-        elif hasattr(step, '__class__'):
+        elif hasattr(step, "__class__"):
             # This is a sklearn transformer - note: we can't fully serialize these
             # without the custom block wrapper
             block_config = {
                 "type": step.__class__.__name__,
-                "params": step.get_params() if hasattr(step, 'get_params') else {}
+                "params": step.get_params() if hasattr(step, "get_params") else {},
             }
             blocks_config.append(block_config)
 
@@ -233,9 +246,7 @@ def build_pipeline_config(
     if split_config:
         split_block_config = {
             "type": "train_val_test_split",
-            "params": {
-                k: v for k, v in split_config.items() if v is not None
-            }
+            "params": {k: v for k, v in split_config.items() if v is not None},
         }
         blocks_config.append(split_block_config)
 

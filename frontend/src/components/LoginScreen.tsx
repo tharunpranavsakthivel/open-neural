@@ -39,7 +39,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps): JSX.Element {
         setError(result.error || "Invalid password");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
     } finally {
       setIsSubmitting(false);
     }

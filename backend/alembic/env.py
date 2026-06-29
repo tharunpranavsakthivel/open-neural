@@ -7,10 +7,10 @@ using the runtime DATA_DIR path from the Settings configuration.
 import asyncio
 import os
 import sys
-from pathlib import Path
 from logging.config import fileConfig
+from pathlib import Path
 
-from sqlalchemy import pool, create_engine
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -21,7 +21,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import the Base metadata and models
 from openneural_backend.db.models import Base
-from openneural_backend.config import Settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -46,17 +45,17 @@ target_metadata = Base.metadata
 
 def get_database_url() -> str:
     """Construct the database URL from runtime settings.
-    
+
     Uses the OPENNEURAL_DATA_DIR environment variable to determine
     the SQLite database path. This ensures migrations run against
     the same database as the application.
-    
+
     Returns:
         str: SQLAlchemy database URL for SQLite.
     """
     # Get data directory from environment or use default
     data_dir = os.environ.get("OPENNEURAL_DATA_DIR")
-    
+
     if data_dir:
         # Use the provided data directory
         db_path = Path(data_dir).expanduser().resolve() / "openneural.db"
@@ -64,19 +63,19 @@ def get_database_url() -> str:
         # Default fallback - use ~/.openneural for standalone migration runs
         db_path = Path.home() / ".openneural" / "openneural.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Return SQLite URL (synchronous version for Alembic)
     return f"sqlite:///{db_path}"
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
-    
+
     This configures the context with just a URL
     and not an Engine, though an Engine is acceptable
     here as well. By skipping the Engine creation
     we don't even need a DBAPI to be available.
-    
+
     Calls to context.execute() here emit the given string to the
     script output.
     """
@@ -98,7 +97,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """Execute migrations with the provided connection.
-    
+
     Args:
         connection: SQLAlchemy connection to use for migrations.
     """
@@ -117,13 +116,13 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode using async engine.
-    
+
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
     # Get database URL and convert to async driver version
     url = get_database_url().replace("sqlite:///", "sqlite+aiosqlite:///")
-    
+
     # Create async engine
     async_engine = async_engine_from_config(
         {"sqlalchemy.url": url},
@@ -139,7 +138,7 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
-    
+
     For OpenNeural, we use the async migration path to match
     the application's async database setup.
     """
@@ -150,6 +149,7 @@ def run_migrations_online() -> None:
 
     if loop and loop.is_running():
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(asyncio.run, run_async_migrations())
             future.result()

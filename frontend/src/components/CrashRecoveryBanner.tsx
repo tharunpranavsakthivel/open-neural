@@ -88,16 +88,21 @@ export function CrashRecoveryBanner({
   /**
    * Track loading state for each experiment action.
    */
-  const [loadingStates, setLoadingStates] = useState<Record<string, {
-    action: "restart" | "discard" | null;
-    isLoading: boolean;
-  }>>({});
+  const [loadingStates, setLoadingStates] = useState<
+    Record<
+      string,
+      {
+        action: "restart" | "discard" | null;
+        isLoading: boolean;
+      }
+    >
+  >({});
 
   /**
    * Track handled experiments (to hide them after action).
    */
   const [handledExperiments, setHandledExperiments] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   /**
@@ -130,7 +135,7 @@ export function CrashRecoveryBanner({
         }));
       }
     },
-    [onRestart]
+    [onRestart],
   );
 
   /**
@@ -156,7 +161,7 @@ export function CrashRecoveryBanner({
 
         // Check if all experiments are handled
         const remaining = interruptedExperiments.filter(
-          (e) => !handledExperiments.has(e.id) && e.id !== experiment.id
+          (e) => !handledExperiments.has(e.id) && e.id !== experiment.id,
         );
         if (remaining.length === 0 && onDismiss) {
           onDismiss();
@@ -171,7 +176,7 @@ export function CrashRecoveryBanner({
         }));
       }
     },
-    [interruptedExperiments, handledExperiments, onDiscard, onDismiss]
+    [interruptedExperiments, handledExperiments, onDiscard, onDismiss],
   );
 
   /**
@@ -185,7 +190,7 @@ export function CrashRecoveryBanner({
 
   // Filter out handled experiments
   const visibleExperiments = interruptedExperiments.filter(
-    (e) => !handledExperiments.has(e.id)
+    (e) => !handledExperiments.has(e.id),
   );
 
   if (visibleExperiments.length === 0) {

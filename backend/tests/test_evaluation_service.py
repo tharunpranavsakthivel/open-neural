@@ -6,18 +6,19 @@ the best run in an experiment.
 """
 
 import json
+
 import numpy as np
 import pandas as pd
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from openneural_backend.db.models import Evaluation, Experiment, Run, Pipeline, Project
+from openneural_backend.db.models import Evaluation, Experiment, Pipeline, Project, Run
 from openneural_backend.services.evaluation_service import (
     compute_classification_metrics,
     compute_confusion_matrix,
+    compute_metrics_with_threshold,
     compute_subgroup_analysis,
     identify_best_run,
-    compute_metrics_with_threshold,
 )
 
 
@@ -40,14 +41,14 @@ async def test_compute_classification_metrics_known_pair() -> None:
     y_proba = [0.1, 0.6, 0.8, 0.9, 0.4]
 
     metrics = compute_classification_metrics(y_true, y_pred, y_proba)
-    
+
     # y_true mapping: positive is 1, negative is 0
     # TP = 2 (indices 2, 3), FP = 1 (index 1), FN = 1 (index 4), TN = 1 (index 0)
     # Precision = TP / (TP + FP) = 2 / 3 = 0.6667
     # Recall = TP / (TP + FN) = 2 / 3 = 0.6667
     # F1 = 2 * P * R / (P + R) = 2 * (2/3) * (2/3) / (4/3) = 2/3 = 0.6667
     # Accuracy = (TP + TN) / Total = 3 / 5 = 0.6000
-    
+
     assert metrics["precision"] == pytest.approx(0.6667, abs=1e-3)
     assert metrics["recall"] == pytest.approx(0.6667, abs=1e-3)
     assert metrics["f1"] == pytest.approx(0.6667, abs=1e-3)
@@ -62,7 +63,7 @@ async def test_confusion_matrix_binary_and_multiclass() -> None:
     # 1. Binary Case
     y_true_binary = [0, 0, 1, 1, 1]
     y_pred_binary = [0, 1, 1, 1, 0]
-    
+
     cm_binary = compute_confusion_matrix(y_true_binary, y_pred_binary)
     assert cm_binary["tn"] == 1
     assert cm_binary["fp"] == 1
@@ -72,7 +73,7 @@ async def test_confusion_matrix_binary_and_multiclass() -> None:
     # 2. Three-class Case
     y_true_multi = [0, 1, 2, 0, 1, 2]
     y_pred_multi = [0, 1, 1, 0, 2, 2]
-    
+
     cm_multi = compute_confusion_matrix(y_true_multi, y_pred_multi)
     assert cm_multi["labels"] == ["0", "1", "2"]
     # Matrix should be:
@@ -117,14 +118,14 @@ async def test_subgroup_f1_warning_flag() -> None:
         "gender": ["Male"] * 10 + ["Female"] * 10,
     }
     df = pd.DataFrame(data)
-    
+
     y_true = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0] + [1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
     # Male group (all correct)
     # Female group (all wrong)
     y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0] + [0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
 
     results = compute_subgroup_analysis(df, y_true, y_pred, feature_cols=["gender"])
-    
+
     # Overall accuracy/F1 is ~0.5. Male group F1 is 1.0. Female group F1 is 0.0.
     # Female group F1 (0.0) is delta 0.5 below overall (0.5), which is > 0.15 -> should trigger warning.
     # Male group F1 (1.0) is above overall -> should not trigger warning.
@@ -191,7 +192,7 @@ async def test_identify_best_run_highest_metric(
     await db_session.commit()
 
     best_run_info = await identify_best_run(experiment.id)
-    
+
     assert best_run_info is not None
     assert best_run_info["run_id"] == run2.id
     assert best_run_info["model_type"] == "random_forest"
@@ -224,7 +225,9 @@ async def test_classification_metrics_custom_binary_labels() -> None:
 @pytest.mark.anyio
 async def test_compute_regression_metrics() -> None:
     """Verify compute_regression_metrics computes correctly and handles exceptions."""
-    from openneural_backend.services.evaluation_service import compute_regression_metrics
+    from openneural_backend.services.evaluation_service import (
+        compute_regression_metrics,
+    )
 
     # Happy path
     res = compute_regression_metrics([1.0, 2.0, 3.0], [1.1, 1.9, 3.0])
@@ -241,11 +244,15 @@ async def test_compute_regression_metrics() -> None:
 @pytest.mark.anyio
 async def test_subgroup_analysis_features_none() -> None:
     """Verify subgroup analysis auto-detects categorical columns and handles missing columns."""
-    df = pd.DataFrame({
-        "cat_col": ["A", "B", "A", "B", "A", "B"],
-        "num_col": [1, 2, 3, 4, 5, 6],
-    })
-    results = compute_subgroup_analysis(df, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1], feature_cols=None)
+    df = pd.DataFrame(
+        {
+            "cat_col": ["A", "B", "A", "B", "A", "B"],
+            "num_col": [1, 2, 3, 4, 5, 6],
+        }
+    )
+    results = compute_subgroup_analysis(
+        df, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1], feature_cols=None
+    )
     # The subgroup A has size 3 (< 5), so it should be skipped.
     assert len(results) == 0
 
@@ -310,6 +317,7 @@ async def test_identify_best_run_exceptions_and_regression_metrics(
 
     # Retrieve and update the existing evaluation to test updates
     from openneural_backend.services.evaluation_service import select
+
     stmt = select(Evaluation).where(Evaluation.run_id == run_rmse_low.id)
     eval_record_result = await db_session.execute(stmt)
     eval_record = eval_record_result.scalar_one()
@@ -324,7 +332,11 @@ async def test_identify_best_run_exceptions_and_regression_metrics(
 @pytest.mark.anyio
 async def test_custom_exceptions() -> None:
     """Verify custom exception definitions."""
-    from openneural_backend.services.evaluation_service import ExperimentNotFoundError, EvaluationError
+    from openneural_backend.services.evaluation_service import (
+        EvaluationError,
+        ExperimentNotFoundError,
+    )
+
     with pytest.raises(ExperimentNotFoundError):
         raise ExperimentNotFoundError("exp1")
     with pytest.raises(EvaluationError):
@@ -335,6 +347,6 @@ async def test_custom_exceptions() -> None:
 async def test_load_predictions() -> None:
     """Verify load_predictions behaves correctly."""
     from openneural_backend.services.evaluation_service import load_predictions
+
     res = load_predictions("nonexistent_run", "nonexistent_exp")
     assert res is None
-

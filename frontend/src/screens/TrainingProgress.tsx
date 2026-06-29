@@ -14,7 +14,10 @@
  * @module screens/TrainingProgress
  */
 import { useEffect, useRef, useCallback, useState } from "react";
-import { useTrainingStore, type SSEStatusUpdate } from "../stores/trainingStore";
+import {
+  useTrainingStore,
+  type SSEStatusUpdate,
+} from "../stores/trainingStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { cancelExperiment } from "../utils/api";
 
@@ -39,9 +42,11 @@ interface TrainingProgressProps {
  * @returns Whether the status is terminal
  */
 function isTerminalStatus(
-  status: "running" | "done" | "cancelled" | "interrupted" | "created"
+  status: "running" | "done" | "cancelled" | "interrupted" | "created",
 ): boolean {
-  return status === "done" || status === "cancelled" || status === "interrupted";
+  return (
+    status === "done" || status === "cancelled" || status === "interrupted"
+  );
 }
 
 /**
@@ -165,7 +170,8 @@ export function TrainingProgress({
                 if (payload.status === "done" && onTrainingComplete) {
                   onTrainingComplete();
                 } else if (
-                  (payload.status === "cancelled" || payload.status === "interrupted") &&
+                  (payload.status === "cancelled" ||
+                    payload.status === "interrupted") &&
                   onTrainingCancelled
                 ) {
                   onTrainingCancelled();
@@ -192,7 +198,9 @@ export function TrainingProgress({
         };
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to connect to training stream";
+          err instanceof Error
+            ? err.message
+            : "Failed to connect to training stream";
         setError(errorMessage);
         setIsConnected(false);
       }
@@ -333,7 +341,9 @@ export function TrainingProgress({
           <div style={styles.cancelledStateHeader}>
             <span style={styles.cancelledStateIcon}>⛔</span>
             <h2 style={styles.cancelledStateTitle}>
-              {status === "cancelled" ? "Training Cancelled" : "Training Interrupted"}
+              {status === "cancelled"
+                ? "Training Cancelled"
+                : "Training Interrupted"}
             </h2>
           </div>
           <p style={styles.cancelledStateDescription}>
@@ -389,7 +399,9 @@ export function TrainingProgress({
               }}
             />
           </div>
-          <span style={styles.progressText}>{Math.round(clampedProgress)}%</span>
+          <span style={styles.progressText}>
+            {Math.round(clampedProgress)}%
+          </span>
         </div>
 
         <p style={styles.progressDescription}>
@@ -472,13 +484,15 @@ export function TrainingProgress({
           <li style={styles.infoItem}>
             <span style={styles.infoBullet}>•</span>
             <span style={styles.infoText}>
-              Cross-validation is performed to ensure reliable performance estimates
+              Cross-validation is performed to ensure reliable performance
+              estimates
             </span>
           </li>
           <li style={styles.infoItem}>
             <span style={styles.infoBullet}>•</span>
             <span style={styles.infoText}>
-              Hyperparameter optimization runs automatically if AutoML is enabled
+              Hyperparameter optimization runs automatically if AutoML is
+              enabled
             </span>
           </li>
           <li style={styles.infoItem}>

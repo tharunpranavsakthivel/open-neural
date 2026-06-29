@@ -7,7 +7,8 @@ cancellation behavior and status cleanup, and interrupted state detection on shu
 import asyncio
 import re
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,12 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from openneural_backend.db.models import Experiment, Pipeline, Project
 from openneural_backend.orchestrator.experiment_manager import (
     _generate_experiment_id_human,
+    cancel_experiment,
     create_experiment,
     get_experiment,
     start_experiment,
-    cancel_experiment,
-    ExperimentNotFoundError,
-    ExperimentStateError,
 )
 from openneural_backend.shutdown import ShutdownManager
 
@@ -103,6 +102,7 @@ async def test_status_transitions_created_to_running_to_done(
     async def mock_run_experiment(exp_id: str) -> None:
         # Simulate training setting status to done
         from openneural_backend.db.engine import async_session
+
         async with async_session() as session:
             res = await session.execute(
                 select(Experiment).where(Experiment.id == exp_id)

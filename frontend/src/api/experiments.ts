@@ -1,9 +1,9 @@
 /**
  * Experiments API module.
- * 
+ *
  * Provides typed Axios-based wrappers for experiment life cycle, training estimations,
  * and interrupted/crash-recovery operations.
- * 
+ *
  * @module api/experiments
  */
 import { getApiClient } from "./client";
@@ -139,85 +139,85 @@ export interface RecoverExperimentResponse {
 
 /**
  * Fetch training time estimate for the given configuration.
- * 
+ *
  * POST /api/v1/experiments/estimate
- * 
+ *
  * @param request - The configuration to estimate training time for
  * @returns Training time estimate with metadata
  */
 export async function fetchTrainingTimeEstimate(
-  request: TrainingTimeEstimateRequest
+  request: TrainingTimeEstimateRequest,
 ): Promise<TrainingTimeEstimateResponse> {
   const client = getApiClient();
   const response = await client.post<TrainingTimeEstimateResponse>(
     "/experiments/estimate",
-    request
+    request,
   );
   return response.data;
 }
 
 /**
  * Create a new experiment for a project.
- * 
+ *
  * POST /api/v1/projects/{projectId}/experiments
- * 
+ *
  * @param projectId - The ID of the project
  * @param request - The experiment configuration
  * @returns The created experiment response
  */
 export async function createExperiment(
   projectId: string,
-  request: CreateExperimentRequest
+  request: CreateExperimentRequest,
 ): Promise<CreateExperimentResponse> {
   const client = getApiClient();
   const response = await client.post<CreateExperimentResponse>(
     `/projects/${projectId}/experiments`,
-    request
+    request,
   );
   return response.data;
 }
 
 /**
  * Start training for an experiment.
- * 
+ *
  * POST /api/v1/experiments/{experimentId}/start
- * 
+ *
  * @param experimentId - The ID of the experiment
  * @returns The started experiment status
  */
 export async function startExperiment(
-  experimentId: string
+  experimentId: string,
 ): Promise<StartExperimentResponse> {
   const client = getApiClient();
   const response = await client.post<StartExperimentResponse>(
-    `/experiments/${experimentId}/start`
+    `/experiments/${experimentId}/start`,
   );
   return response.data;
 }
 
 /**
  * Cancel training for an experiment.
- * 
+ *
  * DELETE /api/v1/experiments/{experimentId}/cancel
- * 
+ *
  * @param experimentId - The ID of the experiment
  * @returns The cancelled experiment status
  */
 export async function cancelExperiment(
-  experimentId: string
+  experimentId: string,
 ): Promise<CancelExperimentResponse> {
   const client = getApiClient();
   const response = await client.delete<CancelExperimentResponse>(
-    `/experiments/${experimentId}/cancel`
+    `/experiments/${experimentId}/cancel`,
   );
   return response.data;
 }
 
 /**
  * Fetch all interrupted experiments across all projects.
- * 
+ *
  * GET /api/v1/experiments/interrupted
- * 
+ *
  * @returns List of interrupted experiments
  */
 export async function fetchInterruptedExperiments(): Promise<
@@ -225,28 +225,28 @@ export async function fetchInterruptedExperiments(): Promise<
 > {
   const client = getApiClient();
   const response = await client.get<InterruptedExperimentsResponse>(
-    "/experiments/interrupted"
+    "/experiments/interrupted",
   );
   return response.data.interrupted_experiments ?? [];
 }
 
 /**
  * Recover an interrupted experiment by restarting or discarding it.
- * 
+ *
  * PATCH /api/v1/experiments/{experimentId}/recover
- * 
+ *
  * @param experimentId - The ID of the interrupted experiment
  * @param action - The recovery action: "restart" or "discard"
  * @returns The recovered experiment status
  */
 export async function recoverExperiment(
   experimentId: string,
-  action: "restart" | "discard"
+  action: "restart" | "discard",
 ): Promise<RecoverExperimentResponse> {
   const client = getApiClient();
   const response = await client.patch<RecoverExperimentResponse>(
     `/experiments/${experimentId}/recover`,
-    { action }
+    { action },
   );
   return response.data;
 }

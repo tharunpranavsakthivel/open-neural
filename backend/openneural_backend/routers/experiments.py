@@ -3,15 +3,16 @@
 Provides endpoints for experiment management: create, start, cancel, get status.
 """
 
+import psutil
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import psutil
 from openneural_backend.db.engine import get_async_session
 from openneural_backend.db.models import Pipeline, Project
 from openneural_backend.models.registry import list_models
+from openneural_backend.orchestrator.estimator import estimate_training_time
 from openneural_backend.orchestrator.experiment_manager import (
     ExperimentNotFoundError,
     ExperimentStateError,
@@ -20,7 +21,6 @@ from openneural_backend.orchestrator.experiment_manager import (
     create_experiment,
     start_experiment,
 )
-from openneural_backend.orchestrator.estimator import estimate_training_time
 from openneural_backend.services.dataset_service import ChecksumMismatchError
 
 router = APIRouter(prefix="/projects/{project_id}/experiments", tags=["experiments"])
@@ -55,7 +55,9 @@ class ExperimentCreateRequest(BaseModel):
         """Validate optimization metric is supported."""
         valid_metrics = ["f1", "auc_roc", "precision", "recall", "rmse", "mae", "r2"]
         if v not in valid_metrics:
-            raise ValueError(f"Invalid optimize_metric '{v}'. Must be one of: {valid_metrics}")
+            raise ValueError(
+                f"Invalid optimize_metric '{v}'. Must be one of: {valid_metrics}"
+            )
         return v
 
 
@@ -68,7 +70,9 @@ class ExperimentCreateResponse(BaseModel):
     created_at: str
 
 
-@router.post("", response_model=ExperimentCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ExperimentCreateResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_experiment_endpoint(
     project_id: str,
     request: ExperimentCreateRequest,
@@ -121,8 +125,7 @@ async def create_experiment_endpoint(
     # Validate candidate_models are all registered for this task type
     registered_models = list_models(task_type=project.task_type)
     invalid_models = [
-        model for model in request.candidate_models
-        if model not in registered_models
+        model for model in request.candidate_models if model not in registered_models
     ]
     if invalid_models:
         available = list(registered_models.keys())
@@ -235,6 +238,7 @@ async def start_experiment_endpoint(
 
     # Validate experiment exists and belongs to this project
     from openneural_backend.db.models import Experiment
+
     exp_result = await session.execute(
         select(Experiment).where(
             Experiment.id == experiment_id,
@@ -285,12 +289,17 @@ class ExperimentStatusResponse(BaseModel):
     CPU and RAM usage, and per-run status with metrics.
     """
 
-    status: str = Field(..., description="Experiment status (created, running, done, cancelled, interrupted)")
+    status: str = Field(
+        ...,
+        description="Experiment status (created, running, done, cancelled, interrupted)",
+    )
     progress_pct: float = Field(..., description="Progress percentage (0-100)")
     cpu_pct: float = Field(..., description="Current CPU usage percentage")
     ram_used_gb: float = Field(..., description="Used RAM in GB")
     ram_total_gb: float = Field(..., description="Total RAM in GB")
-    runs: list[dict] = Field(..., description="List of run statuses with model_type, status, and metrics")
+    runs: list[dict] = Field(
+        ..., description="List of run statuses with model_type, status, and metrics"
+    )
 
 
 @router.get("/{experiment_id}/status", response_model=ExperimentStatusResponse)
@@ -332,6 +341,7 @@ async def get_experiment_status(
 
     # Get experiment and validate it belongs to project
     from openneural_backend.db.models import Experiment
+
     exp_result = await session.execute(
         select(Experiment).where(
             Experiment.id == experiment_id,
@@ -347,6 +357,7 @@ async def get_experiment_status(
 
     # Get all runs for this experiment
     from openneural_backend.db.models import Run
+
     runs_result = await session.execute(
         select(Run).where(Run.experiment_id == experiment_id)
     )
@@ -361,8 +372,8 @@ async def get_experiment_status(
     # Per SRS FR-TRAIN-05: Display real-time CPU and RAM usage
     cpu_pct = psutil.cpu_percent(interval=0.1)
     memory = psutil.virtual_memory()
-    ram_used_gb = memory.used / (1024 ** 3)
-    ram_total_gb = memory.total / (1024 ** 3)
+    ram_used_gb = memory.used / (1024**3)
+    ram_total_gb = memory.total / (1024**3)
 
     # Build runs list with model_type, status, and metrics
     runs_list = []
@@ -443,6 +454,7 @@ async def cancel_experiment_endpoint(
 
     # Validate experiment exists and belongs to this project
     from openneural_backend.db.models import Experiment
+
     exp_result = await session.execute(
         select(Experiment).where(
             Experiment.id == experiment_id,
@@ -458,9 +470,9 @@ async def cancel_experiment_endpoint(
 
     # Cancel the experiment via experiment_manager
     from openneural_backend.orchestrator.experiment_manager import (
-        cancel_experiment,
         ExperimentStateError,
     )
+
     try:
         result = await cancel_experiment(experiment_id)
     except ExperimentNotFoundError:
@@ -537,6 +549,7 @@ async def estimate_experiment_time(
 
     # Get experiment and validate it belongs to project
     from openneural_backend.db.models import Experiment
+
     exp_result = await session.execute(
         select(Experiment).where(
             Experiment.id == experiment_id,
@@ -563,6 +576,7 @@ async def estimate_experiment_time(
 
     # Get snapshot for row/feature counts
     from openneural_backend.db.models import DatasetSnapshot
+
     snapshot_result = await session.execute(
         select(DatasetSnapshot).where(DatasetSnapshot.id == pipeline.snapshot_id)
     )
@@ -574,7 +588,9 @@ async def estimate_experiment_time(
         )
 
     # Get candidate count
-    candidate_models = experiment.candidate_models.split(",") if experiment.candidate_models else []
+    candidate_models = (
+        experiment.candidate_models.split(",") if experiment.candidate_models else []
+    )
     candidate_count = len(candidate_models)
 
     # Get AutoML config

@@ -6,16 +6,14 @@ specified columns from the dataset. This is useful for removing features
 that are not relevant for the model or may cause data leakage.
 """
 
-from typing import List, Optional
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import FunctionTransformer
 
 from openneural_backend.pipeline.block_interface import PipelineBlock
 
 
-def _validate_columns(X: pd.DataFrame, columns: List[str], block_name: str) -> None:
+def _validate_columns(X: pd.DataFrame, columns: list[str], block_name: str) -> None:
     """Validate that specified columns exist in the DataFrame.
 
     Args:
@@ -72,13 +70,13 @@ class FeatureSelectionBlock(PipelineBlock):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "List of column names to drop from the dataset. "
-                               "All other columns are retained.",
+                "All other columns are retained.",
             }
         },
         "required": ["columns"],
     }
 
-    def __init__(self, columns: List[str]) -> None:
+    def __init__(self, columns: list[str]) -> None:
         """Initialize the FeatureSelectionBlock.
 
         Args:
@@ -93,10 +91,12 @@ class FeatureSelectionBlock(PipelineBlock):
                 "Specify columns=['col1', 'col2', ...]"
             )
         super().__init__(columns=columns)
-        self._column_transformer: Optional[ColumnTransformer] = None
-        self._kept_columns: List[str] = []
+        self._column_transformer: ColumnTransformer | None = None
+        self._kept_columns: list[str] = []
 
-    def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "FeatureSelectionBlock":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> "FeatureSelectionBlock":
         """Fit the block to the data.
 
         Validates that the specified columns exist and determines which
@@ -127,9 +127,7 @@ class FeatureSelectionBlock(PipelineBlock):
         # Create ColumnTransformer that applies passthrough to kept columns
         # and drops the specified columns
         self._column_transformer = ColumnTransformer(
-            transformers=[
-                ("keep", "passthrough", self._kept_columns)
-            ],
+            transformers=[("keep", "passthrough", self._kept_columns)],
             remainder="drop",  # Drop all other columns
             verbose_feature_names_out=False,
         )
@@ -187,7 +185,7 @@ class FeatureSelectionBlock(PipelineBlock):
             )
         return self._column_transformer
 
-    def get_dropped_columns(self) -> List[str]:
+    def get_dropped_columns(self) -> list[str]:
         """Get the list of columns that will be dropped.
 
         Returns:
@@ -195,7 +193,7 @@ class FeatureSelectionBlock(PipelineBlock):
         """
         return self.params.get("columns", []).copy()
 
-    def get_kept_columns(self) -> List[str]:
+    def get_kept_columns(self) -> list[str]:
         """Get the list of columns that will be kept after transformation.
 
         Only valid after fit() has been called.

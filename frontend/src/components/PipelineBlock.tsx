@@ -135,15 +135,40 @@ function StatusIcon({ status }: { status: BlockStatus }): JSX.Element {
     case "validated":
       // Green checkmark
       return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="2" fill="none" />
-          <path d="M5 8L7 10L11 6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="8"
+            cy="8"
+            r="7"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+          />
+          <path
+            d="M5 8L7 10L11 6"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       );
     case "warning":
       // Yellow triangle
       return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
           <path
             d="M8 2L14 13H2L8 2Z"
             stroke={color}
@@ -151,22 +176,58 @@ function StatusIcon({ status }: { status: BlockStatus }): JSX.Element {
             strokeLinejoin="round"
             fill="none"
           />
-          <path d="M8 6V9" stroke={color} strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M8 6V9"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
           <circle cx="8" cy="11.5" r="0.8" fill={color} />
         </svg>
       );
     case "error":
       // Red cross
       return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="2" fill="none" />
-          <path d="M5 5L11 11M11 5L5 11" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="8"
+            cy="8"
+            r="7"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+          />
+          <path
+            d="M5 5L11 11M11 5L5 11"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
         </svg>
       );
     default:
       return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" stroke="#6b7280" strokeWidth="2" fill="none" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="8"
+            cy="8"
+            r="7"
+            stroke="#6b7280"
+            strokeWidth="2"
+            fill="none"
+          />
         </svg>
       );
   }
@@ -388,7 +449,10 @@ export function PipelineBlock({
           </svg>
         </button>
         <button
-          style={{ ...styles.blockActionButton, ...styles.blockActionButtonDanger }}
+          style={{
+            ...styles.blockActionButton,
+            ...styles.blockActionButtonDanger,
+          }}
           onClick={handleRemove}
           type="button"
           aria-label={`Remove ${displayLabel}`}

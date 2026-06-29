@@ -33,8 +33,11 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
 
     try {
       // Validate password locally first
-      const validation = await window.electronAPI.validateSetupPassword(password, confirmPassword);
-      
+      const validation = await window.electronAPI.validateSetupPassword(
+        password,
+        confirmPassword,
+      );
+
       if (!validation.success) {
         setError(validation.error || "Password validation failed");
         setIsSubmitting(false);
@@ -43,14 +46,16 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
 
       // Store the password
       const result = await window.electronAPI.storePassword(password);
-      
+
       if (result.success) {
         onComplete();
       } else {
         setError(result.error || "Failed to store password");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +115,9 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps): JSX.Element {
             disabled={isSubmitting || !password || !confirmPassword}
             style={{
               ...styles.button,
-              ...(isSubmitting || !password || !confirmPassword ? styles.buttonDisabled : {}),
+              ...(isSubmitting || !password || !confirmPassword
+                ? styles.buttonDisabled
+                : {}),
             }}
           >
             {isSubmitting ? "Setting up..." : "Create Password"}

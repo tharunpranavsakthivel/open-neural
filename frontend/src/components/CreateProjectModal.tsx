@@ -11,7 +11,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { Project } from "../stores/appStore";
 
 /** Valid task types for project creation */
-type TaskType = "binary_classification" | "multiclass_classification" | "regression";
+type TaskType =
+  "binary_classification" | "multiclass_classification" | "regression";
 
 export interface CreateProjectModalProps {
   /** Whether the modal is open */
@@ -85,7 +86,7 @@ export function CreateProjectModal({
         }
       }
     },
-    [onClose, isLoading]
+    [onClose, isLoading],
   );
 
   // Handle click outside to close
@@ -95,7 +96,7 @@ export function CreateProjectModal({
         onClose();
       }
     },
-    [onClose, isLoading]
+    [onClose, isLoading],
   );
 
   // Handle Tab key for focus trap
@@ -107,7 +108,7 @@ export function CreateProjectModal({
 
     // Get all focusable elements
     const focusableElements = dialog.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
@@ -160,7 +161,7 @@ export function CreateProjectModal({
         setIsLoading(false);
       }
     },
-    [name, taskType, onCreateProject, onSuccess, onClose]
+    [name, taskType, onCreateProject, onSuccess, onClose],
   );
 
   if (!isOpen) {
@@ -231,7 +232,9 @@ export function CreateProjectModal({
               style={styles.select}
               aria-required="true"
             >
-              <option value="binary_classification">Binary Classification</option>
+              <option value="binary_classification">
+                Binary Classification
+              </option>
               <option value="multiclass_classification">
                 Multiclass Classification
               </option>

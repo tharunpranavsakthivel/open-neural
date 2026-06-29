@@ -31,7 +31,8 @@ export function FeatureSelectionConfig({
       <h4 style={configStyles.title}>Feature Selection Configuration</h4>
       <p style={configStyles.helpText}>
         Remove selected columns from the dataset. This is useful for dropping
-        identifiers, timestamps, or other columns that should not be used for training.
+        identifiers, timestamps, or other columns that should not be used for
+        training.
       </p>
 
       <div style={configStyles.section}>
@@ -62,7 +63,8 @@ export function FeatureSelectionConfig({
               fontWeight: 500,
             }}
           >
-            ⚠️ {columns.length} column{columns.length === 1 ? "" : "s"} will be removed
+            ⚠️ {columns.length} column{columns.length === 1 ? "" : "s"} will be
+            removed
           </p>
         </div>
       )}

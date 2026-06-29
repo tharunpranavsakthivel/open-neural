@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from openneural_backend.db.engine import async_session
-from openneural_backend.db.models import Evaluation, Experiment, Project, Run
+from openneural_backend.db.models import Experiment, Project
 
 router = APIRouter(prefix="/projects/{project_id}/leaderboard", tags=["leaderboard"])
 
@@ -137,7 +137,8 @@ async def get_leaderboard(
         for experiment in experiments:
             # Filter runs in memory to avoid N+1 database queries
             runs = [
-                run for run in experiment.runs
+                run
+                for run in experiment.runs
                 if run.status == "done" and run.test_metrics_json is not None
             ]
 
@@ -191,21 +192,31 @@ async def get_leaderboard(
             primary_metric_value = best_metrics.get(optimize_metric)
             if optimize_metric in ("rmse", "mae"):
                 # For metrics where lower is better, negate for comparison
-                primary_metric_score = -primary_metric_value if primary_metric_value is not None else float("-inf")
+                primary_metric_score = (
+                    -primary_metric_value
+                    if primary_metric_value is not None
+                    else float("-inf")
+                )
             else:
                 # For metrics where higher is better, use as-is
-                primary_metric_score = primary_metric_value if primary_metric_value is not None else float("-inf")
+                primary_metric_score = (
+                    primary_metric_value
+                    if primary_metric_value is not None
+                    else float("-inf")
+                )
 
-            entries.append({
-                "experiment_id": experiment.id,
-                "experiment_id_human": experiment.experiment_id_human,
-                "best_model_type": best_run.model_type,
-                "metrics": entry_metrics,
-                "training_time_seconds": best_run.training_time_sec or 0.0,
-                "is_best": False,  # Will be computed after all entries are collected
-                "created_at": experiment.created_at.isoformat(),
-                "_primary_metric_score": primary_metric_score,  # Internal field for comparison
-            })
+            entries.append(
+                {
+                    "experiment_id": experiment.id,
+                    "experiment_id_human": experiment.experiment_id_human,
+                    "best_model_type": best_run.model_type,
+                    "metrics": entry_metrics,
+                    "training_time_seconds": best_run.training_time_sec or 0.0,
+                    "is_best": False,  # Will be computed after all entries are collected
+                    "created_at": experiment.created_at.isoformat(),
+                    "_primary_metric_score": primary_metric_score,  # Internal field for comparison
+                }
+            )
 
         # Sort entries by the requested column
         reverse = order == "desc"
@@ -228,8 +239,7 @@ async def get_leaderboard(
         if entries:
             # Find the entry with the highest primary metric score
             best_entry_index = max(
-                range(len(entries)),
-                key=lambda i: entries[i]["_primary_metric_score"]
+                range(len(entries)), key=lambda i: entries[i]["_primary_metric_score"]
             )
             entries[best_entry_index]["is_best"] = True
 

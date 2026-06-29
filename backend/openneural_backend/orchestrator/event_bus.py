@@ -58,7 +58,9 @@ async def subscribe(experiment_id: str) -> asyncio.Queue[dict[str, Any]]:
             _experiment_queues[experiment_id] = set()
         _experiment_queues[experiment_id].add(queue)
 
-    logger.debug(f"Subscribed to experiment {experiment_id}, total subscribers: {len(_experiment_queues[experiment_id])}")
+    logger.debug(
+        f"Subscribed to experiment {experiment_id}, total subscribers: {len(_experiment_queues[experiment_id])}"
+    )
     return queue
 
 
@@ -83,9 +85,13 @@ async def unsubscribe(experiment_id: str, queue: asyncio.Queue[dict[str, Any]]) 
             # If no more subscribers, remove the experiment entirely
             if not _experiment_queues[experiment_id]:
                 del _experiment_queues[experiment_id]
-                logger.debug(f"Removed experiment {experiment_id} from event bus (no subscribers)")
+                logger.debug(
+                    f"Removed experiment {experiment_id} from event bus (no subscribers)"
+                )
             else:
-                logger.debug(f"Unsubscribed from experiment {experiment_id}, remaining subscribers: {len(_experiment_queues[experiment_id])}")
+                logger.debug(
+                    f"Unsubscribed from experiment {experiment_id}, remaining subscribers: {len(_experiment_queues[experiment_id])}"
+                )
         else:
             logger.debug(f"Unsubscribe called for unknown experiment {experiment_id}")
 
@@ -121,7 +127,9 @@ async def publish(experiment_id: str, event_type: str, payload: dict[str, Any]) 
         queues = _experiment_queues.get(experiment_id, set()).copy()
 
     if not queues:
-        logger.debug(f"No subscribers for experiment {experiment_id}, dropping event: {event_type}")
+        logger.debug(
+            f"No subscribers for experiment {experiment_id}, dropping event: {event_type}"
+        )
         return
 
     # Put event into all subscriber queues
@@ -130,9 +138,13 @@ async def publish(experiment_id: str, event_type: str, payload: dict[str, Any]) 
         try:
             queue.put_nowait(event)
         except asyncio.QueueFull:
-            logger.warning(f"Queue full for experiment {experiment_id}, dropping event: {event_type}")
+            logger.warning(
+                f"Queue full for experiment {experiment_id}, dropping event: {event_type}"
+            )
 
-    logger.debug(f"Published {event_type} event to {len(queues)} subscribers for experiment {experiment_id}")
+    logger.debug(
+        f"Published {event_type} event to {len(queues)} subscribers for experiment {experiment_id}"
+    )
 
 
 async def publish_status_update(
@@ -227,7 +239,9 @@ def has_subscribers(experiment_id: str) -> bool:
     Returns:
         bool: True if there are active subscribers, False otherwise.
     """
-    return experiment_id in _experiment_queues and bool(_experiment_queues[experiment_id])
+    return experiment_id in _experiment_queues and bool(
+        _experiment_queues[experiment_id]
+    )
 
 
 def get_subscriber_count(experiment_id: str) -> int:

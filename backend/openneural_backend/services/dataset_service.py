@@ -19,7 +19,6 @@ import logging
 import os
 import platform
 import re
-import shutil
 import subprocess
 import tempfile
 import uuid
@@ -29,9 +28,8 @@ from typing import Any
 
 import pandas as pd
 import psutil
-import pyarrow.parquet as pq
 from fastapi import UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from openneural_backend.config import Settings
 from openneural_backend.db.engine import async_session
@@ -173,9 +171,13 @@ def _set_snapshot_file_permissions(file_path: str | Path) -> None:
             else:
                 # Fallback: grant access to current user's SID
                 # This is a simplified approach; in production, use the actual SID
-                logger.warning("Could not determine current username for icacls, using default")
+                logger.warning(
+                    "Could not determine current username for icacls, using default"
+                )
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to set Windows file permissions with icacls: {e.stderr}")
+            logger.error(
+                f"Failed to set Windows file permissions with icacls: {e.stderr}"
+            )
             # Don't raise - the file still exists, just with default permissions
         except FileNotFoundError:
             logger.warning("icacls command not found, using default file permissions")
@@ -237,12 +239,14 @@ def infer_schema(df: pd.DataFrame) -> list[dict[str, Any]]:
         # Determine inferred type
         inferred_type = _infer_column_type(col_data)
 
-        schema.append({
-            "name": col,
-            "inferred_type": inferred_type,
-            "null_pct": round(null_pct, 2),
-            "unique_count": int(unique_count),
-        })
+        schema.append(
+            {
+                "name": col,
+                "inferred_type": inferred_type,
+                "null_pct": round(null_pct, 2),
+                "unique_count": int(unique_count),
+            }
+        )
 
     return schema
 
@@ -276,7 +280,9 @@ def _infer_column_type(col_data: pd.Series) -> str:
         return "boolean"
 
     # Check for categorical dtype
-    if isinstance(dtype, pd.CategoricalDtype) or pd.api.types.is_categorical_dtype(dtype):
+    if isinstance(dtype, pd.CategoricalDtype) or pd.api.types.is_categorical_dtype(
+        dtype
+    ):
         return "categorical"
 
     # Check for integer dtype - includes nullable integer extension types
@@ -312,7 +318,11 @@ def _infer_column_type(col_data: pd.Series) -> str:
         # Use unique ratio heuristic: < 10% unique values suggests categorical
         total_count = len(col_data)
         unique_count = col_data.nunique(dropna=True)
-        if total_count > 0 and (unique_count / total_count) < 0.1 and unique_count <= 100:
+        if (
+            total_count > 0
+            and (unique_count / total_count) < 0.1
+            and unique_count <= 100
+        ):
             return "categorical"
 
     # For string dtype (pandas 2.0+ StringDtype)
@@ -385,25 +395,28 @@ def _profile_column(col_data: pd.Series, total_rows: int) -> dict[str, Any]:
     if inferred_type in ("integer", "float"):
         numeric_data = col_data.dropna()
         if len(numeric_data) > 0:
-            profile.update({
-                "min": float(numeric_data.min()),
-                "max": float(numeric_data.max()),
-                "mean": float(numeric_data.mean()),
-                "std": float(numeric_data.std()),
-            })
+            profile.update(
+                {
+                    "min": float(numeric_data.min()),
+                    "max": float(numeric_data.max()),
+                    "mean": float(numeric_data.mean()),
+                    "std": float(numeric_data.std()),
+                }
+            )
         else:
-            profile.update({
-                "min": None,
-                "max": None,
-                "mean": None,
-                "std": None,
-            })
+            profile.update(
+                {
+                    "min": None,
+                    "max": None,
+                    "mean": None,
+                    "std": None,
+                }
+            )
     elif inferred_type == "categorical":
         # Show top 10 categories by frequency
         value_counts = col_data.value_counts().head(10).to_dict()
         profile["top_values"] = [
-            {"value": str(k), "count": int(v)}
-            for k, v in value_counts.items()
+            {"value": str(k), "count": int(v)} for k, v in value_counts.items()
         ]
     elif inferred_type == "string":
         # Show sample of non-null values
@@ -580,9 +593,18 @@ async def import_file(
                 _set_snapshot_file_permissions(schema_path)
             except (PermissionError, OSError) as e:
                 import errno
-                if isinstance(e, PermissionError) or (isinstance(e, OSError) and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)):
-                    logger.error(f"File permission failure: Failed to write snapshot files or set permissions: {e}", exc_info=True)
-                raise DatasetImportError(f"Failed to save snapshot due to file system or permission error: {e}")
+
+                if isinstance(e, PermissionError) or (
+                    isinstance(e, OSError)
+                    and getattr(e, "errno", None) in (errno.EACCES, errno.EPERM)
+                ):
+                    logger.error(
+                        f"File permission failure: Failed to write snapshot files or set permissions: {e}",
+                        exc_info=True,
+                    )
+                raise DatasetImportError(
+                    f"Failed to save snapshot due to file system or permission error: {e}"
+                )
 
             # Create snapshot record
             snapshot = DatasetSnapshot(
@@ -856,8 +878,7 @@ async def verify_snapshot_checksum(snapshot_id: str) -> dict[str, Any]:
         # Check if file exists
         if not stored_path.exists():
             raise DatasetImportError(
-                f"Stored file not found: {stored_path}",
-                {"snapshot_id": snapshot_id}
+                f"Stored file not found: {stored_path}", {"snapshot_id": snapshot_id}
             )
 
         # Recompute SHA-256 checksum of data.parquet
@@ -866,7 +887,7 @@ async def verify_snapshot_checksum(snapshot_id: str) -> dict[str, Any]:
         except Exception as e:
             raise DatasetImportError(
                 f"Failed to compute checksum: {str(e)}",
-                {"snapshot_id": snapshot_id, "file_path": str(stored_path)}
+                {"snapshot_id": snapshot_id, "file_path": str(stored_path)},
             )
 
         # Compare checksums and raise error if mismatch
@@ -916,14 +937,12 @@ async def load_snapshot_data(snapshot_id: str) -> pd.DataFrame:
 
         if not stored_path.exists():
             raise DatasetImportError(
-                f"Stored file not found: {stored_path}",
-                {"snapshot_id": snapshot_id}
+                f"Stored file not found: {stored_path}", {"snapshot_id": snapshot_id}
             )
 
         try:
             return pd.read_parquet(stored_path)
         except Exception as e:
             raise DatasetImportError(
-                f"Failed to load snapshot data: {str(e)}",
-                {"snapshot_id": snapshot_id}
+                f"Failed to load snapshot data: {str(e)}", {"snapshot_id": snapshot_id}
             )

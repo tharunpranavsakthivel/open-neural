@@ -6,17 +6,15 @@ structural issues, incompatible block orderings, and column reference validity
 against a dataset schema.
 """
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
-from openneural_backend.pipeline.block_interface import PipelineBlock
-from openneural_backend.pipeline.blocks.split import TrainValTestSplitBlock
 from openneural_backend.pipeline.registry import is_registered
 
 
 def validate_pipeline(
-    blocks: List[Dict[str, Any]],
-    schema_columns: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    blocks: list[dict[str, Any]],
+    schema_columns: list[str] | None = None,
+) -> dict[str, Any]:
     """Validate a pipeline configuration.
 
     Performs comprehensive validation on a pipeline configuration including:
@@ -47,8 +45,8 @@ def validate_pipeline(
         >>> print(result)
         {'valid': True, 'warnings': [], 'errors': []}
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     # Validate input structure
     if not isinstance(blocks, list):
@@ -66,10 +64,10 @@ def validate_pipeline(
         }
 
     # Track state during validation
-    block_types: List[str] = []
+    block_types: list[str] = []
     has_split_block = False
-    split_block_position: Optional[int] = None
-    column_modifications: Dict[str, List[str]] = {}  # Track column additions/deletions
+    split_block_position: int | None = None
+    column_modifications: dict[str, list[str]] = {}  # Track column additions/deletions
 
     # Validate each block
     for idx, block_config in enumerate(blocks):
@@ -122,7 +120,7 @@ def validate_pipeline(
 
 def _validate_block_structure(
     idx: int, block_config: Any
-) -> Tuple[List[str], List[str]]:
+) -> tuple[list[str], list[str]]:
     """Validate the structure of a single block configuration.
 
     Args:
@@ -132,8 +130,8 @@ def _validate_block_structure(
     Returns:
         Tuple of (errors, warnings) lists.
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     if not isinstance(block_config, dict):
         errors.append(f"Block at index {idx} must be a dictionary")
@@ -167,9 +165,9 @@ def _validate_block_structure(
 
 
 def _track_column_modifications(
-    modifications: Dict[str, List[str]],
+    modifications: dict[str, list[str]],
     block_type: str,
-    params: Dict[str, Any],
+    params: dict[str, Any],
     idx: int,
 ) -> None:
     """Track how columns are modified by blocks for later validation.
@@ -202,11 +200,11 @@ def _track_column_modifications(
 
 
 def _validate_block_ordering(
-    blocks: List[Dict[str, Any]],
-    block_types: List[str],
+    blocks: list[dict[str, Any]],
+    block_types: list[str],
     has_split_block: bool,
-    split_block_position: Optional[int],
-) -> Tuple[List[str], List[str]]:
+    split_block_position: int | None,
+) -> tuple[list[str], list[str]]:
     """Validate block ordering constraints.
 
     Args:
@@ -218,8 +216,8 @@ def _validate_block_ordering(
     Returns:
         Tuple of (errors, warnings) lists.
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     # Check that split block is last if present
     if has_split_block and split_block_position is not None:
@@ -249,10 +247,10 @@ def _validate_block_ordering(
 
 
 def _validate_column_references(
-    blocks: List[Dict[str, Any]],
-    schema_columns: List[str],
-    column_modifications: Dict[str, List[str]],
-) -> Tuple[List[str], List[str]]:
+    blocks: list[dict[str, Any]],
+    schema_columns: list[str],
+    column_modifications: dict[str, list[str]],
+) -> tuple[list[str], list[str]]:
     """Validate that referenced columns exist in the dataset schema.
 
     Args:
@@ -263,12 +261,12 @@ def _validate_column_references(
     Returns:
         Tuple of (errors, warnings) lists.
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     schema_set = set(schema_columns)
     available_columns = set(schema_columns)  # Columns available at each step
-    removed_columns: Set[str] = set()
+    removed_columns: set[str] = set()
 
     for idx, block_config in enumerate(blocks):
         if not isinstance(block_config, dict):
@@ -305,7 +303,7 @@ def _validate_column_references(
     return errors, warnings
 
 
-def _get_referenced_columns(block_type: str, params: Dict[str, Any]) -> List[str]:
+def _get_referenced_columns(block_type: str, params: dict[str, Any]) -> list[str]:
     """Extract column names referenced by a block configuration.
 
     Args:
@@ -345,7 +343,7 @@ def _get_referenced_columns(block_type: str, params: Dict[str, Any]) -> List[str
     return []
 
 
-def _validate_logical_ordering(block_types: List[str]) -> Tuple[List[str], List[str]]:
+def _validate_logical_ordering(block_types: list[str]) -> tuple[list[str], list[str]]:
     """Validate logical ordering of blocks.
 
     Checks for common ordering issues that may cause problems:
@@ -359,16 +357,18 @@ def _validate_logical_ordering(block_types: List[str]) -> Tuple[List[str], List[
     Returns:
         Tuple of (errors, warnings) lists.
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     # Find positions of relevant block types
-    def find_positions(types_to_find: Set[str]) -> List[int]:
+    def find_positions(types_to_find: set[str]) -> list[int]:
         return [idx for idx, bt in enumerate(block_types) if bt in types_to_find]
 
     impute_positions = find_positions({"fill_missing_mean", "fill_missing_median"})
     scale_positions = find_positions({"scale_numeric_standard", "scale_numeric_minmax"})
-    encode_positions = find_positions({"encode_categoricals_onehot", "encode_categoricals_ordinal"})
+    encode_positions = find_positions(
+        {"encode_categoricals_onehot", "encode_categoricals_ordinal"}
+    )
     outlier_positions = find_positions({"remove_outliers_iqr"})
 
     # Check: Scaling before imputation
@@ -412,7 +412,9 @@ def _validate_logical_ordering(block_types: List[str]) -> Tuple[List[str], List[
         "encode_categoricals_onehot",
         "encode_categoricals_ordinal",
     }
-    transform_positions = [(idx, bt) for idx, bt in enumerate(block_types) if bt in transform_types]
+    transform_positions = [
+        (idx, bt) for idx, bt in enumerate(block_types) if bt in transform_types
+    ]
 
     if len(transform_positions) > 2:
         warnings.append(
@@ -424,9 +426,7 @@ def _validate_logical_ordering(block_types: List[str]) -> Tuple[List[str], List[
     return errors, warnings
 
 
-def validate_block_params(
-    block_type: str, params: Dict[str, Any]
-) -> Dict[str, Any]:
+def validate_block_params(block_type: str, params: dict[str, Any]) -> dict[str, Any]:
     """Validate parameters for a specific block type.
 
     Args:
@@ -436,8 +436,8 @@ def validate_block_params(
     Returns:
         Dict with keys: valid (bool), warnings (list), errors (list).
     """
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     if not is_registered(block_type):
         return {

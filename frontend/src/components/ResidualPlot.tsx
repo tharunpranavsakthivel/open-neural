@@ -121,11 +121,7 @@ export function ResidualPlot({
   /**
    * Generate tick marks for axes.
    */
-  const generateTicks = (
-    min: number,
-    max: number,
-    count: number
-  ): number[] => {
+  const generateTicks = (min: number, max: number, count: number): number[] => {
     const ticks: number[] = [];
     const step = (max - min) / count;
     for (let i = 0; i <= count; i++) {
@@ -142,8 +138,7 @@ export function ResidualPlot({
    */
   const getPointColor = (residual: number): string => {
     const absResidual = Math.abs(residual);
-    const normalized =
-      stats.yRange > 0 ? absResidual / (stats.yRange / 2) : 0;
+    const normalized = stats.yRange > 0 ? absResidual / (stats.yRange / 2) : 0;
 
     if (normalized < 0.3) {
       return "#22c55e"; // Green for small residuals
@@ -163,7 +158,9 @@ export function ResidualPlot({
     <div style={styles.container}>
       <div style={styles.header}>
         <span style={styles.title}>Residual Plot</span>
-        <span style={styles.subtitle}>{data.length.toLocaleString()} points</span>
+        <span style={styles.subtitle}>
+          {data.length.toLocaleString()} points
+        </span>
       </div>
 
       <svg
@@ -388,7 +385,8 @@ Residual: ${point.residual.toFixed(4)}`}
           <div
             style={{
               ...styles.legendLine,
-              background: "repeating-linear-gradient(90deg, #dc2626, #dc2626 5px, transparent 5px, transparent 10px)",
+              background:
+                "repeating-linear-gradient(90deg, #dc2626, #dc2626 5px, transparent 5px, transparent 10px)",
             }}
           />
           <span style={styles.legendText}>Zero residual</span>
@@ -417,7 +415,7 @@ Residual: ${point.residual.toFixed(4)}`}
                       data.reduce((s, p) => s + p.residual, 0) / data.length;
                     return sum + Math.pow(d.residual - mean, 2);
                   }, 0) /
-                    (data.length - 1)
+                    (data.length - 1),
                 ).toFixed(4)
               : "N/A"}
           </span>

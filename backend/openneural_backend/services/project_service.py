@@ -12,15 +12,13 @@ Exposes:
     get_dashboard_stats(): Get aggregate statistics for the dashboard.
 """
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Literal
 
 logger = logging.getLogger(__name__)
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 
 from openneural_backend.db.engine import async_session
 from openneural_backend.db.models import (
@@ -229,9 +227,8 @@ async def rename_project(project_id: str, name: str) -> dict:
         await session.refresh(project)
 
         # Get experiment count
-        exp_count_stmt = (
-            select(func.count(Experiment.id))
-            .where(Experiment.project_id == project_id)
+        exp_count_stmt = select(func.count(Experiment.id)).where(
+            Experiment.project_id == project_id
         )
         exp_result = await session.execute(exp_count_stmt)
         experiment_count = exp_result.scalar() or 0
