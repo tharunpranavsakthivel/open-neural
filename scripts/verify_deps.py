@@ -369,9 +369,9 @@ def main() -> int:
         if args.strict and failed:
             return 1
         
-        # In non-strict mode, only fail if there are version mismatches or missing packages
+        # In non-strict mode, fail if there are version mismatches, missing packages, or hash mismatches
         critical_failures = any(
-            r.status in ("VERSION_MISMATCH", "NOT_INSTALLED") for r in results
+            r.status in ("VERSION_MISMATCH", "NOT_INSTALLED", "HASH_MISMATCH") for r in results
         )
         if critical_failures:
             return 1
