@@ -77,15 +77,21 @@ class SecretAuthMiddleware(BaseHTTPMiddleware):
         Raises:
             No exceptions are raised; returns 401 response on auth failure.
         """
+        # Allow preflight OPTIONS requests without secret validation
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Check if the request path is excluded from secret validation
         if request.url.path in EXCLUDED_PATHS:
             # Allow the request to proceed without secret validation
             return await call_next(request)
 
-        # Extract the secret header from the request
+        # Extract the secret header from the request (with a fallback to query params for SSE/EventSource)
         provided_secret = request.headers.get("X-OpenNeural-Secret")
-
-        # Check if header is present and matches expected secret using constant-time comparison
+        if provided_secret is None:
+            provided_secret = request.query_params.get("secret") or request.query_params.get("X-OpenNeural-Secret")
+ 
+        # Check if secret is present and matches expected secret using constant-time comparison
         if provided_secret is None or not hmac.compare_digest(
             provided_secret, self._expected_secret
         ):

@@ -13,7 +13,7 @@ describe("Zustand Stores Unit Tests", () => {
       backendPort: null,
       authStatus: "setup",
       currentProjectId: null,
-      backendSecret: "dev-secret",
+      backendSecret: null,
     });
 
     useDatasetStore.setState({
@@ -58,7 +58,7 @@ describe("Zustand Stores Unit Tests", () => {
       expect(state.backendPort).toBeNull();
       expect(state.authStatus).toBe("setup");
       expect(state.currentProjectId).toBeNull();
-      expect(state.backendSecret).toBe("dev-secret");
+      expect(state.backendSecret).toBeNull();
     });
 
     it("should update backendPort when setBackendPort is called", () => {
@@ -79,6 +79,12 @@ describe("Zustand Stores Unit Tests", () => {
     it("should update backendSecret when setBackendSecret is called", () => {
       useAppStore.getState().setBackendSecret("new-secret-456");
       expect(useAppStore.getState().backendSecret).toBe("new-secret-456");
+    });
+
+    it("should update backendPort and backendSecret together", () => {
+      useAppStore.getState().setBackendConfig(57572, "runtime-secret");
+      expect(useAppStore.getState().backendPort).toBe(57572);
+      expect(useAppStore.getState().backendSecret).toBe("runtime-secret");
     });
   });
 

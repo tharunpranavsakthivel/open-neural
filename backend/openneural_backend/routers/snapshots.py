@@ -5,7 +5,7 @@ All endpoints follow the API contracts defined in the TDD Section 2.2.
 """
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from openneural_backend.services.dataset_service import (
     DatasetImportError,
@@ -45,10 +45,14 @@ class SnapshotResponse(BaseModel):
     file_size_bytes: int
     row_count: int
     col_count: int
-    schema: list[dict]
+    schema_data: list[dict] = Field(..., alias="schema")
     checksum_sha256: str
     created_at: str
     warning: str | None = None
+
+    model_config = {
+        "populate_by_name": True,
+    }
 
 
 class SnapshotListResponse(BaseModel):

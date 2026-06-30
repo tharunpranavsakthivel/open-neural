@@ -10,6 +10,8 @@ uvicorn[standard]==0.32.1
 # Database
 sqlalchemy==2.0.36
 alembic==1.14.0
+aiosqlite==0.22.1
+greenlet==3.5.3
 
 # Data processing
 pandas==2.2.3
@@ -18,14 +20,14 @@ numpy==2.1.3
 
 # Machine Learning
 scikit-learn==1.6.0
-xgboost==2.1.3
+xgboost==2.1.4
 optuna==4.1.0
 joblib==1.4.2
 
 # Model export
-skl2onnx==1.17.0
-onnx==1.17.0
-onnxconverter-common==1.14.0
+skl2onnx==1.20.0
+onnx==1.18.0
+onnxconverter-common==1.16.0
 
 # Report generation
 reportlab==4.2.5
@@ -35,6 +37,7 @@ bcrypt==4.2.1
 
 # HTTP client
 httpx==0.28.1
+python-multipart==0.0.32
 
 # System monitoring
 psutil==6.1.0

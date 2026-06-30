@@ -7,7 +7,7 @@
  *
  * @module utils/api
  */
-import type { Project } from "../stores/appStore";
+import { getBackendSecret, getCurrentProjectId, type Project } from "../stores/appStore";
 
 /**
  * Dashboard statistics response from the backend.
@@ -79,6 +79,49 @@ async function getBaseUrl(): Promise<string> {
 }
 
 /**
+ * Add the Electron-provided shared secret required by the backend middleware.
+ */
+function withAuthHeaders(headers?: HeadersInit): Headers {
+  const nextHeaders = new Headers(headers);
+  const secret = getBackendSecret();
+
+  if (secret) {
+    nextHeaders.set("X-OpenNeural-Secret", secret);
+  }
+
+  return nextHeaders;
+}
+
+function authenticatedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  if (!getBackendSecret()) {
+    throw new Error("Backend secret not available");
+  }
+
+  return fetch(input, {
+    ...init,
+    headers: withAuthHeaders(init?.headers),
+  });
+}
+
+/**
+ * Safely maps a raw backend project response (which might have snake_case keys)
+ * to the frontend Project model (which expects camelCase keys).
+ */
+function mapProject(raw: any): Project {
+  if (!raw) return raw;
+  return {
+    id: raw.id,
+    name: raw.name,
+    taskType: raw.task_type ?? raw.taskType,
+    experimentCount: raw.experiment_count ?? raw.experimentCount ?? 0,
+    updatedAt: raw.updated_at ?? raw.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+/**
  * Fetch all projects from the backend.
  *
  * GET /api/v1/projects
@@ -88,7 +131,7 @@ async function getBaseUrl(): Promise<string> {
  */
 export async function fetchProjects(): Promise<Project[]> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects`);
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/projects`);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -97,8 +140,14 @@ export async function fetchProjects(): Promise<Project[]> {
     );
   }
 
-  const data = (await response.json()) as ProjectsResponse;
-  return data.projects;
+  const data = await response.json();
+  if (Array.isArray(data)) {
+    return data.map(mapProject);
+  }
+  if (data && typeof data === "object" && "projects" in data && Array.isArray(data.projects)) {
+    return data.projects.map(mapProject);
+  }
+  return [];
 }
 
 /**
@@ -111,7 +160,7 @@ export async function fetchProjects(): Promise<Project[]> {
  */
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/dashboard/stats`);
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/dashboard/stats`);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -136,7 +185,7 @@ export async function renameProject(
   newName: string,
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/projects/${projectId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -151,8 +200,14 @@ export async function renameProject(
     );
   }
 
-  const data = (await response.json()) as RenameProjectResponse;
-  return data.project;
+  const data = await response.json();
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for renameProject");
 }
 
 /**
@@ -170,7 +225,7 @@ export async function patchProject(
   newName: string,
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/projects/${projectId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -185,8 +240,14 @@ export async function patchProject(
     );
   }
 
-  const data = (await response.json()) as RenameProjectResponse;
-  return data.project;
+  const data = await response.json();
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for patchProject");
 }
 
 /**
@@ -200,7 +261,7 @@ export async function patchProject(
  */
 export async function deleteProject(projectId: string): Promise<boolean> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects/${projectId}`, {
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/projects/${projectId}`, {
     method: "DELETE",
   });
 
@@ -211,8 +272,14 @@ export async function deleteProject(projectId: string): Promise<boolean> {
     );
   }
 
-  const data = (await response.json()) as DeleteProjectResponse;
-  return data.deleted;
+  const data = await response.json();
+  if (typeof data === "boolean") {
+    return data;
+  }
+  if (data && typeof data === "object" && "deleted" in data) {
+    return !!data.deleted;
+  }
+  return true;
 }
 
 /**
@@ -231,12 +298,13 @@ export async function createProject(
     "binary_classification" | "multiclass_classification" | "regression",
 ): Promise<Project> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/projects`, {
+  const mappedTaskType = taskType === "regression" ? "regression" : "classification";
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/projects`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name, task_type: taskType }),
+    body: JSON.stringify({ name, task_type: mappedTaskType }),
   });
 
   if (!response.ok) {
@@ -246,8 +314,14 @@ export async function createProject(
     );
   }
 
-  const data = (await response.json()) as CreateProjectResponse;
-  return data.project;
+  const data = await response.json();
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for createProject");
 }
 
 /**
@@ -299,6 +373,21 @@ export async function uploadDatasetSnapshot(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<DatasetSnapshotResponse> {
+  // Check if we are in Electron and the file has a path property (selected via Browse)
+  if (window.electronAPI && (file as any).path) {
+    if (onProgress) {
+      onProgress(50);
+    }
+    const response = await window.electronAPI.uploadDataset(
+      projectId,
+      (file as any).path,
+    );
+    if (onProgress) {
+      onProgress(100);
+    }
+    return response as DatasetSnapshotResponse;
+  }
+
   const baseUrl = await getBaseUrl();
   const formData = new FormData();
   formData.append("file", file);
@@ -336,6 +425,13 @@ export async function uploadDatasetSnapshot(
     });
 
     xhr.open("POST", `${baseUrl}/api/v1/projects/${projectId}/snapshots`);
+    const secret = getBackendSecret();
+    if (!secret) {
+      reject(new Error("Backend secret not available"));
+      return;
+    }
+
+    xhr.setRequestHeader("X-OpenNeural-Secret", secret);
     xhr.send(formData);
   });
 }
@@ -367,7 +463,7 @@ export async function fetchProjectSnapshots(
   projectId: string,
 ): Promise<SnapshotListItem[]> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/snapshots`,
   );
 
@@ -379,6 +475,35 @@ export async function fetchProjectSnapshots(
   }
 
   return (await response.json()) as SnapshotListItem[];
+}
+
+/**
+ * Fetch a specific snapshot by ID.
+ *
+ * GET /api/v1/projects/{projectId}/snapshots/{snapshotId}
+ *
+ * @param projectId - The ID of the project
+ * @param snapshotId - The ID of the snapshot
+ * @returns Complete snapshot details with schema
+ * @throws Error if the request fails
+ */
+export async function fetchSnapshotDetails(
+  projectId: string,
+  snapshotId: string,
+): Promise<DatasetSnapshotResponse> {
+  const baseUrl = await getBaseUrl();
+  const response = await authenticatedFetch(
+    `${baseUrl}/api/v1/projects/${projectId}/snapshots/${snapshotId}`,
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to fetch snapshot details: ${response.status} ${errorText}`,
+    );
+  }
+
+  return (await response.json()) as DatasetSnapshotResponse;
 }
 
 /**
@@ -454,14 +579,22 @@ export async function createPipeline(
   request: CreatePipelineRequest,
 ): Promise<PipelineResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const backendPayload = {
+    snapshot_id: request.snapshot_id,
+    config: {
+      snapshot_id: request.snapshot_id,
+      blocks: request.blocks,
+    },
+    name: null,
+  };
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/pipelines`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(backendPayload),
     },
   );
 
@@ -488,7 +621,7 @@ export async function fetchProjectPipelines(
   projectId: string,
 ): Promise<PipelineResponse[]> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/pipelines`,
   );
 
@@ -517,7 +650,7 @@ export async function validatePipeline(
   pipelineId: string,
 ): Promise<PipelineValidationResult> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/pipelines/${pipelineId}/validate`,
   );
 
@@ -546,7 +679,7 @@ export async function validatePipelineConfig(
   request: CreatePipelineRequest,
 ): Promise<PipelineValidationResult> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/pipelines/validate`,
     {
       method: "POST",
@@ -610,7 +743,7 @@ export async function fetchTrainingTimeEstimate(
   request: TrainingTimeEstimateRequest,
 ): Promise<TrainingTimeEstimateResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/experiments/estimate`, {
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/experiments/estimate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -677,7 +810,7 @@ export async function createExperiment(
   request: CreateExperimentRequest,
 ): Promise<CreateExperimentResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/projects/${projectId}/experiments`,
     {
       method: "POST",
@@ -719,10 +852,15 @@ export interface StartExperimentResponse {
  */
 export async function startExperiment(
   experimentId: string,
+  projectId?: string,
 ): Promise<StartExperimentResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/api/v1/experiments/${experimentId}/start`,
+  const projId = projectId || getCurrentProjectId();
+  if (!projId) {
+    throw new Error("No active project ID found to start experiment.");
+  }
+  const response = await authenticatedFetch(
+    `${baseUrl}/api/v1/projects/${projId}/experiments/${experimentId}/start`,
     {
       method: "POST",
     },
@@ -757,10 +895,15 @@ export interface CancelExperimentResponse {
  */
 export async function cancelExperiment(
   experimentId: string,
+  projectId?: string,
 ): Promise<CancelExperimentResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/api/v1/experiments/${experimentId}/cancel`,
+  const projId = projectId || getCurrentProjectId();
+  if (!projId) {
+    throw new Error("No active project ID found to cancel experiment.");
+  }
+  const response = await authenticatedFetch(
+    `${baseUrl}/api/v1/projects/${projId}/experiments/${experimentId}/cancel`,
     {
       method: "DELETE",
     },
@@ -825,7 +968,7 @@ export async function fetchInterruptedExperiments(): Promise<
   InterruptedExperiment[]
 > {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/experiments/interrupted`);
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/experiments/interrupted`);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -834,8 +977,19 @@ export async function fetchInterruptedExperiments(): Promise<
     );
   }
 
-  const data = (await response.json()) as InterruptedExperimentsResponse;
-  return data.interrupted_experiments ?? [];
+  const data = await response.json();
+  if (data && typeof data === "object") {
+    if ("experiments" in data && Array.isArray(data.experiments)) {
+      return data.experiments as InterruptedExperiment[];
+    }
+    if ("interrupted_experiments" in data && Array.isArray(data.interrupted_experiments)) {
+      return data.interrupted_experiments as InterruptedExperiment[];
+    }
+  }
+  if (Array.isArray(data)) {
+    return data as InterruptedExperiment[];
+  }
+  return [];
 }
 
 /**
@@ -863,7 +1017,7 @@ export async function recoverExperiment(
   action: "restart" | "discard",
 ): Promise<RecoverExperimentResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/experiments/${experimentId}/recover`,
     {
       method: "PATCH",
@@ -979,7 +1133,7 @@ export async function fetchExperimentEvaluation(
   experimentId: string,
 ): Promise<EvaluationResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/experiments/${experimentId}/evaluation`,
   );
 
@@ -1008,7 +1162,7 @@ export async function updateEvaluationThreshold(
   threshold: number,
 ): Promise<UpdateThresholdResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${baseUrl}/api/v1/experiments/${experimentId}/evaluation/threshold`,
     {
       method: "POST",
@@ -1093,7 +1247,7 @@ export async function fetchLeaderboard(
   url.searchParams.append("sort_by", sortBy);
   url.searchParams.append("order", order);
 
-  const response = await fetch(url.toString());
+  const response = await authenticatedFetch(url.toString());
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -1131,7 +1285,7 @@ export interface ClearDataResponse {
  */
 export async function clearAllData(): Promise<ClearDataResponse> {
   const baseUrl = await getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/system/clear-data`, {
+  const response = await authenticatedFetch(`${baseUrl}/api/v1/system/clear-data`, {
     method: "DELETE",
   });
 

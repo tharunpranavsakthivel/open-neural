@@ -18,6 +18,7 @@ from openneural_backend.routers import (
     dashboard_router,
     evaluation_router,
     experiments_router,
+    experiments_global_router,
     exports_router,
     leaderboard_router,
     pipelines_router,
@@ -84,24 +85,9 @@ def create_app() -> FastAPI:
         openapi_url=f"{API_V1_PREFIX}/openapi.json",
     )
 
-    # Add network isolation middleware first (before CORS)
+    # Add network isolation middleware first (innermost)
     # This rejects any request where request.client.host is not 127.0.0.1
     app.middleware("http")(network_isolation_middleware)
-
-    # Configure CORS restricted to localhost origins only
-    # This ensures the API only accepts requests from local Electron renderer
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1",
-            "http://127.0.0.1:*",  # Allow any port on localhost
-            "http://localhost",
-            "http://localhost:*",
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
     # Add request logging middleware
     # This logs every request to {data_dir}/logs/openneural_{date}.log
@@ -111,6 +97,17 @@ def create_app() -> FastAPI:
     # This validates the X-OpenNeural-Secret header matches the ephemeral secret
     app.add_middleware(SecretAuthMiddleware)
 
+    # Configure CORS restricted to localhost origins only (outermost)
+    # This ensures the API only accepts requests from local Electron renderer
+    # Registered last so it runs first and handles OPTIONS preflights before authentication.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # Register all API routers
     # Auth router is registered first and excluded from secret auth middleware
     app.include_router(auth_router, prefix=API_V1_PREFIX)
@@ -118,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(snapshots_router, prefix=API_V1_PREFIX)
     app.include_router(pipelines_router, prefix=API_V1_PREFIX)
     app.include_router(experiments_router, prefix=API_V1_PREFIX)
+    app.include_router(experiments_global_router, prefix=API_V1_PREFIX)
     app.include_router(recovery_router, prefix=API_V1_PREFIX)
     app.include_router(evaluation_router, prefix=API_V1_PREFIX)
     app.include_router(leaderboard_router, prefix=API_V1_PREFIX)

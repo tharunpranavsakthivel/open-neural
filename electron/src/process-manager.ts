@@ -31,6 +31,11 @@ let pythonProcess: ChildProcess | null = null;
 let backendPort: number | null = null;
 
 /**
+ * Ephemeral secret injected into the currently running backend process.
+ */
+let backendSecret: string | null = null;
+
+/**
  * Whether the backend is currently starting up.
  */
 let isStarting = false;
@@ -59,6 +64,15 @@ export interface BackendStartResult {
  */
 export function getBackendPort(): number | null {
   return backendPort;
+}
+
+/**
+ * Gets the current backend authentication secret.
+ *
+ * @returns The secret injected into the backend, or null if not started yet
+ */
+export function getBackendSecret(): string | null {
+  return backendSecret;
 }
 
 /**
@@ -150,6 +164,7 @@ export async function startBackend(
 
   isStarting = true;
   backendPort = null;
+  backendSecret = ephemeralSecret;
   processEvents.emit("starting");
 
   return new Promise((resolve) => {
@@ -219,6 +234,7 @@ export async function startBackend(
       pythonProcess.on("exit", (code: number | null, signal: string | null) => {
         isStarting = false;
         backendPort = null;
+        backendSecret = null;
 
         if (!portResolved) {
           // Process exited before we got the port
@@ -236,6 +252,7 @@ export async function startBackend(
       pythonProcess.on("error", (error: Error) => {
         isStarting = false;
         backendPort = null;
+        backendSecret = null;
 
         if (!portResolved) {
           resolve({
@@ -268,6 +285,7 @@ export async function startBackend(
 
     } catch (error) {
       isStarting = false;
+      backendSecret = null;
       const errorMessage = error instanceof Error ? error.message : String(error);
       resolve({
         success: false,
@@ -299,6 +317,7 @@ export async function stopBackend(gracefulTimeoutMs: number = 5000): Promise<boo
       if (!resolved) {
         resolved = true;
         backendPort = null;
+        backendSecret = null;
         processEvents.emit("stopped");
         resolve(true);
       }
@@ -328,6 +347,7 @@ export async function stopBackend(gracefulTimeoutMs: number = 5000): Promise<boo
         if (!resolved) {
           resolved = true;
           backendPort = null;
+          backendSecret = null;
           resolve(false);
         }
       }, 500);

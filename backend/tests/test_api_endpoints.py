@@ -70,6 +70,17 @@ async def test_x_openneural_secret_middleware(async_client: AsyncClient) -> None
     # The project list handler responds with 501 Not Implemented or 200 OK.
     assert response.status_code in (200, 501)
 
+    # 4. Requests with correct secret in query parameter (no header) are processed normally
+    async_client.headers = {}
+    response = await async_client.get("/api/v1/projects", params={"secret": "test_secret_for_ipc_auth_42"})
+    assert response.status_code in (200, 501)
+
+    # 5. Requests with wrong secret in query parameter receive 401
+    async_client.headers = {}
+    response = await async_client.get("/api/v1/projects", params={"secret": "completely_incorrect_secret_xyz"})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Unauthorized"
+
 
 # =============================================================================
 # §2.7 Authentication Endpoints
@@ -247,6 +258,23 @@ async def test_pipelines_endpoints_scenarios(
     assert response.status_code == 200
     assert response.json()["valid"] is True
 
+    # Happy Path: Validate transient pipeline configuration (dry run)
+    transient_payload = {
+        "snapshot_id": sample_snapshot.id,
+        "blocks": [
+            {"type": "drop_nulls", "params": {}},
+            {"type": "train_val_test_split", "params": {}},
+        ],
+    }
+    response = await async_client.post(
+        f"/api/v1/projects/{sample_project.id}/pipelines/validate",
+        json=transient_payload,
+    )
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+    assert isinstance(response.json()["warnings"], list)
+    assert isinstance(response.json()["errors"], list)
+
     # Error Path: Create pipeline with missing blocks
     bad_payload = {
         "snapshot_id": sample_snapshot.id,
@@ -307,6 +335,39 @@ async def test_experiments_endpoints_scenarios(
     )
     assert response.status_code == 200
     assert "estimated_seconds" in response.json()
+
+    # Happy Path: POST transient training time estimate (global /experiments/estimate route)
+    transient_payload = {
+        "pipeline_id": sample_pipeline.id,
+        "candidate_models": ["logistic_regression", "random_forest"],
+        "max_trials": 10,
+        "cv_folds": 3,
+    }
+    response = await async_client.post(
+        "/api/v1/experiments/estimate",
+        json=transient_payload,
+    )
+    assert response.status_code == 200
+    res_data = response.json()
+    assert "estimated_minutes" in res_data
+    assert "is_advisory" in res_data
+    assert res_data["is_advisory"] is True
+    assert res_data["model_count"] == 2
+    assert "row_count" in res_data
+    assert "col_count" in res_data
+
+    # Error Path: POST transient training time estimate with non-existent pipeline ID
+    bad_transient_payload = {
+        "pipeline_id": "non-existent-pipeline-id",
+        "candidate_models": ["logistic_regression"],
+        "max_trials": 10,
+        "cv_folds": 3,
+    }
+    response = await async_client.post(
+        "/api/v1/experiments/estimate",
+        json=bad_transient_payload,
+    )
+    assert response.status_code == 404
 
     # Error Path: Cancel experiment returns 400 Bad Request because experiment is not 'running'
     response = await async_client.delete(

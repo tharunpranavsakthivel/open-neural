@@ -211,7 +211,12 @@ export function DatasetImport({
             : "text/csv",
         });
         // Store the actual path for later use
-        (file as any).path = result;
+        Object.defineProperty(file, "path", {
+          value: result,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
         await handleFileSelect(file);
       }
     } catch (err) {

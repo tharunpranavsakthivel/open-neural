@@ -56,7 +56,11 @@ class OpenNeuralDailyRotatingFileHandler(logging.FileHandler):
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
         filename = self._get_filename()
-        super().__init__(filename, encoding=self.encoding)
+        try:
+            super().__init__(filename, encoding=self.encoding)
+        except PermissionError:
+            fallback = self.logs_dir / f"openneural_{self.current_date}_{os.getpid()}.log"
+            super().__init__(fallback, encoding=self.encoding)
 
         # Remove historical logs exceeding the backup limit
         self._rotate_and_cleanup()
@@ -100,7 +104,12 @@ class OpenNeuralDailyRotatingFileHandler(logging.FileHandler):
             self.close()
             # Redirect future logs to the file for the new day
             self.baseFilename = os.path.abspath(self._get_filename())
-            self._open()
+            try:
+                self.stream = self._open()
+            except PermissionError:
+                fallback = self.logs_dir / f"openneural_{self.current_date}_{os.getpid()}.log"
+                self.baseFilename = os.path.abspath(fallback)
+                self.stream = self._open()
             self._rotate_and_cleanup()
 
         super().emit(record)
@@ -128,13 +137,6 @@ def configure_logging() -> None:
     log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
     formatter = ISO8601Formatter(log_format)
 
-    # Configure the daily rotating file handler
-    file_handler = OpenNeuralDailyRotatingFileHandler(
-        logs_dir=logs_dir, backup_count=14
-    )
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.DEBUG)
-
     # Configure console handler to view logs in standard output
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
@@ -146,8 +148,19 @@ def configure_logging() -> None:
 
     # Clear existing handlers to prevent duplicate logging
     root_logger.handlers.clear()
-    root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
+
+    # Configure the daily rotating file handler. If the data directory is not
+    # writable, keep the backend usable with console logging only.
+    try:
+        file_handler = OpenNeuralDailyRotatingFileHandler(
+            logs_dir=logs_dir, backup_count=14
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.DEBUG)
+        root_logger.addHandler(file_handler)
+    except OSError as e:
+        root_logger.warning(f"File logging disabled: {e}")
 
     # Configure ML training logger specifically to run at DEBUG level
     ml_logger = logging.getLogger("openneural_backend.orchestrator.trainer")

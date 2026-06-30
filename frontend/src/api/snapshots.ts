@@ -115,3 +115,23 @@ export async function fetchProjectSnapshots(
   );
   return response.data;
 }
+
+/**
+ * Fetch a specific snapshot by ID.
+ *
+ * GET /api/v1/projects/{projectId}/snapshots/{snapshotId}
+ *
+ * @param projectId - The ID of the project
+ * @param snapshotId - The ID of the snapshot
+ * @returns Complete snapshot details with schema
+ */
+export async function fetchSnapshotDetails(
+  projectId: string,
+  snapshotId: string,
+): Promise<DatasetSnapshotResponse> {
+  const client = getApiClient();
+  const response = await client.get<DatasetSnapshotResponse>(
+    `/projects/${projectId}/snapshots/${snapshotId}`,
+  );
+  return response.data;
+}

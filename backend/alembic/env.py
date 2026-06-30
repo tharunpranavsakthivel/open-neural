@@ -4,15 +4,14 @@ Configures Alembic to work with the OpenNeural async SQLAlchemy setup,
 using the runtime DATA_DIR path from the Settings configuration.
 """
 
-import asyncio
 import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
 
 from sqlalchemy import pool
+from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
@@ -114,47 +113,19 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
-    """Run migrations in 'online' mode using async engine.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-    """
-    # Get database URL and convert to async driver version
-    url = get_database_url().replace("sqlite:///", "sqlite+aiosqlite:///")
-
-    # Create async engine
-    async_engine = async_engine_from_config(
-        {"sqlalchemy.url": url},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    async with async_engine.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await async_engine.dispose()
-
-
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
-    For OpenNeural, we use the async migration path to match
-    the application's async database setup.
+    Alembic runs synchronously during application startup. The application uses
+    SQLAlchemy's async engine at runtime, but migrations can safely use the
+    equivalent synchronous SQLite URL and avoid blocking the running event loop.
     """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
+    connectable = create_engine(get_database_url(), poolclass=pool.NullPool)
 
-    if loop and loop.is_running():
-        import concurrent.futures
+    with connectable.connect() as connection:
+        do_run_migrations(connection)
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(asyncio.run, run_async_migrations())
-            future.result()
-    else:
-        asyncio.run(run_async_migrations())
+    connectable.dispose()
 
 
 if context.is_offline_mode():

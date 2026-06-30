@@ -31,7 +31,7 @@ interface SystemInfo {
  * @returns The session footer with system information
  */
 export function SessionFooter(): JSX.Element {
-  const { backendPort } = useAppStore();
+  const { backendPort, backendSecret } = useAppStore();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +54,7 @@ export function SessionFooter(): JSX.Element {
           {
             headers: {
               "Content-Type": "application/json",
-              // Development mode - secret may not be required
-              "X-OpenNeural-Secret": "dev-secret",
+              "X-OpenNeural-Secret": backendSecret,
             },
           },
         );
@@ -84,7 +83,7 @@ export function SessionFooter(): JSX.Element {
     }
 
     fetchSystemInfo();
-  }, [backendPort]);
+  }, [backendPort, backendSecret]);
 
   /**
    * Format RAM value for display.

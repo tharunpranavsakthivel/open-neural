@@ -49,6 +49,21 @@ vi.mock("../utils/api", () => {
       .fn()
       .mockResolvedValue({ valid: true, errors: [], warnings: [] }),
     fetchProjectPipelines: vi.fn().mockResolvedValue([]),
+    fetchSnapshotDetails: vi.fn().mockResolvedValue({
+      id: "snapshot-1",
+      version_label: "Snapshot v1",
+      file_name: "churn.csv",
+      file_size_bytes: 5120,
+      row_count: 100,
+      col_count: 6,
+      schema: [
+        { name: "age", inferred_type: "numeric" },
+        { name: "income", inferred_type: "numeric" },
+        { name: "gender", inferred_type: "categorical" },
+      ],
+      checksum_sha256: "hash123",
+      created_at: "2026-06-29T11:05:00Z",
+    }),
     createProject: vi.fn().mockResolvedValue({}),
     renameProject: vi.fn().mockResolvedValue({}),
     deleteProject: vi.fn().mockResolvedValue({ success: true }),
@@ -69,6 +84,7 @@ import {
   createPipeline,
   validatePipelineConfig,
   fetchProjectPipelines,
+  fetchSnapshotDetails,
 } from "../utils/api";
 
 describe("Full Wizard Integration Tests", () => {
@@ -327,7 +343,7 @@ describe("Full Wizard Integration Tests", () => {
     // Verify experiment was created and training started
     await waitFor(() => {
       expect(createExperiment).toHaveBeenCalled();
-      expect(startExperiment).toHaveBeenCalledWith("exp-789");
+      expect(startExperiment).toHaveBeenCalledWith("exp-789", "proj-123");
       expect(useAppStore.getState().currentExperimentId).toBe("exp-789");
       expect(useAppStore.getState().currentStep).toBe("training");
     });

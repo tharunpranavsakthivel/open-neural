@@ -368,6 +368,16 @@ async def run_experiment(experiment_id: str) -> dict[str, Any]:
         # Fallback: use last column as target
         target_column = df.columns[-1]
 
+    # Drop rows where target_column is null
+    initial_rows = len(df)
+    if target_column in df.columns:
+        df = df.dropna(subset=[target_column]).reset_index(drop=True)
+        dropped_rows = initial_rows - len(df)
+        if dropped_rows > 0:
+            logger.info(
+                f"Dropped {dropped_rows} rows with null values in target column '{target_column}'"
+            )
+
     logger.info(f"Loaded dataset: {len(df)} rows, {len(df.columns)} columns")
     logger.info(f"Target column: {target_column}")
 
@@ -375,8 +385,26 @@ async def run_experiment(experiment_id: str) -> dict[str, Any]:
     X = df.drop(columns=[target_column])
     y = df[target_column]
 
+    # Sanitize pipeline_config to remove target_column from non-split preprocessing blocks' columns parameter
+    import copy
+    sanitized_config = copy.deepcopy(pipeline_config)
+    if "blocks" in sanitized_config and isinstance(sanitized_config["blocks"], list):
+        for block in sanitized_config["blocks"]:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "train_val_test_split":
+                continue
+            params = block.get("params")
+            if isinstance(params, dict):
+                cols = params.get("columns")
+                if isinstance(cols, list) and target_column in cols:
+                    params["columns"] = [col for col in cols if col != target_column]
+                    logger.info(
+                        f"Sanitized block '{block.get('type')}': removed target column '{target_column}' from 'columns' parameter list."
+                    )
+
     # Build sklearn pipeline and split config
-    sklearn_pipeline, split_config = build_sklearn_pipeline(pipeline_config)
+    sklearn_pipeline, split_config = build_sklearn_pipeline(sanitized_config)
 
     # Apply preprocessing pipeline (fit on full data, then split)
     if sklearn_pipeline.steps:

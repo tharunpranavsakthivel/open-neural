@@ -82,6 +82,12 @@ export interface OpenNeuralElectronApi {
   ): Promise<AuthResult>;
 
   /**
+   * Retrieve the ephemeral backend secret for API call authentication.
+   * @returns The 64-character hex ephemeral secret
+   */
+  getBackendSecret(): Promise<string>;
+
+  /**
    * Get the backend port for API communication.
    * Returns null if the backend hasn't started yet.
    * @returns The backend port number, or null if not available
@@ -109,6 +115,15 @@ export interface OpenNeuralElectronApi {
    * @returns Selected directory path, or null if cancelled
    */
   openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
+
+  /**
+   * Upload a dataset file from the local file system.
+   *
+   * @param projectId - The project ID
+   * @param filePath - The path to the file to upload
+   * @returns The created dataset snapshot details
+   */
+  uploadDataset(projectId: string, filePath: string): Promise<any>;
 
   /**
    * Open a file or directory in the OS-native file manager.

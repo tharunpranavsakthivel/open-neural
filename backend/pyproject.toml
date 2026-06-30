@@ -22,13 +22,14 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# All runtime dependencies are pinned in requirements.txt
-# These are the minimum versions for compatibility
+# Runtime dependency pins are mirrored in requirements.txt for reproducible installs.
 dependencies = [
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.29.0",
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
+    "aiosqlite==0.22.1",
+    "greenlet==3.5.3",
     "pandas>=2.0.0",
     "pyarrow>=14.0.0",
     "numpy>=2.0.0",
@@ -36,12 +37,13 @@ dependencies = [
     "xgboost>=2.0.0",
     "optuna>=4.1.0",
     "joblib>=1.3.0",
-    "skl2onnx>=1.16.0",
-    "onnx>=1.17.0",
-    "onnxconverter-common>=1.14.0",
+    "skl2onnx==1.20.0",
+    "onnx==1.18.0",
+    "onnxconverter-common==1.16.0",
     "reportlab>=4.0.0",
     "bcrypt>=4.0.0",
     "httpx>=0.27.0",
+    "python-multipart==0.0.32",
     "psutil>=5.9.0",
 ]
 
@@ -113,4 +115,3 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
-

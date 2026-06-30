@@ -17,6 +17,7 @@ import { MetricCards } from "../components/MetricCards";
 import { ConfusionMatrix } from "../components/ConfusionMatrix";
 import { ThresholdSlider } from "../components/ThresholdSlider";
 import { SubgroupAnalysis } from "../components/SubgroupAnalysis";
+import { useAppStore } from "../stores/appStore";
 
 /**
  * Props for the EvaluationDashboard component.
@@ -41,6 +42,7 @@ interface EvaluationDashboardProps {
 export function EvaluationDashboard({
   experimentId,
 }: EvaluationDashboardProps): JSX.Element {
+  const { setCurrentStep } = useAppStore();
   /** Evaluation data state */
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
   /** Loading state */
@@ -193,12 +195,12 @@ export function EvaluationDashboard({
           <h2 style={styles.cardTitle}>Confusion Matrix</h2>
           <ConfusionMatrix
             taskType="binary"
-            binaryMatrix={{
-              tn: evaluation.confusion_matrix.tn,
-              fp: evaluation.confusion_matrix.fp,
-              fn: evaluation.confusion_matrix.fn,
-              tp: evaluation.confusion_matrix.tp,
-            }}
+            binaryMatrix={evaluation.confusion_matrix ? {
+              tn: evaluation.confusion_matrix.tn ?? 0,
+              fp: evaluation.confusion_matrix.fp ?? 0,
+              fn: evaluation.confusion_matrix.fn ?? 0,
+              tp: evaluation.confusion_matrix.tp ?? 0,
+            } : undefined}
           />
         </div>
 
@@ -207,7 +209,7 @@ export function EvaluationDashboard({
           <h2 style={styles.cardTitle}>Decision Threshold</h2>
           <ThresholdSlider
             experimentId={experimentId}
-            initialThreshold={evaluation.threshold}
+            initialThreshold={evaluation.threshold ?? 0.5}
             onThresholdChange={(newThreshold) =>
               setCurrentThreshold(newThreshold)
             }
@@ -244,22 +246,32 @@ export function EvaluationDashboard({
       </div>
 
       {/* Subgroup Analysis */}
-      {evaluation.subgroup_analyses.length > 0 && (
+      {evaluation.subgroup_analyses && evaluation.subgroup_analyses.length > 0 && (
         <SubgroupAnalysis
           subgroups={evaluation.subgroup_analyses.map((sg) => ({
             slice_name: sg.slice_name,
             n: sg.n,
             metrics: {
-              f1: sg.metrics.f1,
-              recall: sg.metrics.recall,
-              precision: sg.metrics.precision,
+              f1: sg.metrics?.f1,
+              recall: sg.metrics?.recall,
+              precision: sg.metrics?.precision,
             },
-            fairness_warning: hasSubgroupWarning(sg.metrics.f1 ?? 0),
+            fairness_warning: hasSubgroupWarning(sg.metrics?.f1 ?? 0),
           }))}
-          overallF1={evaluation.metrics.f1}
+          overallF1={evaluation.metrics?.f1 ?? 0}
           warningThreshold={0.15}
         />
       )}
+
+      {/* Navigation Footer */}
+      <div style={styles.navigationFooter}>
+        <button
+          onClick={() => setCurrentStep("leaderboard")}
+          style={styles.nextButton}
+        >
+          View Leaderboard →
+        </button>
+      </div>
     </div>
   );
 }
@@ -442,5 +454,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: "#111827",
     fontFamily: "monospace",
+  },
+  navigationFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: "2.5rem",
+    paddingTop: "1.5rem",
+    borderTop: "1px solid #e5e7eb",
+  },
+  nextButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    padding: "0.75rem 1.5rem",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
   },
 };

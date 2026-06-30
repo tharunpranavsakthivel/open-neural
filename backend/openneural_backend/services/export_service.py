@@ -27,8 +27,6 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -274,6 +272,9 @@ async def export_model_onnx(run_id: str, dest_dir: str | Path) -> dict[str, Any]
 
         # Attempt ONNX conversion
         try:
+            from skl2onnx import convert_sklearn
+            from skl2onnx.common.data_types import FloatTensorType
+
             # Infer initial types - assume float32 input features
             # This is a reasonable default for sklearn models
             # The input shape will be (batch_size, n_features)

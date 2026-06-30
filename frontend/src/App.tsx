@@ -21,6 +21,7 @@ import {
   CrashRecoveryBanner,
   type InterruptedExperiment,
 } from "./components/CrashRecoveryBanner";
+import { getElectronApi } from "./utils/electron";
 import { fetchInterruptedExperiments } from "./utils/api";
 
 /**
@@ -36,7 +37,9 @@ import { fetchInterruptedExperiments } from "./utils/api";
 export function App(): JSX.Element {
   const {
     authStatus,
-    setBackendPort,
+    backendPort,
+    backendSecret,
+    setBackendConfig,
     setIsLoadingPort,
     setCurrentStep,
     setCurrentProjectId,
@@ -55,6 +58,20 @@ export function App(): JSX.Element {
    */
   const [isCheckingInterrupted, setIsCheckingInterrupted] = useState(false);
 
+  const refreshBackendConfig = useCallback(async (): Promise<boolean> => {
+    const [port, secret] = await Promise.all([
+      getElectronApi().getBackendPort(),
+      getElectronApi().getBackendSecret(),
+    ]);
+
+    if (port !== null && secret) {
+      setBackendConfig(port, secret);
+      return true;
+    }
+
+    return false;
+  }, [setBackendConfig]);
+
   /**
    * Fetch backend port on mount.
    */
@@ -65,21 +82,37 @@ export function App(): JSX.Element {
      */
     async function fetchBackendPort() {
       try {
-        const port = await window.electronAPI.getBackendPort();
-        if (port !== null) {
-          setBackendPort(port);
-        }
+        await refreshBackendConfig();
       } catch (error) {
-        // Port fetch failure is logged but auth flow continues
+        // Port/secret fetch failure is logged but auth flow continues
         // The app will retry or show appropriate error in AuthGate
-        console.error("Failed to fetch backend port:", error);
+        console.error("Failed to fetch backend configuration:", error);
       } finally {
         setIsLoadingPort(false);
       }
     }
 
     fetchBackendPort();
-  }, [setBackendPort, setIsLoadingPort]);
+  }, [refreshBackendConfig, setIsLoadingPort]);
+
+  useEffect(() => {
+    if (
+      authStatus !== "authenticated" ||
+      (backendPort !== null && backendSecret !== null)
+    ) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshBackendConfig().then((didRefresh) => {
+        if (didRefresh) {
+          window.clearInterval(intervalId);
+        }
+      });
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [authStatus, backendPort, backendSecret, refreshBackendConfig]);
 
   /**
    * Check for interrupted experiments after authentication.
@@ -92,7 +125,11 @@ export function App(): JSX.Element {
      * that were interrupted due to app crash or unexpected shutdown.
      */
     async function checkInterrupted() {
-      if (authStatus !== "authenticated") {
+      if (
+        authStatus !== "authenticated" ||
+        backendPort === null ||
+        backendSecret === null
+      ) {
         return;
       }
 
@@ -109,7 +146,7 @@ export function App(): JSX.Element {
     }
 
     checkInterrupted();
-  }, [authStatus]);
+  }, [authStatus, backendPort, backendSecret]);
 
   /**
    * Handle restart action - navigate to training step with the experiment.
@@ -150,6 +187,14 @@ export function App(): JSX.Element {
     return <AuthGate />;
   }
 
+  if (backendPort === null || backendSecret === null) {
+    return (
+      <div role="status" aria-live="polite" style={styles.loading}>
+        <p>Connecting to OpenNeural backend...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       {/* Crash Recovery Banner */}
@@ -181,5 +226,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "1rem 1rem 0 1rem",
     backgroundColor: "#f9fafb",
     borderBottom: "1px solid #e5e7eb",
+  },
+  loading: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+    fontFamily: "system-ui, -apple-system, sans-serif",
   },
 };

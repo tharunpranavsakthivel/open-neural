@@ -13,7 +13,7 @@
  *
  * @module crash-recovery
  */
-import { getBackendPort } from "./process-manager";
+import { getBackendPort, getBackendSecret } from "./process-manager";
 
 /**
  * Represents an interrupted experiment returned by the backend API.
@@ -67,8 +67,9 @@ export interface CrashCheckResult {
  */
 export async function checkInterruptedExperiments(): Promise<CrashCheckResult> {
   const port = getBackendPort();
+  const secret = getBackendSecret();
 
-  if (port === null) {
+  if (port === null || secret === null) {
     return {
       success: false,
       error: "Backend not available",
@@ -82,7 +83,8 @@ export async function checkInterruptedExperiments(): Promise<CrashCheckResult> {
       {
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "X-OpenNeural-Secret": secret
         }
       }
     );

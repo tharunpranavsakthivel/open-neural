@@ -54,10 +54,13 @@ import {
   createPipeline,
   fetchProjectPipelines,
   validatePipelineConfig,
+  fetchProjectSnapshots,
+  fetchSnapshotDetails,
   type PipelineValidationResult,
   type PipelineResponse,
 } from "../utils/api";
 import { useAppStore } from "../stores/appStore";
+import { usePipelineStore } from "../stores/pipelineStore";
 
 interface PipelineBuilderProps {
   /** Currently selected project ID */
@@ -418,18 +421,64 @@ export function PipelineBuilder({
     useState<string>("");
   /** Loading state for fetching saved pipelines */
   const [isLoadingPipelines, setIsLoadingPipelines] = useState(false);
+  /** Last saved or loaded pipeline ID */
+  const [lastSavedPipelineId, setLastSavedPipelineId] = useState<string | null>(null);
 
-  // TODO: Fetch actual columns from the dataset snapshot
-  const availableColumns: ColumnOption[] = [
+  // Fallback columns used when snapshot columns are unavailable or loading
+  const fallbackColumns: ColumnOption[] = useMemo(() => [
     { value: "age", label: "Age", type: "numeric" },
     { value: "income", label: "Income", type: "numeric" },
     { value: "gender", label: "Gender", type: "categorical" },
     { value: "city", label: "City", type: "categorical" },
     { value: "score", label: "Score", type: "numeric" },
-  ];
+  ], []);
 
-  // TODO: Get actual snapshot ID from current project state
-  const currentSnapshotId = "snapshot-1";
+  /** Available columns from the dataset snapshot schema */
+  const [availableColumns, setAvailableColumns] = useState<ColumnOption[]>(fallbackColumns);
+
+  /** Currently active dataset snapshot ID */
+  const [currentSnapshotId, setCurrentSnapshotId] = useState<string>("snapshot-1");
+  /** Loading state for fetching snapshot details */
+  const [, setIsLoadingSnapshot] = useState(false);
+
+  /** Fetch active snapshot and its columns on mount/projectId change */
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSnapshotDetails() {
+      setIsLoadingSnapshot(true);
+      try {
+        const snapshots = await fetchProjectSnapshots(projectId);
+        if (!isMounted) return;
+        if (snapshots && snapshots.length > 0) {
+          // Results are ordered by creation time oldest first, so last is the latest
+          const latestSnapshot = snapshots[snapshots.length - 1];
+          setCurrentSnapshotId(latestSnapshot.id);
+
+          const details = await fetchSnapshotDetails(projectId, latestSnapshot.id);
+          if (!isMounted) return;
+          if (details && details.schema) {
+            const cols = details.schema.map((col) => ({
+              value: col.name,
+              label: col.name.charAt(0).toUpperCase() + col.name.slice(1),
+              type: col.inferred_type === "numeric" || col.inferred_type === "integer" || col.inferred_type === "float" ? "numeric" : "categorical",
+            }));
+            setAvailableColumns(cols);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load snapshot details:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingSnapshot(false);
+        }
+      }
+    }
+
+    void loadSnapshotDetails();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
 
   /** Configure DndKit sensors */
   const sensors = useSensors(
@@ -663,11 +712,12 @@ export function PipelineBuilder({
       }
 
       // Save the pipeline
-      await createPipeline(projectId, {
+      const savedPipeline = await createPipeline(projectId, {
         snapshot_id: currentSnapshotId,
         blocks: blocksToApiFormat(blocks),
       });
 
+      setLastSavedPipelineId(savedPipeline.id);
       setIsSaved(true);
       showSuccessToast("Pipeline saved successfully");
 
@@ -708,7 +758,8 @@ export function PipelineBuilder({
 
       setBlocks(savedBlocks);
       setSelectedBlockId(null);
-      setIsSaved(false);
+      setIsSaved(true);
+      setLastSavedPipelineId(pipelineId);
       showSuccessToast("Pipeline loaded successfully");
     },
     [savedPipelines, showSuccessToast],
@@ -898,7 +949,12 @@ export function PipelineBuilder({
               {isSaved && onComplete && (
                 <button
                   style={styles.nextButton}
-                  onClick={onComplete}
+                  onClick={() => {
+                    if (lastSavedPipelineId) {
+                      usePipelineStore.getState().setSavedPipelineId(lastSavedPipelineId);
+                    }
+                    onComplete();
+                  }}
                   type="button"
                 >
                   Next →

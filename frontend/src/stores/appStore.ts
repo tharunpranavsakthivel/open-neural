@@ -61,7 +61,7 @@ export interface AppState {
   /** Current toast message */
   toast: { message: string; type: "success" | "error" } | null;
   /** Ephemeral secret for backend API authentication */
-  backendSecret: string;
+  backendSecret: string | null;
 }
 
 /**
@@ -70,6 +70,8 @@ export interface AppState {
 export interface AppActions {
   /** Set the backend port */
   setBackendPort: (port: number) => void;
+  /** Set the backend port and secret together */
+  setBackendConfig: (port: number, secret: string) => void;
   /** Set loading state for port fetch */
   setIsLoadingPort: (loading: boolean) => void;
   /** Set authentication status */
@@ -122,7 +124,7 @@ const initialState: AppState = {
   projects: [],
   isProjectModalOpen: false,
   toast: null,
-  backendSecret: "dev-secret",
+  backendSecret: null,
 };
 
 /**
@@ -136,6 +138,12 @@ export const useAppStore = create<AppStore>((set) => ({
   setBackendPort: (port: number) =>
     set(() => ({
       backendPort: port,
+    })),
+
+  setBackendConfig: (port: number, secret: string) =>
+    set(() => ({
+      backendPort: port,
+      backendSecret: secret,
     })),
 
   setIsLoadingPort: (loading: boolean) =>
@@ -245,6 +253,6 @@ export function getCurrentProjectId(): string | null {
   return useAppStore.getState().currentProjectId;
 }
 
-export function getBackendSecret(): string {
+export function getBackendSecret(): string | null {
   return useAppStore.getState().backendSecret;
 }

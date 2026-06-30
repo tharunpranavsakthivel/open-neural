@@ -656,17 +656,31 @@ def compute_metrics_with_threshold(
     Returns:
         dict: Metrics containing precision, recall, and f1.
     """
+    # Convert y_true to numpy array if it isn't already
+    y_true_arr = np.asarray(y_true)
+
     # Apply threshold to get binary predictions
     y_pred_thresh = (y_proba >= threshold).astype(int)
 
+    # Map y_true to binary integers (0 and 1) if it contains strings or other types
+    unique_classes = np.unique(y_true_arr)
+    if len(unique_classes) == 2:
+        positive_class = sorted(unique_classes)[1]
+        y_true_binary = (y_true_arr == positive_class).astype(int)
+    else:
+        try:
+            y_true_binary = y_true_arr.astype(int)
+        except (ValueError, TypeError):
+            y_true_binary = y_true_arr
+
     # Compute metrics using weighted average for compatibility
     precision = float(
-        precision_score(y_true, y_pred_thresh, average="weighted", zero_division=0)
+        precision_score(y_true_binary, y_pred_thresh, average="weighted", zero_division=0)
     )
     recall = float(
-        recall_score(y_true, y_pred_thresh, average="weighted", zero_division=0)
+        recall_score(y_true_binary, y_pred_thresh, average="weighted", zero_division=0)
     )
-    f1 = float(f1_score(y_true, y_pred_thresh, average="weighted", zero_division=0))
+    f1 = float(f1_score(y_true_binary, y_pred_thresh, average="weighted", zero_division=0))
 
     return {
         "precision": round(precision, 4),

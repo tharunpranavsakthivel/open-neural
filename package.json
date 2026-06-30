@@ -10,8 +10,8 @@
   ],
   "scripts": {
     "install:all": "npm install && npm run install:python",
-    "install:python": "python3.11 -m venv .venv && . .venv/bin/activate && pip install -e backend",
-    "dev": "npm-run-all --parallel dev:*",
+    "install:python": "python3.13 -m venv .venv && . .venv/bin/activate && pip install -e backend && pip install -r backend/requirements.txt",
+    "dev": "npm-run-all --parallel dev:frontend dev:electron",
     "dev:frontend": "npm run dev -w frontend",
     "dev:electron": "npm run dev -w electron",
     "dev:backend": "npm run dev -w backend",

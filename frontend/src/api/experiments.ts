@@ -7,6 +7,7 @@
  * @module api/experiments
  */
 import { getApiClient } from "./client";
+import { getCurrentProjectId } from "../stores/appStore";
 
 /**
  * Training time estimate response from the backend.
@@ -187,10 +188,15 @@ export async function createExperiment(
  */
 export async function startExperiment(
   experimentId: string,
+  projectId?: string,
 ): Promise<StartExperimentResponse> {
   const client = getApiClient();
+  const projId = projectId || getCurrentProjectId();
+  if (!projId) {
+    throw new Error("No active project ID found to start experiment.");
+  }
   const response = await client.post<StartExperimentResponse>(
-    `/experiments/${experimentId}/start`,
+    `/projects/${projId}/experiments/${experimentId}/start`,
   );
   return response.data;
 }
@@ -205,10 +211,15 @@ export async function startExperiment(
  */
 export async function cancelExperiment(
   experimentId: string,
+  projectId?: string,
 ): Promise<CancelExperimentResponse> {
   const client = getApiClient();
+  const projId = projectId || getCurrentProjectId();
+  if (!projId) {
+    throw new Error("No active project ID found to cancel experiment.");
+  }
   const response = await client.delete<CancelExperimentResponse>(
-    `/experiments/${experimentId}/cancel`,
+    `/projects/${projId}/experiments/${experimentId}/cancel`,
   );
   return response.data;
 }

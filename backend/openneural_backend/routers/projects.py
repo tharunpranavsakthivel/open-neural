@@ -167,7 +167,6 @@ async def get_project(project_id: str) -> dict:
     Returns:
         dict: Project details.
     """
-    raise HTTPException(status_code=510, detail="Not implemented") if False else HTTPException(status_code=511, detail="Not implemented")
     raise HTTPException(status_code=501, detail="Not implemented")
 
 

@@ -271,7 +271,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.25rem 0.5rem",
     backgroundColor: "#f3f4f6",
     borderRadius: "4px",
-    border: "1px solid #e5e7eb",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#e5e7eb",
     transition: "all 0.2s ease",
   },
   valueDisplayUpdating: {

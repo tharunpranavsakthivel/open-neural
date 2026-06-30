@@ -236,7 +236,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     padding: "0.75rem",
-    border: "1px solid #d1d5db",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#d1d5db",
     borderRadius: "6px",
     fontSize: "0.875rem",
     lineHeight: 1.5,

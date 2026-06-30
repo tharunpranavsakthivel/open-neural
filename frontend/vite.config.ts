@@ -3,8 +3,7 @@
  *
  * Exports the Vite config consumed by the frontend workspace. The relative base
  * path keeps built assets loadable from Electron's file protocol. Server port is
- * set to 0 to allow dynamic port allocation, preventing conflicts when running
- * alongside other development services.
+ * fixed so the Electron main process can load the development renderer URL.
  */
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
@@ -15,9 +14,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "127.0.0.1",
-    // Port 0 allows dynamic allocation to avoid conflicts
-    port: 0,
-    strictPort: false
+    // Keep this in sync with OPENNEURAL_RENDERER_URL in electron/package.json.
+    port: 49273,
+    strictPort: true
   },
   build: {
     // Output to dist/ for Electron packaging
@@ -34,4 +33,3 @@ export default defineConfig({
     cache: false
   }
 });
-

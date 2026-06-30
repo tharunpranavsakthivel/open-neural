@@ -40,7 +40,7 @@ interface SystemInfo {
  * @returns The settings screen component
  */
 export function Settings(): JSX.Element {
-  const { backendPort, authState, showSuccessToast, showErrorToast } =
+  const { backendPort, backendSecret, authState, showSuccessToast, showErrorToast } =
     useAppStore();
 
   // System info state
@@ -78,8 +78,7 @@ export function Settings(): JSX.Element {
           {
             headers: {
               "Content-Type": "application/json",
-              // Development mode - secret may not be required
-              "X-OpenNeural-Secret": "dev-secret",
+              "X-OpenNeural-Secret": backendSecret,
             },
           },
         );
@@ -102,7 +101,7 @@ export function Settings(): JSX.Element {
     }
 
     fetchSystemInfo();
-  }, [backendPort]);
+  }, [backendPort, backendSecret]);
 
   /**
    * Format RAM value for display.

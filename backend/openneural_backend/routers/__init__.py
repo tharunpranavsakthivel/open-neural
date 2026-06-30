@@ -7,6 +7,7 @@ from openneural_backend.routers.auth import router as auth_router
 from openneural_backend.routers.dashboard import router as dashboard_router
 from openneural_backend.routers.evaluation import router as evaluation_router
 from openneural_backend.routers.experiments import router as experiments_router
+from openneural_backend.routers.experiments import global_router as experiments_global_router
 from openneural_backend.routers.exports import router as exports_router
 from openneural_backend.routers.leaderboard import router as leaderboard_router
 from openneural_backend.routers.pipelines import router as pipelines_router
@@ -22,6 +23,7 @@ __all__ = [
     "snapshots_router",
     "pipelines_router",
     "experiments_router",
+    "experiments_global_router",
     "evaluation_router",
     "leaderboard_router",
     "exports_router",

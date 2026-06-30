@@ -4,6 +4,7 @@ Provides endpoints for preprocessing pipeline management: create, list, get, val
 """
 
 import json
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -64,12 +65,50 @@ class PipelineResponse(BaseModel):
     created_at: str
 
 
+class ValidationMessage(BaseModel):
+    """Validation message with an optional block index."""
+
+    block_index: int | None = Field(None, description="Index of the block that triggered this message")
+    message: str = Field(..., description="The warning or error message")
+
+
 class ValidationResult(BaseModel):
     """Pipeline validation result."""
 
     valid: bool
-    warnings: list[str]
-    errors: list[str]
+    warnings: list[ValidationMessage]
+    errors: list[ValidationMessage]
+
+
+class PipelineValidationRequest(BaseModel):
+    """Request model for transient, unsaved pipeline validation."""
+
+    snapshot_id: str = Field(..., description="ID of the dataset snapshot to use")
+    blocks: list[PipelineBlockConfig] = Field(
+        ..., description="Ordered list of pipeline blocks"
+    )
+
+    @field_validator("blocks")
+    @classmethod
+    def validate_blocks_not_empty(
+        cls, v: list[PipelineBlockConfig]
+    ) -> list[PipelineBlockConfig]:
+        """Validate that blocks list is not empty."""
+        if not v:
+            raise ValueError("Pipeline must contain at least one block")
+        return v
+
+
+def parse_validation_messages(messages: list[str]) -> list[ValidationMessage]:
+    """Parse string-based validation messages into ValidationMessage objects,
+    extracting any block index if present in the message.
+    """
+    parsed = []
+    for msg in messages:
+        match = re.search(r"index\s*:?\s*(\d+)", msg, re.IGNORECASE)
+        block_index = int(match.group(1)) if match else None
+        parsed.append(ValidationMessage(block_index=block_index, message=msg))
+    return parsed
 
 
 @router.post(
@@ -180,6 +219,72 @@ async def create_pipeline(
         config_json=config_dict,
         validated=bool(pipeline.validated),
         created_at=pipeline.created_at.isoformat(),
+    )
+
+
+@router.post(
+    "/validate",
+    response_model=ValidationResult,
+    summary="Validate pipeline config on-the-fly (dry run)",
+    description="Validates an unsaved preprocessing pipeline config against its dataset snapshot schema, returning lists of warnings and errors.",
+    responses={
+        200: {"description": "Successfully validated pipeline config."},
+        404: {"description": "Project or snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
+)
+async def validate_transient_pipeline(
+    project_id: str,
+    request: PipelineValidationRequest,
+    session: AsyncSession = Depends(get_async_session),
+) -> ValidationResult:
+    """Validate a transient, unsaved pipeline configuration against its snapshot schema."""
+    # Validate project exists
+    project_result = await session.execute(
+        select(Project).where(Project.id == project_id)
+    )
+    project = project_result.scalar_one_or_none()
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project '{project_id}' not found",
+        )
+
+    # Validate snapshot exists and belongs to this project
+    snapshot_result = await session.execute(
+        select(DatasetSnapshot).where(
+            DatasetSnapshot.id == request.snapshot_id,
+            DatasetSnapshot.project_id == project_id,
+        )
+    )
+    snapshot = snapshot_result.scalar_one_or_none()
+    if snapshot is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Snapshot '{request.snapshot_id}' not found in project '{project_id}'",
+        )
+
+    # Parse schema JSON to get column names
+    try:
+        schema = json.loads(snapshot.schema_json)
+        schema_columns = [col["name"] for col in schema if isinstance(col, dict)]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        schema_columns = []
+
+    # Run validation
+    blocks_dict_list = [
+        {"type": block.type, "params": block.params}
+        for block in request.blocks
+    ]
+    validation_result = validate_pipeline(
+        blocks=blocks_dict_list,
+        schema_columns=schema_columns if schema_columns else None,
+    )
+
+    return ValidationResult(
+        valid=validation_result["valid"],
+        warnings=parse_validation_messages(validation_result["warnings"]),
+        errors=parse_validation_messages(validation_result["errors"]),
     )
 
 
@@ -397,7 +502,7 @@ async def validate_pipeline_endpoint(
         return ValidationResult(
             valid=False,
             warnings=[],
-            errors=["Invalid pipeline configuration JSON"],
+            errors=[ValidationMessage(message="Invalid pipeline configuration JSON")],
         )
 
     # Parse schema
@@ -415,6 +520,7 @@ async def validate_pipeline_endpoint(
 
     return ValidationResult(
         valid=validation_result["valid"],
-        warnings=validation_result["warnings"],
-        errors=validation_result["errors"],
+        warnings=parse_validation_messages(validation_result["warnings"]),
+        errors=parse_validation_messages(validation_result["errors"]),
     )
+

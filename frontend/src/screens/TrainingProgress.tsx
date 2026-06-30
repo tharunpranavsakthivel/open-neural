@@ -124,14 +124,20 @@ export function TrainingProgress({
      */
     async function initializeSSE(): Promise<void> {
       try {
-        // Get backend port from Electron API
-        const port = await window.electronAPI.getBackendPort();
+        // Get backend port and secret from Electron API
+        const [port, secret] = await Promise.all([
+          window.electronAPI.getBackendPort(),
+          window.electronAPI.getBackendSecret(),
+        ]);
         if (port === null) {
           throw new Error("Backend port not available");
         }
+        if (!secret) {
+          throw new Error("Backend secret not available");
+        }
 
-        // Construct SSE endpoint URL
-        const sseUrl = `http://127.0.0.1:${port}/api/v1/experiments/${experimentId}/stream`;
+        // Construct SSE endpoint URL with secret query parameter (since browser EventSource cannot send custom headers)
+        const sseUrl = `http://127.0.0.1:${port}/api/v1/experiments/${experimentId}/stream?secret=${encodeURIComponent(secret)}`;
 
         // Create EventSource connection
         const eventSource = new EventSource(sseUrl);
@@ -146,7 +152,10 @@ export function TrainingProgress({
         // Handle incoming messages
         eventSource.onmessage = (event: MessageEvent) => {
           try {
-            const payload = JSON.parse(event.data) as SSEStatusUpdate;
+            const data = JSON.parse(event.data);
+            const payload = data && typeof data === "object" && "payload" in data
+              ? (data.payload as SSEStatusUpdate)
+              : (data as SSEStatusUpdate);
 
             // Validate payload structure
             if (

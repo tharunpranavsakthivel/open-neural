@@ -8,12 +8,13 @@
  * Security configuration:
  * - nodeIntegration: false - Prevents renderer from accessing Node.js APIs
  * - contextIsolation: true - Isolates preload context from renderer
- * - sandbox: true - Runs renderer in OS sandbox
+ * - sandbox: false - Allows the preload bridge to run with Electron IPC
  * - allowRunningInsecureContent: false - Prevents loading insecure content
  * - CSP via headers: Prevents inline scripts and external resource loading
  */
 import path from "node:path";
 import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { app, BrowserWindow, session, ipcMain, dialog, shell } from "electron";
 import {
   checkAuthState,
@@ -79,32 +80,70 @@ export function getEphemeralSecret(): string {
 }
 
 /**
- * Content Security Policy string preventing inline scripts and external
- * resource loading as per FR-APP security requirements (TDD §5.1).
+ * Content Security Policy strings preventing unexpected resource loading as per
+ * FR-APP security requirements (TDD §5.1).
  *
  * - default-src 'self': All resources must come from the app itself
  * - script-src 'self': Scripts can only be loaded from the app's origin
+ *   (development adds 'unsafe-inline' for Vite's React refresh preamble)
  * - style-src 'self' 'unsafe-inline': Styles from app, inline styles allowed
  *   (needed for CSS-in-JS libraries used by the React frontend)
  * - img-src 'self' data:: Images from app or data URIs
  * - connect-src 'self' http://127.0.0.1:*: API calls to local backend only
+ *   (development adds websocket localhost access for Vite HMR)
  * - font-src 'self': Fonts from app only
- * - frame-ancestors 'none': Prevents clickjacking
+ * - frame-ancestors 'none': Prevents clickjacking when delivered as a header
  * - base-uri 'self': Restricts base element
  * - form-action 'self': Form submissions to same origin only
  */
-const CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:*; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+const PRODUCTION_META_CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:*; font-src 'self'; base-uri 'self'; form-action 'self'";
+const DEVELOPMENT_META_CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; font-src 'self'; base-uri 'self'; form-action 'self'";
+
+/**
+ * Determines whether the renderer is loaded from a Vite development server.
+ *
+ * @returns True when Electron is configured to load a development renderer URL
+ */
+function isDevelopmentRenderer(): boolean {
+  return process.env.OPENNEURAL_RENDERER_URL !== undefined &&
+    process.env.OPENNEURAL_RENDERER_URL.length > 0;
+}
+
+/**
+ * Returns the CSP content that is safe for the current renderer mode.
+ *
+ * @returns Meta-compatible Content Security Policy value
+ */
+function getMetaContentSecurityPolicy(): string {
+  if (isDevelopmentRenderer()) {
+    return DEVELOPMENT_META_CONTENT_SECURITY_POLICY;
+  }
+
+  return PRODUCTION_META_CONTENT_SECURITY_POLICY;
+}
+
+/**
+ * Returns the response-header CSP for the current renderer mode.
+ *
+ * @returns Header-compatible Content Security Policy value
+ */
+function getHeaderContentSecurityPolicy(): string {
+  return `${getMetaContentSecurityPolicy()}; frame-ancestors 'none'`;
+}
 
 /**
  * Additional security headers applied to all web responses.
  */
 const SECURITY_HEADERS: Record<string, string> = {
-  "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+  "Content-Security-Policy": getHeaderContentSecurityPolicy(),
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin"
 };
+
+const RENDERER_LOAD_RETRY_COUNT = 30;
+const RENDERER_LOAD_RETRY_DELAY_MS = 500;
 
 /**
  * Configure security headers for all HTTP responses via webRequest API.
@@ -122,12 +161,59 @@ function configureSecurityHeaders(): void {
 }
 
 /**
+ * Waits for a fixed number of milliseconds before retrying renderer startup.
+ *
+ * @param delayMs - Number of milliseconds to wait
+ * @returns Promise that resolves after the requested delay
+ */
+function delay(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
+/**
+ * Loads the configured renderer URL with retry support for development mode.
+ *
+ * Root development starts Vite and Electron concurrently, so the Electron
+ * window may be created before the Vite server is accepting connections.
+ *
+ * @param mainWindow - BrowserWindow that should load the renderer
+ * @param rendererUrl - Vite or custom renderer URL to load
+ * @returns Promise that resolves when the renderer has loaded
+ */
+async function loadRendererUrlWithRetry(
+  mainWindow: BrowserWindow,
+  rendererUrl: string
+): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= RENDERER_LOAD_RETRY_COUNT; attempt += 1) {
+    try {
+      await mainWindow.loadURL(rendererUrl);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `Renderer URL not ready (${attempt}/${RENDERER_LOAD_RETRY_COUNT}): ${rendererUrl}`
+      );
+      await delay(RENDERER_LOAD_RETRY_DELAY_MS);
+    }
+  }
+
+  throw new Error(
+    `Unable to load renderer URL after ${RENDERER_LOAD_RETRY_COUNT} attempts: ${rendererUrl}`,
+    { cause: lastError }
+  );
+}
+
+/**
  * Creates the initial application window and loads the renderer shell.
  *
  * Configures BrowserWindow with security settings per FR-APP requirements:
  * - nodeIntegration: false (prevents Node.js access in renderer)
  * - contextIsolation: true (isolates preload from renderer context)
- * - sandbox: true (enables OS-level sandbox)
+ * - sandbox: false (preload bridge requires Electron IPC access)
  * - allowRunningInsecureContent: false (blocks insecure mixed content)
  * - webSecurity: true (enforces same-origin policy)
  *
@@ -140,6 +226,7 @@ function configureSecurityHeaders(): void {
 function createMainWindow(): BrowserWindow {
   // Load saved window state or use defaults (Task 25)
   const windowState = loadWindowState();
+  const preloadPath = path.join(__dirname, "preload.js");
 
   const mainWindow = new BrowserWindow({
     width: windowState.width,
@@ -149,13 +236,21 @@ function createMainWindow(): BrowserWindow {
     minWidth: 960,
     minHeight: 640,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
       allowRunningInsecureContent: false,
       webSecurity: true
     }
+  });
+
+  if (!existsSync(preloadPath)) {
+    console.error(`Electron preload file does not exist: ${preloadPath}`);
+  }
+
+  mainWindow.webContents.on("preload-error", (_event, failedPreloadPath, error) => {
+    console.error(`Electron preload failed: ${failedPreloadPath}`, error);
   });
 
   // Restore maximized/fullscreen state if applicable (Task 25)
@@ -186,7 +281,7 @@ function createMainWindow(): BrowserWindow {
       (function() {
         const meta = document.createElement('meta');
         meta.httpEquiv = 'Content-Security-Policy';
-        meta.content = ${JSON.stringify(CONTENT_SECURITY_POLICY)};
+        meta.content = ${JSON.stringify(getMetaContentSecurityPolicy())};
         document.head.insertBefore(meta, document.head.firstChild);
       })();
     `);
@@ -194,7 +289,10 @@ function createMainWindow(): BrowserWindow {
 
   const rendererUrl = process.env.OPENNEURAL_RENDERER_URL;
   if (rendererUrl !== undefined && rendererUrl.length > 0) {
-    void mainWindow.loadURL(rendererUrl);
+    void loadRendererUrlWithRetry(mainWindow, rendererUrl).catch((error) => {
+      console.error("Failed to load renderer URL:", error);
+      void mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+    });
     return mainWindow;
   }
 
@@ -220,6 +318,14 @@ function registerIpcHandlers(): void {
    */
   ipcMain.handle("auth:check-state", async () => {
     return checkAuthState();
+  });
+
+  /**
+   * Handler: auth:get-backend-secret
+   * Returns the ephemeral secret generated on app start.
+   */
+  ipcMain.handle("auth:get-backend-secret", () => {
+    return getEphemeralSecret();
   });
 
   /**
@@ -373,6 +479,69 @@ function registerIpcHandlers(): void {
 
     return filePaths[0];
   });
+
+  /**
+   * Handler: dataset:upload
+   * Streams a local dataset file to the backend snapshot upload API.
+   * Resolves the 400 Bad Request issue by reading the file directly from
+   * Node.js and uploading it via local multipart/form-data.
+   */
+  ipcMain.handle(
+    "dataset:upload",
+    async (_event, projectId: string, filePath: string) => {
+      if (typeof filePath !== "string" || filePath.length === 0) {
+        throw new Error("Invalid path: path must be a non-empty string");
+      }
+
+      const { openAsBlob } = (await import("node:fs")) as any;
+      const path = await import("node:path");
+
+      const port = getBackendPort();
+      if (!port) {
+        throw new Error("Backend port not available");
+      }
+
+      const secret = getEphemeralSecret();
+      if (!secret) {
+        throw new Error("Backend secret not available");
+      }
+
+      // Check if file exists
+      const fs = await import("node:fs");
+      try {
+        await fs.promises.access(filePath);
+      } catch {
+        throw new Error(`File does not exist: ${filePath}`);
+      }
+
+      // Read file cleanly as a streaming blob (safe for files up to 2GB)
+      const blob = await openAsBlob(filePath);
+      const GFormData = (globalThis as any).FormData;
+      const Gfetch = (globalThis as any).fetch;
+      const formData = new GFormData();
+      formData.append("file", blob, path.basename(filePath));
+
+      const url = `http://127.0.0.1:${port}/api/v1/projects/${projectId}/snapshots`;
+      const response = await Gfetch(url, {
+        method: "POST",
+        headers: {
+          "X-OpenNeural-Secret": secret,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Upload failed: ${response.status} ${response.statusText}${
+            errorText ? ` - ${errorText}` : ""
+          }`
+        );
+      }
+
+      return response.json();
+    }
+  );
 
   // Shell handlers (Task 196)
 

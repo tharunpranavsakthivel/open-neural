@@ -79,9 +79,17 @@ export async function createPipeline(
   request: CreatePipelineRequest,
 ): Promise<PipelineResponse> {
   const client = getApiClient();
+  const backendPayload = {
+    snapshot_id: request.snapshot_id,
+    config: {
+      snapshot_id: request.snapshot_id,
+      blocks: request.blocks,
+    },
+    name: null,
+  };
   const response = await client.post<PipelineResponse>(
     `/projects/${projectId}/pipelines`,
-    request,
+    backendPayload,
   );
   return response.data;
 }

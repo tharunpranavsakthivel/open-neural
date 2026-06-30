@@ -52,6 +52,17 @@ export interface CreateProjectResponse {
   project: Project;
 }
 
+function mapProject(raw: any): Project {
+  if (!raw) return raw;
+  return {
+    id: raw.id,
+    name: raw.name,
+    taskType: raw.task_type ?? raw.taskType,
+    experimentCount: raw.experiment_count ?? raw.experimentCount ?? 0,
+    updatedAt: raw.updated_at ?? raw.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 /**
  * Fetch all projects from the backend.
  *
@@ -61,8 +72,15 @@ export interface CreateProjectResponse {
  */
 export async function fetchProjects(): Promise<Project[]> {
   const client = getApiClient();
-  const response = await client.get<ProjectsResponse>("/projects");
-  return response.data.projects;
+  const response = await client.get<any>("/projects");
+  const data = response.data;
+  if (Array.isArray(data)) {
+    return data.map(mapProject);
+  }
+  if (data && typeof data === "object" && "projects" in data && Array.isArray(data.projects)) {
+    return data.projects.map(mapProject);
+  }
+  return [];
 }
 
 /**
@@ -92,13 +110,20 @@ export async function renameProject(
   newName: string,
 ): Promise<Project> {
   const client = getApiClient();
-  const response = await client.put<RenameProjectResponse>(
+  const response = await client.put<any>(
     `/projects/${projectId}`,
     {
       name: newName,
     },
   );
-  return response.data.project;
+  const data = response.data;
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for renameProject");
 }
 
 /**
@@ -115,13 +140,20 @@ export async function patchProject(
   newName: string,
 ): Promise<Project> {
   const client = getApiClient();
-  const response = await client.patch<RenameProjectResponse>(
+  const response = await client.patch<any>(
     `/projects/${projectId}`,
     {
       name: newName,
     },
   );
-  return response.data.project;
+  const data = response.data;
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for patchProject");
 }
 
 /**
@@ -134,10 +166,17 @@ export async function patchProject(
  */
 export async function deleteProject(projectId: string): Promise<boolean> {
   const client = getApiClient();
-  const response = await client.delete<DeleteProjectResponse>(
+  const response = await client.delete<any>(
     `/projects/${projectId}`,
   );
-  return response.data.deleted;
+  const data = response.data;
+  if (typeof data === "boolean") {
+    return data;
+  }
+  if (data && typeof data === "object" && "deleted" in data) {
+    return !!data.deleted;
+  }
+  return true;
 }
 
 /**
@@ -155,9 +194,17 @@ export async function createProject(
     "binary_classification" | "multiclass_classification" | "regression",
 ): Promise<Project> {
   const client = getApiClient();
-  const response = await client.post<CreateProjectResponse>("/projects", {
+  const mappedTaskType = taskType === "regression" ? "regression" : "classification";
+  const response = await client.post<any>("/projects", {
     name,
-    task_type: taskType,
+    task_type: mappedTaskType,
   });
-  return response.data.project;
+  const data = response.data;
+  if (data && typeof data === "object") {
+    if ("project" in data) {
+      return mapProject(data.project);
+    }
+    return mapProject(data);
+  }
+  throw new Error("Invalid response format for createProject");
 }

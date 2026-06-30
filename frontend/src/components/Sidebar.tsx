@@ -62,7 +62,7 @@ export function Sidebar({
   onGoToProjects,
   projectName,
 }: SidebarProps): JSX.Element {
-  const { backendPort } = useAppStore();
+  const { backendPort, backendSecret, currentExperimentId } = useAppStore();
   const [appVersion, setAppVersion] = useState<string>("v0.1.0");
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const navRef = useRef<HTMLElement>(null);
@@ -78,7 +78,7 @@ export function Sidebar({
           `http://127.0.0.1:${backendPort}/api/v1/health`,
           {
             headers: {
-              "X-OpenNeural-Secret": "dev-secret", // Development mode
+              "X-OpenNeural-Secret": backendSecret,
             },
           },
         );
@@ -95,20 +95,27 @@ export function Sidebar({
     }
 
     fetchVersion();
-  }, [backendPort]);
+  }, [backendPort, backendSecret]);
 
   // Get current step index
   const currentStepIndex = NAVIGATION_STEPS.findIndex(
     (step) => step.id === currentStep,
   );
 
-  // Determine if a step is accessible (current or before current)
+  // Determine if a step is accessible
   const isStepAccessible = useCallback(
     (stepIndex: number): boolean => {
       // Projects is always accessible
       if (stepIndex === 0) return true;
       // If no project selected, only Projects is accessible
       if (!currentProjectId) return false;
+
+      // If we have reached Evaluation, Leaderboard, or Export steps,
+      // then all post-training steps (5, 6, 7) are unlocked and accessible.
+      if (currentStepIndex >= 5) {
+        return stepIndex <= 7;
+      }
+
       // Allow navigation to current step and any previous steps
       return stepIndex <= currentStepIndex;
     },

@@ -14,6 +14,7 @@ import { PasswordSetup } from "../screens/PasswordSetup";
 import { LoginScreen } from "../screens/LoginScreen";
 import { AppShell } from "./AppShell";
 import { Toast } from "./Toast";
+import { getElectronApi } from "../utils/electron";
 
 /**
  * AuthGate component that conditionally renders screens based on auth state.
@@ -37,7 +38,7 @@ export function AuthGate(): JSX.Element {
     // Check authentication state on mount
     async function checkAuth() {
       try {
-        const state = await window.electronAPI.checkAuthState();
+        const state = await getElectronApi().checkAuthState();
         setAuthState(state);
 
         if (state.isFirstLaunch) {

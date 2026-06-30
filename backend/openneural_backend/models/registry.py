@@ -43,6 +43,65 @@ class ModelSpec:
 MODEL_REGISTRY: dict[str, ModelSpec] = {}
 
 
+try:
+    from xgboost import XGBClassifier
+    from sklearn.preprocessing import LabelEncoder
+    import pandas as pd
+    import numpy as np
+
+    class XGBClassifierWrapper(XGBClassifier):
+        """Wrapper for XGBClassifier to transparently handle categorical target variables.
+
+        Ensures compatibility with scikit-learn metrics and Optuna adapters
+        when running classification tasks on string or object targets.
+        """
+
+        @property
+        def classes_(self):
+            if getattr(self, "_fit_completed", False) and getattr(self, "_is_encoded", False):
+                return self.label_encoder_.classes_
+            try:
+                return super().classes_
+            except AttributeError:
+                return np.array([0, 1])
+
+        def fit(self, X, y, *args, **kwargs):
+            self._fit_completed = False
+            self.label_encoder_ = LabelEncoder()
+            is_categorical = False
+
+            if hasattr(y, "dtype"):
+                if y.dtype == object or y.dtype.name == "category" or y.dtype == bool:
+                    is_categorical = True
+            elif isinstance(y, (list, np.ndarray)) and len(y) > 0:
+                if isinstance(y[0], (str, bool)):
+                    is_categorical = True
+
+            if is_categorical:
+                y_encoded = self.label_encoder_.fit_transform(y)
+                self._is_encoded = True
+            else:
+                y_encoded = y
+                self._is_encoded = False
+
+            super().fit(X, y_encoded, *args, **kwargs)
+            self._fit_completed = True
+
+            return self
+
+        def predict(self, X, *args, **kwargs):
+            preds = super().predict(X, *args, **kwargs)
+            if getattr(self, "_is_encoded", False):
+                return self.label_encoder_.inverse_transform(preds)
+            return preds
+
+        def predict_proba(self, X, *args, **kwargs):
+            return super().predict_proba(X, *args, **kwargs)
+except ImportError:
+    XGBClassifierWrapper = None
+
+
+
 def register_model(key: str, spec: ModelSpec) -> None:
     """Register a model specification in the MODEL_REGISTRY.
 
@@ -246,7 +305,7 @@ def _register_builtin_models() -> None:
             register_model(
                 "xgboost",
                 ModelSpec(
-                    model_class=XGBClassifier,
+                    model_class=XGBClassifierWrapper,
                     task_types=["classification"],
                     default_params={"random_state": 42, "n_jobs": -1},
                     search_space={

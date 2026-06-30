@@ -8,6 +8,7 @@
  * @module screens/ExportPanel
  */
 import { useState, useCallback, useEffect } from "react";
+import { getBackendSecret } from "../stores/appStore";
 
 /**
  * Props for the ExportPanel component.
@@ -76,6 +77,16 @@ function getUsername(): string {
   // Try to extract from user agent or use common defaults
   // In a real Electron app, this would use process.env.USER or os.userInfo()
   return "user";
+}
+
+function requireBackendSecret(): string {
+  const secret = getBackendSecret();
+
+  if (!secret) {
+    throw new Error("Backend secret not available");
+  }
+
+  return secret;
 }
 
 /**
@@ -265,12 +276,14 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
 
       // Call export API
       const baseUrl = await getBaseUrl();
+      const backendSecret = requireBackendSecret();
       const response = await fetch(
         `${baseUrl}/api/v1/experiments/${experimentId}/export`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-OpenNeural-Secret": backendSecret,
           },
           body: JSON.stringify({
             artifacts: selectedArtifacts,
@@ -352,12 +365,14 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
 
       // Call export API with all artifacts
       const baseUrl = await getBaseUrl();
+      const backendSecret = requireBackendSecret();
       const response = await fetch(
         `${baseUrl}/api/v1/experiments/${experimentId}/export`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-OpenNeural-Secret": backendSecret,
           },
           body: JSON.stringify({
             artifacts: allArtifacts,
@@ -412,12 +427,14 @@ export function ExportPanel({ experimentId }: ExportPanelProps): JSX.Element {
 
         // Call export API with single artifact
         const baseUrl = await getBaseUrl();
+        const backendSecret = requireBackendSecret();
         const response = await fetch(
           `${baseUrl}/api/v1/experiments/${experimentId}/export`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "X-OpenNeural-Secret": backendSecret,
             },
             body: JSON.stringify({
               artifacts: [artifactType],

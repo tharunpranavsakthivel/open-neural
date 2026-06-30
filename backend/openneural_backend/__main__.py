@@ -122,10 +122,12 @@ def main() -> None:
         f"OpenNeural backend starting up. Port: {port}, Data Directory: {data_dir}"
     )
 
-    # Generate and set the ephemeral secret for authentication
+    # Get or generate the ephemeral secret for authentication
     # This is passed via environment variable so the middleware can validate requests
-    ephemeral_secret = generate_secret()
-    os.environ["OPENNEURAL_SECRET"] = ephemeral_secret
+    ephemeral_secret = os.environ.get("OPENNEURAL_SECRET")
+    if not ephemeral_secret:
+        ephemeral_secret = generate_secret()
+        os.environ["OPENNEURAL_SECRET"] = ephemeral_secret
 
     # Print the port and secret for the parent process to parse
     # This must happen before Uvicorn starts, as it blocks

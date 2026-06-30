@@ -703,3 +703,98 @@ async def estimate_experiment_time(
         candidate_count=candidate_count,
         automl_config=automl_config,
     )
+
+
+class TrainingTimeEstimateRequest(BaseModel):
+    """Request model for transient training time estimation."""
+
+    pipeline_id: str = Field(..., description="ID of the pipeline to use for estimation")
+    candidate_models: list[str] = Field(..., description="Selected model keys")
+    max_trials: int = Field(25, description="Maximum number of AutoML trials", ge=1)
+    cv_folds: int = Field(5, description="Number of cross-validation folds", ge=2)
+
+
+class TrainingTimeEstimateResponse(BaseModel):
+    """Response model for transient training time estimation."""
+
+    estimated_minutes: float
+    is_advisory: bool = True
+    model_count: int
+    row_count: int
+    col_count: int
+
+
+global_router = APIRouter(prefix="/experiments", tags=["experiments"])
+
+
+@global_router.post(
+    "/estimate",
+    response_model=TrainingTimeEstimateResponse,
+    summary="Estimate training time before creating experiment",
+    description="Calculates training time estimate from transient pipeline and model configurations.",
+    responses={
+        200: {"description": "Successfully calculated transient training time estimate."},
+        404: {"description": "Pipeline or dataset snapshot not found."},
+        500: {"description": "Internal server error."}
+    }
+)
+async def estimate_transient_time(
+    request: TrainingTimeEstimateRequest,
+    session: AsyncSession = Depends(get_async_session),
+) -> TrainingTimeEstimateResponse:
+    """Estimate training time from a transient pipeline configuration."""
+    import json
+    from openneural_backend.db.models import DatasetSnapshot
+
+    # 1. Fetch the pipeline
+    pipeline_result = await session.execute(
+        select(Pipeline).where(Pipeline.id == request.pipeline_id)
+    )
+    pipeline = pipeline_result.scalar_one_or_none()
+    if pipeline is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Pipeline '{request.pipeline_id}' not found",
+        )
+
+    # 2. Fetch the snapshot
+    snapshot_result = await session.execute(
+        select(DatasetSnapshot).where(DatasetSnapshot.id == pipeline.snapshot_id)
+    )
+    snapshot = snapshot_result.scalar_one_or_none()
+    if snapshot is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Snapshot '{pipeline.snapshot_id}' not found",
+        )
+
+    # 3. Get feature count from schema
+    try:
+        schema = json.loads(snapshot.schema_json)
+        # Subtract 1 for target column
+        feature_count = max(1, len(schema) - 1)
+    except (json.JSONDecodeError, TypeError):
+        feature_count = 1
+
+    # 4. Estimate training time
+    automl_config = {
+        "max_trials": request.max_trials,
+        "cv_folds": request.cv_folds,
+    }
+    estimated_seconds = estimate_training_time(
+        row_count=snapshot.row_count,
+        feature_count=feature_count,
+        candidate_count=len(request.candidate_models),
+        automl_config=automl_config,
+    )
+
+    estimated_minutes = estimated_seconds / 60.0
+
+    return TrainingTimeEstimateResponse(
+        estimated_minutes=round(estimated_minutes, 1),
+        is_advisory=True,
+        model_count=len(request.candidate_models),
+        row_count=snapshot.row_count,
+        col_count=snapshot.col_count,
+    )
+

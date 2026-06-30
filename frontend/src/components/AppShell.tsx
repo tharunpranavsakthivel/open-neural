@@ -19,6 +19,7 @@ import { Evaluation } from "../screens/Evaluation";
 import { Leaderboard } from "../screens/Leaderboard";
 import { Export } from "../screens/Export";
 import { Settings } from "../screens/Settings";
+import { usePipelineStore } from "../stores/pipelineStore";
 
 /**
  * Main application shell component.
@@ -40,6 +41,8 @@ export function AppShell(): JSX.Element {
     selectProject,
     goToProjects,
   } = useAppStore();
+
+  const savedPipelineId = usePipelineStore((state) => state.savedPipelineId);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
@@ -94,7 +97,7 @@ export function AppShell(): JSX.Element {
       model: (
         <ModelSelection
           projectId={currentProjectId}
-          pipelineId="mock-pipeline-id"
+          pipelineId={savedPipelineId || "mock-pipeline-id"}
           onStartTraining={handleStartTraining}
         />
       ),

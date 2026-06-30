@@ -336,3 +336,53 @@ async def test_verify_snapshot_integrity_and_checksum_exceptions(
 
     with pytest.raises(DatasetImportError, match="Stored file not found"):
         await verify_snapshot_checksum(snap.id)
+
+
+@pytest.mark.anyio
+async def test_verify_snapshot_checksum_self_healing(
+    tmp_data_dir: Path, db_session: AsyncSession, sample_project: Project
+) -> None:
+    """Verify that a legacy snapshot with mismatched checksum self-heals if the file is valid."""
+    from openneural_backend.services.dataset_service import (
+        verify_snapshot_checksum,
+    )
+    import hashlib
+
+    # 1. Create a valid Parquet file
+    df = pd.DataFrame({"col_1": [1, 2], "col_2": [3, 4]})
+    parquet_path = tmp_data_dir / "legacy_dataset.parquet"
+    df.to_parquet(parquet_path)
+
+    # 2. Compute correct sha256 checksum of the file
+    with open(parquet_path, "rb") as f:
+        correct_checksum = hashlib.sha256(f.read()).hexdigest()
+
+    # 3. Create DatasetSnapshot with an intentional mismatched checksum ("legacy_checksum")
+    snap = DatasetSnapshot(
+        project_id=sample_project.id,
+        version_label="Legacy Snapshot",
+        file_name="legacy_dataset.csv",
+        original_path=str(parquet_path),
+        stored_path=str(parquet_path),
+        file_size_bytes=parquet_path.stat().st_size,
+        row_count=2,
+        col_count=2,
+        schema_json="[]",
+        checksum_sha256="legacy_incorrect_checksum_12345",
+    )
+    db_session.add(snap)
+    await db_session.commit()
+    await db_session.refresh(snap)
+
+    # 4. Verify snapshot checksum (this should trigger self-healing)
+    result = await verify_snapshot_checksum(snap.id)
+
+    # 5. Assertions
+    assert result["is_valid"] is True
+    assert result["computed_checksum"] == correct_checksum
+    assert result["stored_checksum"] == correct_checksum
+
+    # Refresh DB record and assert the database has been permanently updated
+    await db_session.refresh(snap)
+    assert snap.checksum_sha256 == correct_checksum
+

@@ -164,7 +164,7 @@ async def get_evaluation(experiment_id: str) -> dict[str, Any]:
         500: {"description": "Internal server error."}
     }
 )
-async def update_threshold(experiment_id: str, request: dict) -> dict[str, Any]:
+async def update_threshold(experiment_id: str, payload: dict) -> dict[str, Any]:
     """Update decision threshold and recalculate metrics.
 
     Accepts a new threshold value, validates it, and returns updated metrics
@@ -174,7 +174,7 @@ async def update_threshold(experiment_id: str, request: dict) -> dict[str, Any]:
 
     Args:
         experiment_id: The UUID of the experiment.
-        request: Dict containing "threshold" key with float value (0.10-0.90, step 0.05).
+        payload: Dict containing "threshold" key with float value (0.10-0.90, step 0.05).
 
     Returns:
         dict: Updated metrics (precision, recall, f1) with the new threshold.
@@ -185,7 +185,7 @@ async def update_threshold(experiment_id: str, request: dict) -> dict[str, Any]:
             or no completed runs exist.
     """
     # Extract threshold from request body
-    threshold = request.get("threshold")
+    threshold = payload.get("threshold")
     if threshold is None:
         raise HTTPException(
             status_code=400,

@@ -358,7 +358,7 @@ export function ModelSelection({
       });
 
       // Step 2: Start training
-      await startExperiment(experiment.id);
+      await startExperiment(experiment.id, projectId);
 
       // Step 3: Navigate to training step with experiment ID
       if (onStartTraining) {

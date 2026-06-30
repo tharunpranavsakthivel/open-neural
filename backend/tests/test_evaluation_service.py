@@ -109,6 +109,21 @@ async def test_threshold_adjustment_changes() -> None:
 
 
 @pytest.mark.anyio
+async def test_threshold_adjustment_with_string_labels() -> None:
+    """Verify that compute_metrics_with_threshold correctly handles string-valued y_true."""
+    y_true = np.array(["benign", "benign", "benign", "malignant", "malignant", "malignant"])
+    y_proba = np.array([0.1, 0.2, 0.7, 0.4, 0.8, 0.9])
+
+    # Threshold 0.75 maps to: benign, benign, benign, benign, malignant, malignant
+    metrics_high = compute_metrics_with_threshold(y_true, y_proba, threshold=0.75)
+    assert "precision" in metrics_high
+    assert "recall" in metrics_high
+    assert "f1" in metrics_high
+    assert metrics_high["precision"] == 0.875
+    assert metrics_high["recall"] == pytest.approx(0.8333, abs=1e-3)
+
+
+@pytest.mark.anyio
 async def test_subgroup_f1_warning_flag() -> None:
     """Verify that fairness/subgroup warning fires when subgroup F1 score is delta > 0.15 below overall."""
     # Create synthetic dataset with a protected attribute "gender"

@@ -84,6 +84,12 @@ export interface OpenNeuralElectronApi {
    */
   changePassword(currentPassword: string, newPassword: string): Promise<AuthResult>;
 
+  /**
+   * Retrieve the ephemeral backend secret for API call authentication.
+   * @returns The 64-character hex ephemeral secret
+   */
+  getBackendSecret(): Promise<string>;
+
   // Backend Process APIs (Task 18-19)
 
   /**
@@ -116,6 +122,15 @@ export interface OpenNeuralElectronApi {
    * @returns Selected directory path, or null if cancelled
    */
   openDirectoryDialog(options?: { title?: string }): Promise<string | null>;
+
+  /**
+   * Upload a dataset file from the local file system.
+   *
+   * @param projectId - The project ID
+   * @param filePath - The path to the file to upload
+   * @returns The created dataset snapshot details
+   */
+  uploadDataset(projectId: string, filePath: string): Promise<any>;
 
   // Shell APIs (Task 196)
 
@@ -179,6 +194,7 @@ const electronApi: OpenNeuralElectronApi = {
   storePassword: (password: string) => ipcRenderer.invoke("auth:store-password", password),
   changePassword: (currentPassword: string, newPassword: string) =>
     ipcRenderer.invoke("auth:change-password", currentPassword, newPassword),
+  getBackendSecret: () => ipcRenderer.invoke("auth:get-backend-secret"),
 
   // Backend Process APIs
   getBackendPort: () => ipcRenderer.invoke("backend:get-port"),
@@ -188,6 +204,8 @@ const electronApi: OpenNeuralElectronApi = {
     ipcRenderer.invoke("dialog:open-file", options),
   openDirectoryDialog: (options?: { title?: string }) =>
     ipcRenderer.invoke("dialog:open-directory", options),
+  uploadDataset: (projectId: string, filePath: string) =>
+    ipcRenderer.invoke("dataset:upload", projectId, filePath),
 
   // Shell APIs (Task 196)
   openPath: (path: string) => ipcRenderer.invoke("shell:open-path", path),

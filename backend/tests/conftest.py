@@ -286,3 +286,10 @@ async def sample_pipeline(
     await db_session.commit()
     await db_session.refresh(pipeline)
     return pipeline
+
+
+@pytest.fixture(scope="session")
+def anyio_backend() -> str:
+    """Limit anyio tests to the asyncio backend only."""
+    return "asyncio"
+

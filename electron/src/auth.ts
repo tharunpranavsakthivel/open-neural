@@ -85,7 +85,7 @@ export function getDbPath(): string {
  *
  * @returns AuthState indicating whether this is first launch
  */
-export function checkAuthState(): AuthState {
+export async function checkAuthState(): Promise<AuthState> {
   const dataDir = getDataDir();
   const dbPath = getDbPath();
 
@@ -107,14 +107,54 @@ export function checkAuthState(): AuthState {
     };
   }
 
-  // Database exists - need to check if auth table has a record
-  // For now, we assume if the DB exists, auth is set up
-  // The actual validation will check the auth table content
-  return {
-    isFirstLaunch: false,
-    dataDir,
-    dbPath
-  };
+  try {
+    const Database = (await import("better-sqlite3")).default;
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      // Check if table 'auth' exists
+      const tableCheck = db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='auth'"
+      ).get();
+
+      if (!tableCheck) {
+        return {
+          isFirstLaunch: true,
+          dataDir,
+          dbPath
+        };
+      }
+
+      // Check if there is at least one row in the auth table
+      const row = db.prepare(
+        "SELECT id FROM auth LIMIT 1"
+      ).get();
+
+      if (!row) {
+        return {
+          isFirstLaunch: true,
+          dataDir,
+          dbPath
+        };
+      }
+
+      return {
+        isFirstLaunch: false,
+        dataDir,
+        dbPath
+      };
+    } finally {
+      db.close();
+    }
+  } catch (error) {
+    // If the database is locked, corrupted, or does not have the expected schema,
+    // default to showing the setup screen.
+    console.error("Error reading database auth state:", error);
+    return {
+      isFirstLaunch: true,
+      dataDir,
+      dbPath
+    };
+  }
 }
 
 /**
